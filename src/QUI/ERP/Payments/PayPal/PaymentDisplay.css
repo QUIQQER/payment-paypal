@@ -1,0 +1,29 @@
+.quiqqer-order-ordering-step {
+    height:1000px !important;
+}
+
+.quiqqer-payment-paypal-content {
+    float: left;
+    width: 100%;
+}
+
+#quiqqer-payment-paypal-btn img {
+    max-width: 100% !important;
+}
+
+#quiqqer-payment-paypal-wallet {
+    min-width: 300px;
+    width: 100%;
+    max-width: 600px;
+    min-height: 228px;
+    height: 240px;
+    max-height: 400px;
+}
+
+#quiqqer-payment-paypal-btn-pay {
+    margin: 20px 0 0 0;
+}
+
+.quiqqer-payment-paypal__hidden {
+    display: none !important;
+}

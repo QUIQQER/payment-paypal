@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<quiqqer>
+    <settings>
+
+        <config>
+
+            <section name="api">
+                <conf name="client_id">
+                    <type><![CDATA[string]]></type>
+                </conf>
+                <conf name="client_secret">
+                    <type><![CDATA[string]]></type>
+                </conf>
+                <conf name="sandbox">
+                    <type><![CDATA[boolean]]></type>
+                    <defaultvalue>1</defaultvalue>
+                </conf>
+            </section>
+
+        </config>
+
+        <window>
+            <title>
+                <locale group="quiqqer/payment-paypal" var="settings.menu.title"/>
+            </title>
+
+            <params>
+                <icon>fa fa-paypal</icon>
+            </params>
+
+            <categories>
+                <category name="api">
+                    <icon>fa fa-cogs</icon>
+                    <title>
+                        <locale group="quiqqer/payment-paypal" var="settings.category.api.title"/>
+                    </title>
+                    <settings title="api" name="api">
+                        <title>
+                            <locale group="quiqqer/payment-paypal" var="settings.api.title"/>
+                        </title>
+
+                        <input conf="api.client_id" type="text">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.client_id.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.client_id.description"/>
+                            </description>
+                        </input>
+
+                        <input conf="api.client_secret" type="text">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.client_secret.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.client_secret.description"/>
+                            </description>
+                        </input>
+
+                        <input conf="api.sandbox" type="checkbox">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.sandbox.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.sandbox.description"/>
+                            </description>
+                        </input>
+
+                    </settings>
+                </category>
+
+            </categories>
+        </window>
+
+    </settings>
+</quiqqer>
