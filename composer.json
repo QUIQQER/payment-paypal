@@ -1,0 +1,28 @@
+{
+    "name" : "quiqqer/payment-paypal",
+    "type" : "quiqqer-plugin",
+    "description" : "PayPal - Payment method for QUIQQER ERP stack",
+    "version" : "dev-dev",
+    "license" : """",
+    "authors" : [
+        {
+            "name": "Patrick Müller",
+            "email": "p.mueller@pcsg.de",
+            "homepage": "http://www.pcsg.de",
+            "role": "Developer"
+        }
+    ],
+    "support" : {
+        "email": "support@pcsg.de",
+        "url": "http://www.pcsg.de"
+    },
+    "require": {
+        
+    }
+    ,"autoload": {
+  "psr-4": {
+      "QUI\\ERP\\Payments\\PayPal\\": "src/QUI/ERP/Payments/PayPal"
+   }
+}
+
+}

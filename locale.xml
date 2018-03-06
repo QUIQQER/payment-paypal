@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<locales>
+  <groups name="quiqqer/payment-paypal" datatype="php,js">
+    <locale name="package.title">
+      <de><![CDATA[Bezahlug mit PayPal für den QUIQQER ERP stack]]></de>
+      <en><![CDATA[Payment with PayPal for the QUIQQER ERP stack]]></en>
+    </locale>
+  <locale name="package.description"><de><![CDATA[Bietet die Möglichkeit, Bestellungen mit einem PayPal-Konto zu bezahlen]]></de><en><![CDATA[Offers the option to pay orders with a PayPal account]]></en></locale></groups>
+</locales>
