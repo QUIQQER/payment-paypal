@@ -6,6 +6,9 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use PayPal\v1\Payments\OrderAuthorizeRequest;
+use PayPal\v1\Payments\OrderCaptureRequest;
+use PayPal\v1\Payments\PaymentExecuteRequest;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use PayPal\Core\PayPalHttpClient as PayPalClient;
 use AmazonPay\ResponseInterface;
@@ -22,27 +25,31 @@ use QUI\ERP\Order\Handler as OrderHandler;
 class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 {
     /**
-     * Amazon API Order attributes
+     * PayPal API Order attributes
      */
-    const ATTR_AUTHORIZATION_REFERENCE_IDS = 'paypal-AuthorizationReferenceIds';
-    const ATTR_AMAZON_AUTHORIZATION_ID     = 'paypal-AmazonAuthorizationId';
-    const ATTR_AMAZON_CAPTURE_ID           = 'paypal-AmazonCaptureId';
-    const ATTR_AMAZON_ORDER_REFERENCE_ID   = 'paypal-OrderReferenceId';
-    const ATTR_CAPTURE_REFERENCE_IDS       = 'paypal-CaptureReferenceIds';
-    const ATTR_ORDER_AUTHORIZED            = 'paypal-OrderAuthorized';
-    const ATTR_ORDER_CAPTURED              = 'paypal-OrderCaptures';
-    const ATTR_ORDER_REFERENCE_SET         = 'paypal-OrderReferenceSet';
-    const ATTR_RECONFIRM_ORDER             = 'paypal-ReconfirmOrder';
-
-    const ATTR_PAYPAL_ORDER_ID     = 'paypal-OrderId';
-    const ATTR_PAYPAL_APPROVAL_URL = 'paypal-ApprovalUrl';
+    const ATTR_PAYPAL_PAYMENT_ID         = 'paypal-PaymentId';
+    const ATTR_PAYPAL_APPROVAL_URL       = 'paypal-ApprovalUrl';
+    const ATTR_PAYPAL_PAYER_ID           = 'paypal-PayerId';
+    const ATTR_PAYPAL_ORDER_ID           = 'paypal-OrderId';
+    const ATTR_PAYPAL_AUTHORIZATION_ID   = 'paypal-AuthorizationId';
+    const ATTR_PAYPAL_CAPTURE_ID         = 'paypal-CaptureId';
+    const ATTR_PAYPAL_PAYMENT_SUCCESSFUL = 'paypal-PaymentSuccessful';
 
     /**
-     * Setting options
+     * PayPal REST API request types
      */
-    const SETTING_ARTICLE_TYPE_MIXED    = 'mixed';
-    const SETTING_ARTICLE_TYPE_PHYSICAL = 'physical';
-    const SETTING_ARTICLE_TYPE_DIGITAL  = 'digital';
+    const PAYPAL_REQUEST_TYPE_CREATE_ORDER    = 'paypal-api-create_oder';
+    const PAYPAL_REQUEST_TYPE_EXECUTE_ORDER   = 'paypal-api-execute_order';
+    const PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER = 'paypal-api-authorize_order';
+    const PAYPAL_REQUEST_TYPE_CAPTURE_ORDER   = 'paypal-api-capture_order';
+
+    /**
+     * Error codes
+     */
+    const PAYPAL_ERROR_GENERAL_ERROR        = 'general_error';
+    const PAYPAL_ERROR_ORDER_NOT_APPROVED   = 'order_not_approved';
+    const PAYPAL_ERROR_ORDER_NOT_AUTHORIZED = 'order_not_authorized';
+    const PAYPAL_ERROR_ORDER_NOT_CAPTURED   = 'order_not_captured';
 
     /**
      * PayPal PHP REST Client
@@ -94,7 +101,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             return false;
         }
 
-        return $Order->getPaymentDataEntry(self::ATTR_ORDER_AUTHORIZED);
+        return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL);
     }
 
     /**
@@ -113,76 +120,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     public function refundSupport()
     {
         return true;
-    }
-
-    /**
-     * Execute the request from the payment provider
-     *
-     * @param QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway
-     * @return void
-     *
-     * @throws QUI\ERP\Accounting\Payments\Transactions\Exception
-     * @throws QUI\Exception
-     */
-    public function executeGatewayPayment(QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway)
-    {
-        $AmazonPay = $this->getPayPalClient();
-        $Order     = $Gateway->getOrder();
-
-        $Order->addHistory('PayPal :: Check if payment from Amazon was successful');
-
-        $paypalCaptureId = $Order->getPaymentDataEntry(self::ATTR_AMAZON_CAPTURE_ID);
-
-        $Response = $AmazonPay->getCaptureDetails([
-            'paypal_capture_id' => $paypalCaptureId
-        ]);
-
-        try {
-            $response = $this->getResponseData($Response);
-        } catch (AmazonPayException $Exception) {
-            $Order->addHistory(
-                'PayPal :: An error occurred while trying to validate the Capture -> ' . $Exception->getMessage()
-            );
-
-            $Order->update(QUI::getUsers()->getSystemUser());
-            return;
-        }
-
-        // check the amount that has already been captured
-        $PriceCalculation   = $Order->getPriceCalculation();
-        $targetSum          = $PriceCalculation->getSum()->precision(2)->get();
-        $targetCurrencyCode = $Order->getCurrency()->getCode();
-
-        $captureData        = $response['GetCaptureDetailsResult']['CaptureDetails'];
-        $actualSum          = $captureData['CaptureAmount']['Amount'];
-        $actualCurrencyCode = $captureData['CaptureAmount']['CurrencyCode'];
-
-        if ($actualSum < $targetSum) {
-            $Order->addHistory(
-                'PayPal :: The amount that was captured from Amazon was less than the'
-                . ' total sum of the order. Total sum: ' . $targetSum . ' ' . $targetCurrencyCode
-                . ' | Actual sum captured by Amazon: ' . $actualSum . ' ' . $actualCurrencyCode
-            );
-
-            $Order->update(QUI::getUsers()->getSystemUser());
-            return;
-        }
-
-        // book payment in QUIQQER ERP
-        $Order->addHistory('Amazo Pay :: Finalize Order payment');
-
-        $Gateway->purchase(
-            $actualSum,
-            new QUI\ERP\Currency\Currency($actualCurrencyCode),
-            $Order,
-            $this
-        );
-
-        $Order->addHistory('Amazo Pay :: Closing OrderReference');
-        $this->closeOrderReference($Order);
-        $Order->addHistory('Amazo Pay :: Order successfully paid');
-
-        $Order->update(QUI::getUsers()->getSystemUser());
     }
 
     /**
@@ -236,7 +173,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     {
         $Order->addHistory('PayPal :: Create Order');
 
-        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)) {
             $Order->addHistory('PayPal :: Order already created');
             return;
         }
@@ -270,13 +207,15 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $items[] = [
                 'name'     => $OrderArticle->getTitle(),
                 'quantity' => $OrderArticle->getQuantity(),
-                'price'    => $OrderArticle->getPrice()->getPrice(),
-                'sku'      => $OrderArticle->getId(),
+                'price'    => $OrderArticle->getUnitPrice(),
+                'sku'      => $OrderArticle->getArticleNo(),
                 'currency' => $currencyCode
             ];
         }
 
         $transactionData['item_list']['items'] = $items;
+
+        \QUI\System\Log::writeRecursive($transactionData);
 
         // Return URLs
         $Gateway = new Gateway();
@@ -293,478 +232,212 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             ]
         ];
 
-        $response = $this->payPalApiRequest($body);
+        $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_ORDER, $body, $Order);
 
         $Order->addHistory('PayPal :: Order successfully created');
-        $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, $response['id']);
-
-        if (!empty($response['links'])) {
-            foreach ($response['links'] as $link) {
-                if ($link['rel'] === 'approval_url') {
-                    $Order->setPaymentData(self::ATTR_PAYPAL_APPROVAL_URL, $link['href']);
-                    break;
-                }
-            }
-        }
-
+        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, $response['id']);
         $this->saveOrder($Order);
     }
 
     /**
-     * Check if a PayPal Order has been created
+     * Execute a PayPal Order
      *
+     * @param string $paymentId - The paymentID from the user authorization of the Order
+     * (this is used to verify if the QUIQQER ERP Order is actually the PayPal Order that is executed here)
+     * @param string $payerId - The payerID from the user authorization of the Order
      * @param AbstractOrder $Order
-     * @return bool
-     */
-    public function isPayPalOrderCreated(AbstractOrder $Order)
-    {
-        return !!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID);
-    }
-
-    /**
-     * Authorize the payment for an Order with Amazon
+     * @return void
      *
-     * @param string $orderReferenceId
-     * @param AbstractOrder $Order
-     *
-     * @throws AmazonPayException
+     * @throws PayPalException
      * @throws QUI\ERP\Exception
+     * @throws QUI\Exception
      */
-    public function authorizePayment($orderReferenceId, AbstractOrder $Order)
+    public function executePayPalOrder(AbstractOrder $Order, $paymentId, $payerId)
     {
-        $Order->addHistory('PayPal :: Authorize payment');
+        $Order->addHistory('PayPal :: Execute Order');
 
-        if ($Order->getPaymentDataEntry(self::ATTR_ORDER_AUTHORIZED)) {
-            $Order->addHistory('PayPal :: Authorization already exist');
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)) {
+            $Order->addHistory('PayPal :: Order already executed');
             return;
         }
 
-        $AmazonPay        = $this->getPayPalClient();
-        $PriceCalculation = $Order->getPriceCalculation();
-        $reconfirmOrder   = $Order->getPaymentDataEntry(self::ATTR_RECONFIRM_ORDER);
-
-        // Re-confirm Order after previously declined Authorization because of "InvalidPaymentMethod"
-        if ($reconfirmOrder) {
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID) !== $paymentId) {
             $Order->addHistory(
-                'PayPal :: Re-confirm Order after declined Authorization because of "InvalidPaymentMethod"'
+                'PayPal :: PayPal Order ID that was saved in the QUIQQER Order'
+                . ' did not match the PayPal paymentID that was given to the executePayPalOrder method'
             );
 
-            $orderReferenceId = $Order->getPaymentDataEntry(self::ATTR_AMAZON_ORDER_REFERENCE_ID);
+            $this->throwPayPalException();
+        }
 
-            $Response = $AmazonPay->confirmOrderReference([
-                'paypal_order_reference_id' => $orderReferenceId
-            ]);
+        $response = $this->payPalApiRequest(
+            self::PAYPAL_REQUEST_TYPE_EXECUTE_ORDER,
+            ['payer_id' => $payerId],
+            $Order
+        );
 
-            $this->getResponseData($Response); // check response data
-
-            $Order->setPaymentData(self::ATTR_RECONFIRM_ORDER, false);
-
-            $Order->addHistory('PayPal :: OrderReference re-confirmed');
-        } elseif (!$Order->getPaymentDataEntry(self::ATTR_ORDER_REFERENCE_SET)) {
-            $Order->addHistory(
-                'PayPal :: Setting details of the Order to PayPal API'
-            );
-
-            $Response = $AmazonPay->setOrderReferenceDetails([
-                'paypal_order_reference_id' => $orderReferenceId,
-                'amount'                    => $PriceCalculation->getSum()->precision(2)->get(),
-                'currency_code'             => $Order->getCurrency()->getCode(),
-                'seller_order_id'           => $Order->getId()
-            ]);
-
-            $response              = $this->getResponseData($Response);
-            $orderReferenceDetails = $response['SetOrderReferenceDetailsResult']['OrderReferenceDetails'];
-
-            if (isset($orderReferenceDetails['Constraints']['Constraint']['ConstraintID'])) {
+        if (empty($response['state'])
+            || $response['state'] !== 'approved') {
+            if (empty($response['failure_reason'])) {
                 $Order->addHistory(
-                    'PayPal :: An error occurred while setting the details of the Order: "'
-                    . $orderReferenceDetails['Constraints']['Constraint']['ConstraintID'] . '""'
+                    'PayPal :: Order execution was not approved by PayPal because of an unknown error'
                 );
-
-                $this->throwAmazonPayException(
-                    $orderReferenceDetails['Constraints']['Constraint']['ConstraintID'],
-                    [
-                        'reRenderWallet' => 1
-                    ]
+            } else {
+                $Order->addHistory(
+                    'PayPal :: Order execution was not approved by PayPal -> "' . $response['failure_reason'] . '"'
                 );
             }
 
-            $AmazonPay->confirmOrderReference([
-                'paypal_order_reference_id' => $orderReferenceId
-            ]);
-
-            $Order->setPaymentData(self::ATTR_ORDER_REFERENCE_SET, true);
-            $Order->update(QUI::getUsers()->getSystemUser());
+            $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_APPROVED);
         }
 
-        $Order->addHistory('PayPal :: Requesting new Authorization');
+        // parse Order ID for the transaction
+        $transaction = current($response['transactions']);
+        $resources   = current($transaction['related_resources']);
 
-        $authorizationReferenceId = $this->getNewAuthorizationReferenceId($Order);
+        $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, $resources['order']['id']);
+        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_ID, $payerId);
 
-        $Response = $AmazonPay->authorize([
-            'paypal_order_reference_id'  => $orderReferenceId,
-            'authorization_amount'       => $PriceCalculation->getSum()->precision(2)->get(),
-            'currency_code'              => $Order->getCurrency()->getCode(),
-            'authorization_reference_id' => $authorizationReferenceId,
-            'transaction_timeout'        => 0  // get authorization status synchronously
-        ]);
+        $this->saveOrder($Order);
 
-        $response = $this->getResponseData($Response);
+        $Order->addHistory('PayPal :: Order successfully executed and ready for authorization');
 
-        // save reference ids in $Order
-        $authorizationDetails  = $response['AuthorizeResult']['AuthorizationDetails'];
-        $paypalAuthorizationId = $authorizationDetails['AmazonAuthorizationId'];
-
-        $this->addAuthorizationReferenceIdToOrder($authorizationReferenceId, $Order);
-        $Order->setPaymentData(self::ATTR_AMAZON_AUTHORIZATION_ID, $paypalAuthorizationId);
-        $Order->setPaymentData(self::ATTR_AMAZON_ORDER_REFERENCE_ID, $orderReferenceId);
-
-        $Order->update(QUI::getUsers()->getSystemUser());
-
-        // check Authorization
-        $Order->addHistory('PayPal :: Checking Authorization status');
-
-        $status = $authorizationDetails['AuthorizationStatus'];
-        $state  = $status['State'];
-
-        switch ($state) {
-            case 'Open':
-                // everything is fine
-                $Order->addHistory(
-                    'PayPal :: Authorization is OPEN an can be used for capturing'
-                );
-
-                $Order->setPaymentData(self::ATTR_ORDER_AUTHORIZED, true);
-                $Order->update(QUI::getUsers()->getSystemUser());
-                break;
-
-            case 'Declined':
-                $reason = $status['ReasonCode'];
-
-                switch ($reason) {
-                    case 'InvalidPaymentMethod':
-                        $Order->addHistory(
-                            'PayPal :: Authorization was DECLINED. User has to choose another payment method.'
-                            . ' ReasonCode: "' . $reason . '"'
-                        );
-
-                        $Order->setPaymentData(self::ATTR_RECONFIRM_ORDER, true);
-                        $Order->update(QUI::getUsers()->getSystemUser());
-
-                        $this->throwAmazonPayException($reason, [
-                            'reRenderWallet' => 1
-                        ]);
-                        break;
-
-                    case 'TransactionTimedOut':
-                        $Order->addHistory(
-                            'PayPal :: Authorization was DECLINED. User has to choose another payment method.'
-                            . ' ReasonCode: "' . $reason . '"'
-                        );
-
-                        $AmazonPay->cancelOrderReference([
-                            'paypal_order_reference_id' => $orderReferenceId,
-                            'cancelation_reason'        => 'Order #' . $Order->getHash() . ' could not be authorized :: TransactionTimedOut'
-                        ]);
-
-                        $Order->setPaymentData(self::ATTR_ORDER_REFERENCE_SET, false);
-                        $Order->update(QUI::getUsers()->getSystemUser());
-
-                        $this->throwAmazonPayException($reason, [
-                            'reRenderWallet' => 1,
-                            'orderCancelled' => 1
-                        ]);
-                        break;
-
-                    default:
-                        $Order->addHistory(
-                            'PayPal :: Authorization was DECLINED. OrderReference has to be closed. Cannot use PayPal for this Order.'
-                            . ' ReasonCode: "' . $reason . '"'
-                        );
-
-                        $Response = $AmazonPay->getOrderReferenceDetails([
-                            'paypal_order_reference_id' => $orderReferenceId
-                        ]);
-
-                        $response              = $Response->toArray();
-                        $orderReferenceDetails = $response['GetOrderReferenceDetailsResult']['OrderReferenceDetails'];
-                        $orderReferenceStatus  = $orderReferenceDetails['OrderReferenceStatus']['State'];
-
-                        if ($orderReferenceStatus === 'Open') {
-                            $AmazonPay->cancelOrderReference([
-                                'paypal_order_reference_id' => $orderReferenceId,
-                                'cancelation_reason'        => 'Order #' . $Order->getHash() . ' could not be authorized'
-                            ]);
-
-                            $Order->setPaymentData(self::ATTR_AMAZON_ORDER_REFERENCE_ID, false);
-                        }
-
-                        $Order->clearPayment();
-                        $Order->update(QUI::getUsers()->getSystemUser());
-
-                        $this->throwAmazonPayException($reason);
-                }
-                break;
-
-            default:
-                $reason = $status['ReasonCode'];
-
-                $Order->addHistory(
-                    'PayPal :: Authorization cannot be used because it is in state "' . $state . '".'
-                    . ' ReasonCode: "' . $reason . '"'
-                );
-
-                $this->throwAmazonPayException($reason);
-        }
+        $this->authorizePayPalOrder($Order);
     }
 
     /**
-     * Capture the actual payment for an Order
+     * Authorize a PayPal Order
      *
      * @param AbstractOrder $Order
      * @return void
-     * @throws AmazonPayException
+     *
+     * @throws PayPalException
      * @throws QUI\ERP\Exception
+     * @throws QUI\Exception
      */
-    public function capturePayment(AbstractOrder $Order)
+    protected function authorizePayPalOrder(AbstractOrder $Order)
     {
-        $Order->addHistory('PayPal :: Capture payment');
+        $Order->addHistory('PayPal :: Authorize Order');
 
-        if ($Order->getPaymentDataEntry(self::ATTR_ORDER_CAPTURED)) {
-            $Order->addHistory('PayPal :: Capture is already completed');
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_AUTHORIZATION_ID)) {
+            $Order->addHistory('PayPal :: Order already authorized');
             return;
         }
 
-        $AmazonPay        = $this->getPayPalClient();
-        $orderReferenceId = $Order->getPaymentDataEntry(self::ATTR_AMAZON_ORDER_REFERENCE_ID);
+        $PriceCalculation = $Order->getPriceCalculation();
 
-        if (empty($orderReferenceId)) {
-            $Order->addHistory(
-                'PayPal :: Capture failed because the Order has no AmazonOrderReferenceId'
-            );
-
-            throw new AmazonPayException([
-                'quiqqer/payment-paypal',
-                'exception.Payment.capture.not_authorized',
-                [
-                    'orderHash' => $Order->getHash()
+        $response = $this->payPalApiRequest(
+            self::PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER,
+            [
+                'amount' => [
+                    'total'    => $PriceCalculation->getSum()->precision(2)->get(),
+                    'currency' => $Order->getCurrency()->getCode()
                 ]
-            ]);
-        }
+            ],
+            $Order
+        );
 
-        try {
-            $this->authorizePayment($orderReferenceId, $Order);
-        } catch (AmazonPayException $Exception) {
-            $Order->addHistory(
-                'PayPal :: Capture failed because the Order has no OPEN Authorization'
-            );
-
-            throw new AmazonPayException([
-                'quiqqer/payment-paypal',
-                'exception.Payment.capture.not_authorized',
-                [
-                    'orderHash' => $Order->getHash()
-                ]
-            ]);
-        } catch (\Exception $Exception) {
-            $Order->addHistory(
-                'PayPal :: Capture failed because of an error: ' . $Exception->getMessage()
-            );
-
-            QUI\System\Log::writeException($Exception);
-            return;
-        }
-
-        $PriceCalculation   = $Order->getPriceCalculation();
-        $sum                = $PriceCalculation->getSum()->precision(2)->get();
-        $captureReferenceId = $this->getNewCaptureReferenceId($Order);
-
-        $Response = $AmazonPay->capture([
-            'paypal_authorization_id' => $Order->getPaymentDataEntry(self::ATTR_AMAZON_AUTHORIZATION_ID),
-            'capture_amount'          => $sum,
-            'currency_code'           => $Order->getCurrency()->getCode(),
-            'capture_reference_id'    => $captureReferenceId,
-            'seller_capture_note'     => $this->getLocale()->get(
-                'quiqqer/payment-paypal',
-                'payment.capture.seller_capture_note',
-                [
-                    'orderId' => $Order->getId()
-                ]
-            )
-        ]);
-
-        $response = $this->getResponseData($Response);
-
-        $captureDetails  = $response['CaptureResult']['CaptureDetails'];
-        $paypalCaptureId = $captureDetails['AmazonCaptureId'];
-
-        $this->addCaptureReferenceIdToOrder($paypalCaptureId, $Order);
-        $Order->setPaymentData(self::ATTR_AMAZON_CAPTURE_ID, $paypalCaptureId);
-        $Order->update(QUI::getUsers()->getSystemUser());
-
-        // Check Capture
-        $Order->addHistory('PayPal :: Checking Capture status');
-
-        $status = $captureDetails['CaptureStatus'];
-        $state  = $status['State'];
-
-        switch ($state) {
-            case 'Completed':
+        if (empty($response['state'])
+            || $response['state'] !== 'authorized') {
+            if (empty($response['reason_code'])) {
                 $Order->addHistory(
-                    'PayPal :: Capture is COMPLETED -> ' . $sum . ' ' . $Order->getCurrency()->getCode()
+                    'PayPal :: Order was not authorized by PayPal because of an unknown error'
                 );
-
-                $Order->setPaymentData(self::ATTR_ORDER_CAPTURED, true);
-                $Order->update(QUI::getUsers()->getSystemUser());
-                break;
-
-            default:
-                $reason = $status['ReasonCode'];
-
+            } else {
                 $Order->addHistory(
-                    'PayPal :: Capture operation failed with state "' . $state . '".'
-                    . ' ReasonCode: "' . $reason . '"'
+                    'PayPal :: Order was not authorized by PayPal -> "' . $response['reason_code'] . '"'
                 );
+            }
 
-                // @todo Change order status to "problems with PayPalment"
-
-                $this->throwAmazonPayException($reason);
-                break;
+            $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_AUTHORIZED);
         }
+
+        $Order->setPaymentData(self::ATTR_PAYPAL_AUTHORIZATION_ID, $response['id']);
+        $this->saveOrder($Order);
+
+        $Order->addHistory('PayPal :: Order successfully authorized and ready for capture');
+
+        $this->capturePayPalOrder($Order);
     }
 
     /**
-     * Set the PayPal OrderReference to status CLOSED
+     * Capture a PayPal Order
      *
      * @param AbstractOrder $Order
-     * @param string $reason (optional) - Close reason [default: "Order #hash completed"]
      * @return void
-     */
-    protected function closeOrderReference(AbstractOrder $Order, $reason = null)
-    {
-        $AmazonPay        = $this->getPayPalClient();
-        $orderReferenceId = $Order->getPaymentDataEntry(self::ATTR_AMAZON_ORDER_REFERENCE_ID);
-
-        $AmazonPay->closeOrderReference([
-            'paypal_order_reference_id' => $orderReferenceId,
-            'closure_reason'            => $reason ?: 'Order #' . $Order->getHash() . ' completed'
-        ]);
-    }
-
-    /**
-     * Check if the PayPal API response is OK
      *
-     * @param ResponseInterface $Response - PayPal API Response
-     * @return array
-     * @throws AmazonPayException
+     * @throws PayPalException
+     * @throws QUI\ERP\Exception
+     * @throws QUI\Exception
      */
-    protected function getResponseData(ResponseInterface $Response)
+    protected function capturePayPalOrder(AbstractOrder $Order)
     {
-        $response = $Response->toArray();
+        $Order->addHistory('PayPal :: Capture Order');
 
-        if (!empty($response['Error']['Code'])) {
-            $this->throwAmazonPayException($response['Error']['Code']);
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_CAPTURE_ID)) {
+            $Order->addHistory('PayPal :: Order already captured');
+            return;
         }
 
-        return $response;
+        $PriceCalculation = $Order->getPriceCalculation();
+
+        $response = $this->payPalApiRequest(
+            self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER,
+            [
+                'amount'           => [
+                    'total'    => $PriceCalculation->getSum()->precision(2)->get(),
+                    'currency' => $Order->getCurrency()->getCode()
+                ],
+                'is_final_capture' => true // capture full amount directly
+            ],
+            $Order
+        );
+
+        if (empty($response['state'])
+            || $response['state'] !== 'completed') {
+            if (empty($response['reason_code'])) {
+                $Order->addHistory(
+                    'PayPal :: Order capture was not completed by PayPal because of an unknown error'
+                );
+            } else {
+                $Order->addHistory(
+                    'PayPal :: Order capture was not completed by PayPal -> "' . $response['reason_code'] . '"'
+                );
+            }
+
+            // @todo mark $Order as problematic
+            // @todo void order?
+
+            $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_CAPTURED);
+        }
+
+        $Order->setPaymentData(self::ATTR_PAYPAL_CAPTURE_ID, $response['id']);
+        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, true);
+        $this->saveOrder($Order);
+
+        $Order->addHistory('PayPal :: Order successfully captured and payment completed');
+        $Order->setSuccessfulStatus();
     }
 
     /**
      * Throw AmazonPayException for specific Amazon API Error
      *
-     * @param string $errorCode
+     * @param string $errorCode (optional) - default: general error message
      * @param array $exceptionAttributes (optional) - Additional Exception attributes that may be relevant for the Frontend
      * @return string
      *
-     * @throws AmazonPayException
+     * @throws PayPalException
      */
-    protected function throwAmazonPayException($errorCode, $exceptionAttributes = [])
+    protected function throwPayPalException($errorCode = self::PAYPAL_ERROR_GENERAL_ERROR, $exceptionAttributes = [])
     {
         $L   = $this->getLocale();
         $lg  = 'quiqqer/payment-paypal';
-        $msg = $L->get($lg, 'payment.error_msg.general_error');
+        $msg = $L->get($lg, 'payment.error_msg.' . $errorCode);
 
-        switch ($errorCode) {
-            case 'InvalidPaymentMethod':
-            case 'PaymentMethodNotAllowed':
-            case 'TransactionTimedOut':
-            case 'AmazonRejected':
-            case 'ProcessingFailure':
-            case 'MaxCapturesProcessed':
-                $msg = $L->get($lg, 'payment.error_msg.' . $errorCode);
-                break;
-        }
-
-        $Exception = new AmazonPayException($msg);
+        $Exception = new PayPalException($msg);
         $Exception->setAttributes($exceptionAttributes);
 
         throw $Exception;
-    }
-
-    /**
-     * Generate a unique, random Authorization Reference ID to identify
-     * authorization transactions for an order
-     *
-     * @param AbstractOrder $Order
-     * @return string
-     */
-    protected function getNewAuthorizationReferenceId(AbstractOrder $Order)
-    {
-        return mb_substr('a_' . $Order->getId() . '_' . uniqid(), 0, 32);
-    }
-
-    /**
-     * Add an AuthorizationReferenceId to current Order
-     *
-     * @param string $authorizationReferenceId
-     * @param AbstractOrder $Order
-     * @return void
-     */
-    protected function addAuthorizationReferenceIdToOrder($authorizationReferenceId, AbstractOrder $Order)
-    {
-        $authorizationReferenceIds = $Order->getPaymentDataEntry(self::ATTR_AUTHORIZATION_REFERENCE_IDS);
-
-        if (empty($authorizationReferenceIds)) {
-            $authorizationReferenceIds = [];
-        }
-
-        $authorizationReferenceIds[] = $authorizationReferenceId;
-
-        $Order->setPaymentData(self::ATTR_AUTHORIZATION_REFERENCE_IDS, $authorizationReferenceIds);
-        $Order->update(QUI::getUsers()->getSystemUser());
-    }
-
-    /**
-     * Generate a unique, random CaptureReferenceId to identify
-     * captures for an order
-     *
-     * @param AbstractOrder $Order
-     * @return string
-     */
-    protected function getNewCaptureReferenceId(AbstractOrder $Order)
-    {
-        return mb_substr('c_' . $Order->getId() . '_' . uniqid(), 0, 32);
-    }
-
-    /**
-     * Add an CaptureReferenceId to current Order
-     *
-     * @param string $captureReferenceId
-     * @param AbstractOrder $Order
-     * @return void
-     */
-    protected function addCaptureReferenceIdToOrder($captureReferenceId, AbstractOrder $Order)
-    {
-        $captureReferenceIds = $Order->getPaymentDataEntry(self::ATTR_CAPTURE_REFERENCE_IDS);
-
-        if (empty($captureReferenceIds)) {
-            $captureReferenceIds = [];
-        }
-
-        $captureReferenceIds[] = $captureReferenceId;
-
-        $Order->setPaymentData(self::ATTR_CAPTURE_REFERENCE_IDS, $captureReferenceIds);
-        $Order->update(QUI::getUsers()->getSystemUser());
     }
 
     /**
@@ -779,27 +452,52 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     }
 
     /**
-     * Make a REST API request to the PayPal API
+     * Make a PayPal REST API request
      *
+     * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
      * @param array $body - Request data
+     * @param AbstractOrder $Order - The QUIQQER ERP Order the request is intended for
+     * ($Order has to have the required paymentData attributes for the given $request value!)
      * @return array|false - Response body or false on error
      *
      * @throws PayPalException
      */
-    protected function payPalApiRequest($body)
+    protected function payPalApiRequest($request, $body, AbstractOrder $Order)
     {
-        $Request       = new PaymentCreateRequest();
+        switch ($request) {
+            case self::PAYPAL_REQUEST_TYPE_CREATE_ORDER:
+                $Request = new PaymentCreateRequest();
+                break;
+
+            case self::PAYPAL_REQUEST_TYPE_EXECUTE_ORDER:
+                $Request = new PaymentExecuteRequest(
+                    $Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)
+                );
+                break;
+
+            case self::PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER:
+                $Request = new OrderAuthorizeRequest(
+                    $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)
+                );
+                break;
+
+            case self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER:
+                $Request = new OrderCaptureRequest(
+                    $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)
+                );
+                break;
+
+            default:
+                $this->throwPayPalException();
+        }
+
         $Request->body = $body;
 
         try {
             $Response = $this->getPayPalClient()->execute($Request);
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
-
-            throw new PayPalException([
-                'quiqqer/payment-paypal',
-                'payment.error_msg.general_error'
-            ]);
+            $this->throwPayPalException();
         }
 
         // turn stdClass object to array

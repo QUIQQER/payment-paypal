@@ -24,6 +24,10 @@
             <de><![CDATA[Die Zahlung mit PayPal kann zur Zeit leider nicht durchgeführt werden. Bitte wählen Sie eine andere Zahlungsweise.]]></de>
             <en><![CDATA[Unfortunately, PayPal payment can not be used at the moment. Please choose a different method of payment.]]></en>
         </locale>
+        <locale name="PaymentDisplay.processing_error">
+            <de><![CDATA[Beim Bezahlungsvorgang mit PayPal ist ein Fehler aufgetreten. Die Zahlung konnte nicht durchgeführt werden. Ihr PayPal-Konto wurde nicht belastet. Bitte wiederholen Sie den Vorgang order wenden Sie sich an den Händler.]]></de>
+            <en><![CDATA[An error occurred while paying with PayPal. The payment could not be processed. Your PayPal account has not been charged. Please try again or contact the merchant.]]></en>
+        </locale>
 
         <!-- Settings -->
         <locale name="settings.menu.title">
@@ -68,6 +72,14 @@
             <de><![CDATA[Beim Bezahlungsvorgang mit PayPal ist ein Fehler aufgetreten. Die Zahlung konnte nicht durchgeführt werden. Ihr PayPal-Konto wurde nicht belastet. Bitte wiederholen Sie den Vorgang oder wenden Sie sich an einen Administrator.]]></de>
             <en><![CDATA[An error occurred while paying with PayPal. The payment could not be processed. Your PayPal account has not been charged. Please try again or contact an administrator.]]></en>
         </locale>
+        <locale name="payment.error_msg.order_not_approved">
+            <de><![CDATA[Der Bezahlungsvorgang mit PayPal ist fehlgeschlagen, da PayPal nicht bestätigen konnte, dass sie die Bezahlung akzeptiert haben. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken.]]></de>
+            <en><![CDATA[The payment process with PayPal could not be completed because PayPal could not confirm that you accepted the payment. Please repeat the process by clicking the PayPal button again.]]></en>
+        </locale>
+        <locale name="payment.error_msg.order_not_authorized">
+            <de><![CDATA[Der Bezahlungsvorgang mit PayPal ist fehlgeschlagen, da PayPal die Bezahlung nicht autorisiert hat. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
+            <en><![CDATA[The payment process with PayPal could not be completed because PayPal did not authorize the payment. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
+        </locale>
 
     </groups>
 
@@ -75,8 +87,8 @@
 
         <!-- Payment -->
         <locale name="Payment.order.create.description">
-            <de><![CDATA[Ihre Bestellung #[orderId]]]></de>
-            <en><![CDATA[Your order #[orderId]]]></en>
+            <de><![CDATA[Bestellung #[orderId]]]></de>
+            <en><![CDATA[Order #[orderId]]]></en>
         </locale>
 
         <!-- PaymentDisplay -->
@@ -87,6 +99,19 @@
         <locale name="PaymentDisplay.header.title">
             <de><![CDATA[Bezahlung mit PayPal]]></de>
             <en><![CDATA[Payment with PayPal]]></en>
+        </locale>
+
+    </groups>
+
+    <groups name="quiqqer/payment-paypal" datatype="js">
+
+        <locale name="PaymentDisplay.confirm_payment">
+            <de><![CDATA[Bestätige Zahlung bei PayPal]]></de>
+            <en><![CDATA[Confirm payment with PayPal]]></en>
+        </locale>
+        <locale name="PaymentDisplay.execute_payment">
+            <de><![CDATA[Zahlung wird durchgeführt]]></de>
+            <en><![CDATA[Payment is being processed]]></en>
         </locale>
 
     </groups>

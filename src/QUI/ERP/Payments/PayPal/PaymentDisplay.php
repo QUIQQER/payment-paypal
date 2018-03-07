@@ -47,18 +47,9 @@ class PaymentDisplay extends QUI\Control
         $Order            = $this->getAttribute('Order');
         $PriceCalculation = $Order->getPriceCalculation();
 
-        /** @var Payment $Payment */
-        $Payment = $Order->getPayment()->getPaymentType();
-
-        if (!$Payment->isPayPalOrderCreated($Order)) {
-            $Payment->createPayPalOrder($Order);
-        }
-
         $Engine->assign([
-            'display_price'     => $PriceCalculation->getSum()->formatted(),
-            'apiSetUp'          => $this->isApiSetUp(),
-            'payPalOrderId'     => $Order->getPaymentDataEntry($Payment::ATTR_PAYPAL_ORDER_ID),
-            'payPalApprovalUrl' => $Order->getPaymentDataEntry($Payment::ATTR_PAYPAL_APPROVAL_URL)
+            'display_price' => $PriceCalculation->getSum()->formatted(),
+            'apiSetUp'      => $this->isApiSetUp()
         ]);
 
         $this->setJavaScriptControlOption('orderhash', $Order->getHash());
