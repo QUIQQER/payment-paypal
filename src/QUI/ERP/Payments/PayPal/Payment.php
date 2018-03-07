@@ -200,20 +200,22 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         ];
 
         // Article List
-        $items = [];
+        if (Provider::getPaymentSetting('display_paypal_basket')) {
+            $items = [];
 
-        /** @var QUI\ERP\Accounting\Article $OrderArticle */
-        foreach ($Order->getArticles()->getArticles() as $OrderArticle) {
-            $items[] = [
-                'name'     => $OrderArticle->getTitle(),
-                'quantity' => $OrderArticle->getQuantity(),
-                'price'    => $OrderArticle->getUnitPrice(),
-                'sku'      => $OrderArticle->getArticleNo(),
-                'currency' => $currencyCode
-            ];
+            /** @var QUI\ERP\Accounting\Article $OrderArticle */
+            foreach ($Order->getArticles()->getArticles() as $OrderArticle) {
+                $items[] = [
+                    'name'     => $OrderArticle->getTitle(),
+                    'quantity' => $OrderArticle->getQuantity(),
+                    'price'    => $OrderArticle->getUnitPrice()->value(),
+                    'sku'      => $OrderArticle->getArticleNo(),
+                    'currency' => $currencyCode
+                ];
+            }
+
+            $transactionData['item_list']['items'] = $items;
         }
-
-        $transactionData['item_list']['items'] = $items;
 
         \QUI\System\Log::writeRecursive($transactionData);
 
@@ -256,8 +258,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     {
         $Order->addHistory('PayPal :: Execute Order');
 
-        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)) {
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
             $Order->addHistory('PayPal :: Order already executed');
+            $this->saveOrder($Order);
             return;
         }
 
@@ -267,6 +270,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 . ' did not match the PayPal paymentID that was given to the executePayPalOrder method'
             );
 
+            $this->saveOrder($Order);
             $this->throwPayPalException();
         }
 
@@ -288,6 +292,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             }
 
+            $this->saveOrder($Order);
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_APPROVED);
         }
 
@@ -298,9 +303,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, $resources['order']['id']);
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_ID, $payerId);
 
-        $this->saveOrder($Order);
-
         $Order->addHistory('PayPal :: Order successfully executed and ready for authorization');
+        $this->saveOrder($Order);
 
         $this->authorizePayPalOrder($Order);
     }
@@ -321,6 +325,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_AUTHORIZATION_ID)) {
             $Order->addHistory('PayPal :: Order already authorized');
+            $this->saveOrder($Order);
             return;
         }
 
@@ -349,14 +354,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             }
 
+            $this->saveOrder($Order);
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_AUTHORIZED);
         }
 
         $Order->setPaymentData(self::ATTR_PAYPAL_AUTHORIZATION_ID, $response['id']);
-        $this->saveOrder($Order);
-
         $Order->addHistory('PayPal :: Order successfully authorized and ready for capture');
 
+        $this->saveOrder($Order);
         $this->capturePayPalOrder($Order);
     }
 
@@ -376,6 +381,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_CAPTURE_ID)) {
             $Order->addHistory('PayPal :: Order already captured');
+            $this->saveOrder($Order);
             return;
         }
 
@@ -408,15 +414,31 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             // @todo mark $Order as problematic
             // @todo void order?
 
+            $this->saveOrder($Order);
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_CAPTURED);
         }
 
         $Order->setPaymentData(self::ATTR_PAYPAL_CAPTURE_ID, $response['id']);
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, true);
+
+        $Order->addHistory('PayPal :: Order successfully captured');
         $this->saveOrder($Order);
 
-        $Order->addHistory('PayPal :: Order successfully captured and payment completed');
         $Order->setSuccessfulStatus();
+
+        // Gateway purchase
+        $Order->addHistory('PayPal :: Set Gateway purchase');
+
+        $Gateway = Gateway::getInstance();
+
+        $Gateway->purchase(
+            $response['amount']['total'],
+            new QUI\ERP\Currency\Currency($response['amount']['currency']),
+            $Order,
+            $this
+        );
+
+        $Order->addHistory('PayPal :: Gateway purchase completed and Order payment finished');
     }
 
     /**

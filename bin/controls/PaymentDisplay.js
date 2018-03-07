@@ -69,9 +69,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             this.$MsgElm       = Elm.getElement('.quiqqer-payment-paypal-message');
             this.$PayPalBtnElm = Elm.getElement('#quiqqer-payment-paypal-btn-pay');
 
-            this.$showMsg(
-                QUILocale.get(pkg, 'controls.PaymentDisplay.info')
-            );
+            this.$showMsg(QUILocale.get(pkg, 'PaymentDisplay.info'));
 
             QUIControlUtils.getControlByElement(
                 Elm.getParent('[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]')
@@ -160,6 +158,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         QUILocale.get(pkg, 'PaymentDisplay.execute_payment')
                     );
 
+                    self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
+
                     self.$executeOrder(data.paymentID, data.payerID).then(function (success) {
                         if (success) {
                             self.$OrderProcess.next();
@@ -185,77 +185,6 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     self.$showPayPalBtn();
                 }
             }, '#quiqqer-payment-paypal-btn-pay');
-        },
-
-        /**
-         * Start payment process
-         *
-         * @param {Object} Btn
-         */
-        $onPayBtnClick: function (Btn) {
-            var self = this;
-
-            Btn.disable();
-            Btn.setAttribute('texticon', 'fa fa-spinner fa-spin');
-
-            self.$WalletElm.addClass('quiqqer-payment-paypal__hidden');
-
-            self.$OrderProcess.Loader.show(
-                QUILocale.get(pkg, 'controls.PaymentDisplay.authorize_payment')
-            );
-
-            self.$authorizePayment().then(function (success) {
-                if (success) {
-                    self.$OrderProcess.next();
-                    return;
-                }
-
-                self.$OrderProcess.Loader.hide();
-
-                self.$showErrorMsg(
-                    QUILocale.get(pkg, 'controls.PaymentDisplay.processing_error')
-                );
-
-                self.$showPayPalWallet(false);
-
-                Btn.enable();
-                Btn.setAttribute('texticon', 'fa fa-paypal');
-            }, function (error) {
-                self.$OrderProcess.Loader.hide();
-                self.$showErrorMsg(error.getMessage());
-
-                if (error.getAttribute('orderCancelled')) {
-                    self.$orderReferenceId = false;
-                }
-
-                if (error.getAttribute('reRenderWallet')) {
-                    self.$WalletElm.removeClass('quiqqer-payment-paypal__hidden');
-                    self.$showPayPalWallet(false);
-
-                    Btn.enable();
-                    Btn.setAttribute('texticon', 'fa fa-paypal');
-
-                    return;
-                }
-
-                // sign out
-                paypal.Login.logout();
-                Btn.destroy();
-
-                self.$showErrorMsg(
-                    QUILocale.get(pkg, 'controls.PaymentDisplay.fatal_error')
-                );
-
-                new QUIButton({
-                    text    : QUILocale.get(pkg, 'controls.PaymentDisplay.btn_reselect_payment.text'),
-                    texticon: 'fa fa-credit-card',
-                    events  : {
-                        onClick: function () {
-                            window.location.reload();
-                        }
-                    }
-                }).inject(self.getElm().getElement('#quiqqer-payment-paypal-btn-pay'))
-            });
         },
 
         /**

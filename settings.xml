@@ -17,6 +17,13 @@
                 </conf>
             </section>
 
+            <section name="payment">
+                <conf name="display_paypal_basket">
+                    <type><![CDATA[boolean]]></type>
+                    <defaultvalue>1</defaultvalue>
+                </conf>
+            </section>
+
         </config>
 
         <window>
@@ -63,6 +70,28 @@
                             </text>
                             <description>
                                 <locale group="quiqqer/payment-paypal" var="settings.api.sandbox.description"/>
+                            </description>
+                        </input>
+
+                    </settings>
+                </category>
+
+                <category name="payment">
+                    <icon>fa fa-credit-card</icon>
+                    <title>
+                        <locale group="quiqqer/payment-paypal" var="settings.category.payment.title"/>
+                    </title>
+                    <settings title="payment" name="payment">
+                        <title>
+                            <locale group="quiqqer/payment-paypal" var="settings.payment.title"/>
+                        </title>
+
+                        <input conf="payment.display_paypal_basket" type="checkbox">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.payment.display_paypal_basket.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.payment.display_paypal_basket.description"/>
                             </description>
                         </input>
 

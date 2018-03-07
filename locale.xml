@@ -66,6 +66,22 @@
             <de><![CDATA[Sandbox-Modus aktivieren (Zahlungen werden nicht tatsächlich durchgeführt sondern nur über eine Testumgebung; nur aktivieren, wenn der Zahlungsprozess mit PayPal getestet werden soll!)]]></de>
             <en><![CDATA[Enable sandbox mode (payments are not actually made but only through a test environment, only enable to test the payment process with PayPal!)]]></en>
         </locale>
+        <locale name="settings.category.payment.title">
+            <de><![CDATA[Zahlungsprozess]]></de>
+            <en><![CDATA[Payment process]]></en>
+        </locale>
+        <locale name="settings.payment.title">
+            <de><![CDATA[Zahlungsprozess]]></de>
+            <en><![CDATA[Payment process]]></en>
+        </locale>
+        <locale name="settings.payment.display_paypal_basket.title">
+            <de><![CDATA[Warenkorb an PayPal übertragen]]></de>
+            <en><![CDATA[Send basket to PayPal]]></en>
+        </locale>
+        <locale name="settings.payment.display_paypal_basket.description">
+            <de><![CDATA[Der detaillierte Warenkorb einer Bestellung soll mit allen Positionen an PayPal übertragen werden (der Benutzer kann bei PayPal die Details der Bestellung einsehen)]]></de>
+            <en><![CDATA[The detailed shopping cart of an order should be transferred with all positions to PayPal (the user can see the details of the order at PayPal)]]></en>
+        </locale>
 
         <!-- Payment -->
         <locale name="payment.error_msg.general_error">
@@ -105,6 +121,10 @@
 
     <groups name="quiqqer/payment-paypal" datatype="js">
 
+        <locale name="PaymentDisplay.info">
+            <de><![CDATA[Bitte klicken Sie auf die PayPal-Schaltfläche, um den Zahlungsprozess zu beginnen.]]></de>
+            <en><![CDATA[Please click the PayPal butto to start the payment process.]]></en>
+        </locale>
         <locale name="PaymentDisplay.confirm_payment">
             <de><![CDATA[Bestätige Zahlung bei PayPal]]></de>
             <en><![CDATA[Confirm payment with PayPal]]></en>
