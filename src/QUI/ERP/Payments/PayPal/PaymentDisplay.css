@@ -5,11 +5,9 @@
 }
 
 #quiqqer-payment-paypal-btn-pay {
-    margin: 20px 0 0 0;
-}
-
-#quiqqer-payment-paypal-btn-pay img {
-    max-width: 100% !important;
+    margin: 35px 0 0 0;
+    max-width: 100%;
+    text-align: center;
 }
 
 .quiqqer-payment-paypal__hidden {
