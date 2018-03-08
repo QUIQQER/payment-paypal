@@ -175,6 +175,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)) {
             $Order->addHistory('PayPal :: Order already created');
+            $this->saveOrder($Order);
             return;
         }
 
@@ -200,6 +201,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         ];
 
         // Article List
+        // @todo consider whole basket discounts as items with negative price
         if (Provider::getPaymentSetting('display_paypal_basket')) {
             $items = [];
 
@@ -216,8 +218,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             $transactionData['item_list']['items'] = $items;
         }
-
-        \QUI\System\Log::writeRecursive($transactionData);
 
         // Return URLs
         $Gateway = new Gateway();
