@@ -22,6 +22,10 @@
                     <type><![CDATA[boolean]]></type>
                     <defaultvalue>1</defaultvalue>
                 </conf>
+                <conf name="show_express_btn">
+                    <type><![CDATA[boolean]]></type>
+                    <defaultvalue>0</defaultvalue>
+                </conf>
             </section>
 
             <section name="widgets">
@@ -107,6 +111,15 @@
                             </text>
                             <description>
                                 <locale group="quiqqer/payment-paypal" var="settings.payment.display_paypal_basket.description"/>
+                            </description>
+                        </input>
+
+                        <input conf="payment.show_express_btn" type="checkbox">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.payment.show_express_btn.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.payment.show_express_btn.description"/>
                             </description>
                         </input>
 

@@ -18,6 +18,14 @@
             <de><![CDATA[Komfortable Bezahlung per PayPal-Konto.]]></de>
             <en><![CDATA[Comfortable payment via PayPal account.]]></en>
         </locale>
+        <locale name="payment_express.title">
+            <de><![CDATA[PayPal Express]]></de>
+            <en><![CDATA[PayPal Express]]></en>
+        </locale>
+        <locale name="payment_express.description">
+            <de><![CDATA[Schnelle Bezahlung einer Bestellung oder eines Einzel-Artikels per PayPal Express.]]></de>
+            <en><![CDATA[Quick payment of an order or a single article via PayPal Express checkout.]]></en>
+        </locale>
 
         <!-- PaymentDisplay -->
         <locale name="PaymentDisplay.configuration_error">
@@ -81,6 +89,14 @@
         <locale name="settings.payment.display_paypal_basket.description">
             <de><![CDATA[Der detaillierte Warenkorb einer Bestellung soll mit allen Positionen an PayPal übertragen werden (der Benutzer kann bei PayPal die Details der Bestellung einsehen)]]></de>
             <en><![CDATA[The detailed shopping cart of an order should be transferred with all positions to PayPal (the user can see the details of the order at PayPal)]]></en>
+        </locale>
+        <locale name="settings.payment.show_express_btn.title">
+            <de><![CDATA[PayPal Express]]></de>
+            <en><![CDATA[PayPal Express]]></en>
+        </locale>
+        <locale name="settings.payment.show_express_btn.description" html="true">
+            <de><![CDATA[<b>PayPal Express</b> aktivieren (schnellerer Bestellprozess für den Kunden; zeigt eine PayPal-Schaltfläche im Warenkorb; Rechnungs- und ggf. Lieferadresse werden direkt von PayPal übernommen)]]></de>
+            <en><![CDATA[Activate <b>PayPal Express</b> (faster checkout for the customer; shows a PayPal button in the basket; Invoice and shipping adress (if applicable) are taken directly from PayPal)]]></en>
         </locale>
         <locale name="settings.widgets.title">
             <de><![CDATA[Darstellung]]></de>
@@ -151,6 +167,10 @@
         <locale name="payment.error_msg.order_not_authorized">
             <de><![CDATA[Der Bezahlungsvorgang mit PayPal ist fehlgeschlagen, da PayPal die Bezahlung nicht autorisiert hat. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
             <en><![CDATA[The payment process with PayPal could not be completed because PayPal did not authorize the payment. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
+        </locale>
+        <locale name="payment.error_msg.no_payer_address">
+            <de><![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
+            <en><![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
 
     </groups>

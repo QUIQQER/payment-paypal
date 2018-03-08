@@ -1,19 +1,21 @@
 /**
- * PaymentDisplay for PayPal
+ * Button for PayPal Express checkout
  *
  * @author Patrick Müller (www.pcsg.de)
  */
-define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
+define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
     'qui/controls/Control',
     'qui/controls/buttons/Button',
+    'qui/controls/loader/Loader',
 
     'utils/Controls',
+    'package/quiqqer/payment-paypal/bin/PayPal',
 
     'Ajax',
     'Locale'
 
-], function (QUIControl, QUIButton, QUIControlUtils, QUIAjax, QUILocale) {
+], function (QUIControl, QUIButton, QUILoader, QUIControlUtils, PayPalApi, QUIAjax, QUILocale) {
     "use strict";
 
     var pkg = 'quiqqer/payment-paypal';
@@ -21,11 +23,12 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
     return new Class({
 
         Extends: QUIControl,
-        Type   : 'package/quiqqer/payment-paypal/bin/controls/PaymentDisplay',
+        Type   : 'package/quiqqer/payment-paypal/bin/controls/ExpressBtn',
 
         Binds: [
             '$onImport',
-            '$showPayPalBtn',
+            '$onInject',
+            '$renderPayPalBtn',
             '$onPayPalLoginReady',
             '$showPayPalWallet',
             '$showErrorMsg',
@@ -34,8 +37,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
         options: {
             sandbox   : true,
-            orderhash : '',
-            successful: false
+            baskethash: false,
+            productid : false
         },
 
         initialize: function (options) {
@@ -44,9 +47,12 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             this.$PayPalBtnElm = null;
             this.$MsgElm       = null;
             this.$OrderProcess = null;
+            this.Loader        = new QUILoader();
+            this.$hash         = false;
 
             this.addEvents({
-                onImport: this.$onImport
+                onImport: this.$onImport,
+                onInject: this.$onInject
             });
         },
 
@@ -57,27 +63,42 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             var self = this;
             var Elm  = this.getElm();
 
-            if (!Elm.getElement('.quiqqer-payment-paypal-content')) {
-                return;
-            }
+            Elm.addClass('quiqqer-payment-paypal-express');
 
-            this.$MsgElm       = Elm.getElement('.quiqqer-payment-paypal-message');
-            this.$PayPalBtnElm = Elm.getElement('#quiqqer-payment-paypal-btn-pay');
+            Elm.set(
+                'html',
+                '<div class="quiqqer-payment-paypal-express-msg"></div>' +
+                '<div class="quiqqer-payment-paypal-express-btn"></div>'
+            );
 
-            this.$showMsg(QUILocale.get(pkg, 'PaymentDisplay.info'));
+            this.$hash         = this.getAttribute('baskethash');
+            this.$MsgElm       = Elm.getElement('.quiqqer-payment-paypal-express-msg');
+            this.$PayPalBtnElm = Elm.getElement('.quiqqer-payment-paypal-express-btn');
+
+            this.Loader.inject(Elm);
+            this.Loader.show();
 
             QUIControlUtils.getControlByElement(
                 Elm.getParent('[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]')
             ).then(function (OrderProcess) {
                 self.$OrderProcess = OrderProcess;
 
-                if (self.getAttribute('successful')) {
-                    OrderProcess.next();
-                    return;
-                }
-
-                self.$loadPayPalWidgets();
+                OrderProcess.saveCurrentStep().then(function() {
+                    self.Loader.hide();
+                    self.$loadPayPalWidgets();
+                });
+            }, function () {
+                // @todo error handling
+                console.error('OrderProcess not found.');
             });
+        },
+
+        /**
+         * Event: onInject
+         */
+        $onInject: function () {
+            this.create();
+            this.$onImport();
         },
 
         /**
@@ -88,7 +109,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             var widgetUrl = "https://www.paypalobjects.com/api/checkout.js";
 
             if (typeof paypal !== 'undefined') {
-                this.$showPayPalBtn();
+                this.$renderPayPalBtn();
                 return;
             }
 
@@ -105,14 +126,14 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                 }
 
                 clearInterval(checkPayPayLoaded);
-                self.$showPayPalBtn();
+                self.$renderPayPalBtn();
             }, 200);
         },
 
         /**
          * Show PayPal Pay Button widget (btn)
          */
-        $showPayPalBtn: function () {
+        $renderPayPalBtn: function () {
             var self = this;
 
             this.$OrderProcess.Loader.hide();
@@ -123,22 +144,22 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
             paypal.Button.render({
                 env   : !this.getAttribute('sandbox') ? 'production' : 'sandbox',
-                commit: true,
+                commit: false,
 
                 style: {
-                    label: 'pay',
-                    size : this.$PayPalBtnElm.get('data-size'),
-                    shape: this.$PayPalBtnElm.get('data-shape'),
-                    color: this.$PayPalBtnElm.get('data-color')
+                    label: 'checkout',
+                    size : 'medium',
+                    shape: 'pill',
+                    color: 'gold'
                 },
 
                 // payment() is called when the button is clicked
                 payment: function () {
                     self.$OrderProcess.Loader.show(
-                        QUILocale.get(pkg, 'PaymentDisplay.confirm_payment')
+                        QUILocale.get(pkg, 'ExpressBtn.confirm_payment')
                     );
 
-                    return self.$createOrder().then(function (payPalOrderId) {
+                    return PayPalApi.createOrder(self.$hash).then(function (payPalOrderId) {
                         self.$OrderProcess.Loader.hide();
                         return payPalOrderId;
                     }, function (Error) {
@@ -150,12 +171,16 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                 // onAuthorize() is called when the buyer approves the payment
                 onAuthorize: function (data) {
                     self.$OrderProcess.Loader.show(
-                        QUILocale.get(pkg, 'PaymentDisplay.execute_payment')
+                        QUILocale.get(pkg, 'ExpressBtn.execute_payment')
                     );
 
                     self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
 
-                    self.$executeOrder(data.paymentID, data.payerID).then(function (success) {
+                    PayPalApi.executeOrder(
+                        self.$hash,
+                        data.paymentID,
+                        data.payerID
+                    ).then(function (success) {
                         if (success) {
                             self.$OrderProcess.next();
                             return;
@@ -164,7 +189,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         self.$OrderProcess.Loader.hide();
 
                         self.$showErrorMsg(
-                            QUILocale.get(pkg, 'PaymentDisplay.processing_error')
+                            QUILocale.get(pkg, 'ExpressBtn.processing_error')
                         );
                     }, function (Error) {
                         self.$OrderProcess.Loader.hide();
@@ -174,50 +199,12 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
                 onError: function () {
                     self.$showErrorMsg(
-                        QUILocale.get(pkg, 'PaymentDisplay.processing_error')
+                        QUILocale.get(pkg, 'ExpressBtn.processing_error')
                     );
 
-                    self.$showPayPalBtn();
+                    self.$renderPayPalBtn();
                 }
-            }, '#quiqqer-payment-paypal-btn-pay');
-        },
-
-        /**
-         * Create PayPal Order
-         *
-         * @return {Promise}
-         */
-        $createOrder: function () {
-            var self = this;
-
-            return new Promise(function (resolve, reject) {
-                QUIAjax.post('package_quiqqer_payment-paypal_ajax_createOrder', resolve, {
-                    'package': pkg,
-                    orderHash: self.getAttribute('orderhash'),
-                    onError  : reject
-                })
-            });
-        },
-
-        /**
-         * Execute PayPal Order
-         *
-         * @param {String} paymentId - PayPal paymentID
-         * @param {String} payerId - PayPal payerID
-         * @return {Promise}
-         */
-        $executeOrder: function (paymentId, payerId) {
-            var self = this;
-
-            return new Promise(function (resolve, reject) {
-                QUIAjax.post('package_quiqqer_payment-paypal_ajax_executeOrder', resolve, {
-                    'package': pkg,
-                    orderHash: self.getAttribute('orderhash'),
-                    paymentId: paymentId,
-                    payerId  : payerId,
-                    onError  : reject
-                })
-            });
+            }, '.' + this.$PayPalBtnElm.get('class'));
         },
 
         /**
@@ -228,7 +215,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
         $showErrorMsg: function (msg) {
             this.$MsgElm.set(
                 'html',
-                '<p class="message-error">' + msg + '</p>'
+                '<span class="message-error">' + msg + '</span>'
             );
         },
 
@@ -240,7 +227,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
         $showMsg: function (msg) {
             this.$MsgElm.set(
                 'html',
-                '<p>' + msg + '</p>'
+                '<span>' + msg + '</span>'
             );
         }
     });

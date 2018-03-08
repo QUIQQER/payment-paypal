@@ -11,12 +11,13 @@ use QUI\Utils\Security\Orthos;
  * @param string $paymentId - PayPal paymentID
  * @param string $payerId - PayPal payerID
  * @param string $orderHash - Unique order hash to identify Order
+ * @param bool $express (optional) - PayPal Express flag
  * @return bool - success
  * @throws PayPalException
  */
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_executeOrder',
-    function ($orderHash, $paymentId, $payerId) {
+    function ($orderHash, $paymentId, $payerId, $express = false) {
         $orderHash = Orthos::clear($orderHash);
 
         try {
@@ -24,6 +25,8 @@ QUI::$Ajax->registerFunction(
 
             $Payment = new Payment();
             $Payment->executePayPalOrder($Order, $paymentId, $payerId);
+            $Payment->authorizePayPalOrder($Order);
+            $Payment->capturePayPalOrder($Order);
         } catch (PayPalException $Exception) {
             throw $Exception;
         } catch (\Exception $Exception) {
@@ -33,5 +36,5 @@ QUI::$Ajax->registerFunction(
 
         return true;
     },
-    array('orderHash', 'paymentId', 'payerId')
+    ['orderHash', 'paymentId', 'payerId', 'express']
 );

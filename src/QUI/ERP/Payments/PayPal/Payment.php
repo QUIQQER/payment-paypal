@@ -34,11 +34,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const ATTR_PAYPAL_AUTHORIZATION_ID   = 'paypal-AuthorizationId';
     const ATTR_PAYPAL_CAPTURE_ID         = 'paypal-CaptureId';
     const ATTR_PAYPAL_PAYMENT_SUCCESSFUL = 'paypal-PaymentSuccessful';
+    const ATTR_PAYPAL_PAYER_DATA         = 'paypal-PayerData';
 
     /**
      * PayPal REST API request types
      */
-    const PAYPAL_REQUEST_TYPE_CREATE_ORDER    = 'paypal-api-create_oder';
+    const PAYPAL_REQUEST_TYPE_CREATE_ORDER    = 'paypal-api-create_order';
     const PAYPAL_REQUEST_TYPE_EXECUTE_ORDER   = 'paypal-api-execute_order';
     const PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER = 'paypal-api-authorize_order';
     const PAYPAL_REQUEST_TYPE_CAPTURE_ORDER   = 'paypal-api-capture_order';
@@ -57,13 +58,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @var PayPalClient
      */
     protected $PayPalClient = null;
-
-    /**
-     * Current Order that is being processed
-     *
-     * @var AbstractOrder
-     */
-    protected $Order = null;
 
     /**
      * @return string
@@ -168,6 +162,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @throws PayPalException
      * @throws QUI\ERP\Exception
+     * @throws QUI\Exception
      */
     public function createPayPalOrder(AbstractOrder $Order)
     {
@@ -186,10 +181,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $transactionData = [
             'amount'      => [
                 'currency' => $currencyCode,
-                'total'    => $PriceCalculation->getSum()->precision(2)->get(),
+                'total'    => 100,//$PriceCalculation->getSum()->precision(2)->get(),
                 'details'  => [
-                    'subtotal' => $PriceCalculation->getSubSum()->precision(2)->get(),
-                    'tax'      => $PriceCalculation->getVatSum()->precision(2)->get()
+                    'subtotal' => 90,//$PriceCalculation->getSubSum()->precision(2)->get(),
+                    'tax'      => 10,//$PriceCalculation->getVatSum()->precision(2)->get()
                 ]
             ],
             'description' => $this->getLocale()->get(
@@ -280,6 +275,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $Order
         );
 
+        \QUI\System\Log::writeRecursive($response);
+
+
         if (empty($response['state'])
             || $response['state'] !== 'approved') {
             if (empty($response['failure_reason'])) {
@@ -302,11 +300,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, $resources['order']['id']);
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_ID, $payerId);
+        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_DATA, $response['payer']);
 
         $Order->addHistory('PayPal :: Order successfully executed and ready for authorization');
         $this->saveOrder($Order);
-
-        $this->authorizePayPalOrder($Order);
     }
 
     /**
@@ -319,7 +316,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @throws QUI\ERP\Exception
      * @throws QUI\Exception
      */
-    protected function authorizePayPalOrder(AbstractOrder $Order)
+    public function authorizePayPalOrder(AbstractOrder $Order)
     {
         $Order->addHistory('PayPal :: Authorize Order');
 
@@ -362,7 +359,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->addHistory('PayPal :: Order successfully authorized and ready for capture');
 
         $this->saveOrder($Order);
-        $this->capturePayPalOrder($Order);
     }
 
     /**
@@ -375,7 +371,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @throws QUI\ERP\Exception
      * @throws QUI\Exception
      */
-    protected function capturePayPalOrder(AbstractOrder $Order)
+    public function capturePayPalOrder(AbstractOrder $Order)
     {
         $Order->addHistory('PayPal :: Capture Order');
 

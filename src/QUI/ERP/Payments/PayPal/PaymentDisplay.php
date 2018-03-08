@@ -28,8 +28,6 @@ class PaymentDisplay extends QUI\Control
 
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay');
         $this->setJavaScriptControlOption('sandbox', boolval(Provider::getApiSetting('sandbox')));
-//        $this->setJavaScriptControlOption('clientid', Provider::getApiSetting('merchant_id'));
-//        $this->setJavaScriptControlOption('clientid', Provider::getApiSetting('client_id'));
     }
 
     /**

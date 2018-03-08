@@ -22,7 +22,8 @@ class Provider extends AbstractPaymentProvider
     public function getPaymentTypes()
     {
         return [
-            Payment::class
+            Payment::class,
+            PaymentExpress::class
         ];
     }
 
