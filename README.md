@@ -1,40 +1,40 @@
-payment-paypal
+![QUIQQER Payment with PayPal](bin/images/Readme.jpg)
+
+QUIQQER Payment with PayPal
 ========
 
-PayPal - Payment method for QUIQQER ERP stack
+The QUIQQER Payment with PayPal module offers your customers the option to pay orders with a PayPal account.
 
-Paketname:
+**IMPORTANT:** Requires a PayPal account for the merchant/seller
+  * https://www.paypal.com/
 
-    quiqqer/payment-paypal
-
-
-Features (Funktionen)
+Features
 --------
 
+* Offer your customers the option to pay with an PayPal account
+* Customizable PayPal button
+* Optional PayPal Express button for a fast checkout per basket or single product item 
 
 Installation
 ------------
 
-Der Paketname ist: quiqqer/payment-paypal
+Package name: quiqqer/payment-paypal
 
+Follow the instructions here to configure this module:
+https://dev.quiqqer.com/quiqqer/payment-paypal/wikis/api-configuration
 
-Mitwirken
+Collaboration
 ----------
 
-- Issue Tracker: 
-- Source Code: 
-
+- Issue Tracker: https://dev.quiqqer.com/quiqqer/payment-paypal/issues
+- Source Code: https://dev.quiqqer.com/quiqqer/payment-paypal
 
 Support
 -------
 
-Falls Sie einen Fehler gefunden haben oder Verbesserungen wünschen,
-senden Sie bitte eine E-Mail an support@pcsg.de.
+If you found any flaws, have any wishes or suggestions you can send an email to support@pcsg.de to inform us about your concerns. 
+We will try to respond to your request and forward it to the responsible developer.
 
-
-Lizenz
+License
 -------
-
-
-Entwickler
---------
+PCSG QL-1.0, GPL-3.0+
