@@ -11,7 +11,6 @@ use PayPal\v1\Payments\OrderCaptureRequest;
 use PayPal\v1\Payments\PaymentExecuteRequest;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use PayPal\Core\PayPalHttpClient as PayPalClient;
-use AmazonPay\ResponseInterface;
 use PayPal\Core\ProductionEnvironment;
 use PayPal\Core\SandboxEnvironment;
 use PayPal\v1\Payments\PaymentCreateRequest;
@@ -21,6 +20,8 @@ use QUI\ERP\Order\Handler as OrderHandler;
 
 /**
  * Class Payment
+ *
+ * Main Payment class for PayPal payment processing
  */
 class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 {
@@ -28,7 +29,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * PayPal API Order attributes
      */
     const ATTR_PAYPAL_PAYMENT_ID         = 'paypal-PaymentId';
-    const ATTR_PAYPAL_APPROVAL_URL       = 'paypal-ApprovalUrl';
     const ATTR_PAYPAL_PAYER_ID           = 'paypal-PayerId';
     const ATTR_PAYPAL_ORDER_ID           = 'paypal-OrderId';
     const ATTR_PAYPAL_AUTHORIZATION_ID   = 'paypal-AuthorizationId';
@@ -52,7 +52,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const PAYPAL_ERROR_ORDER_NOT_CAPTURED   = 'order_not_captured';
 
     /**
-     * PayPal PHP REST Client
+     * PayPal PHP REST Client (v2)
      *
      * @var PayPalClient
      */
@@ -288,7 +288,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order execution was not approved by PayPal -> "' . $response['failure_reason'] . '"'
+                    'PayPal :: Order execution was not approved by PayPal. Reason: "' . $response['failure_reason'] . '"'
                 );
             }
 
@@ -350,7 +350,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order was not authorized by PayPal -> "' . $response['reason_code'] . '"'
+                    'PayPal :: Order was not authorized by PayPal. Reason: "' . $response['reason_code'] . '"'
                 );
             }
 
@@ -407,7 +407,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order capture was not completed by PayPal -> "' . $response['reason_code'] . '"'
+                    'PayPal :: Order capture was not completed by PayPal. Reason: "' . $response['reason_code'] . '"'
                 );
             }
 
@@ -439,6 +439,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         );
 
         $Order->addHistory('PayPal :: Gateway purchase completed and Order payment finished');
+        $this->saveOrder($Order);
     }
 
     /**

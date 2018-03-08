@@ -49,7 +49,10 @@ class PaymentDisplay extends QUI\Control
 
         $Engine->assign([
             'display_price' => $PriceCalculation->getSum()->formatted(),
-            'apiSetUp'      => $this->isApiSetUp()
+            'apiSetUp'      => Provider::isApiSetUp(),
+            'btn_size'      => Provider::getWidgetsSetting('btn_size'),
+            'btn_color'     => Provider::getWidgetsSetting('btn_color'),
+            'btn_shape'     => Provider::getWidgetsSetting('btn_shape')
         ]);
 
         $this->setJavaScriptControlOption('orderhash', $Order->getHash());
@@ -58,32 +61,5 @@ class PaymentDisplay extends QUI\Control
         $this->setJavaScriptControlOption('successful', $Order->isSuccessful());
 
         return $Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.html');
-    }
-
-    /**
-     * Check if the PayPal API settings are correct
-     *
-     * @return bool
-     * @throws QUI\Exception
-     */
-    protected function isApiSetUp()
-    {
-        $Conf        = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
-        $apiSettings = $Conf->getSection('api');
-
-        foreach ($apiSettings as $k => $v) {
-            if (empty($v)) {
-                QUI\System\Log::addError(
-                    'Your PayPal API credentials seem to be (partially) missing.'
-                    . ' PayPal CAN NOT be used at the moment. Please enter all your'
-                    . ' API credentials. See https://dev.quiqqer.com/quiqqer/payment-paypal/wikis/api-configuration'
-                    . ' for further instructions.'
-                );
-
-                return false;
-            }
-        }
-
-        return true;
     }
 }

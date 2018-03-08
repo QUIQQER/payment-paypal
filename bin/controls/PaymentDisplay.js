@@ -132,9 +132,9 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
                 style: {
                     label: 'pay',
-                    size : 'large', // small | medium | large | responsive
-                    shape: 'rect',   // pill | rect
-                    color: 'gold'   // gold | blue | silver | black
+                    size : this.$PayPalBtnElm.get('data-size'),
+                    shape: this.$PayPalBtnElm.get('data-shape'),
+                    color: this.$PayPalBtnElm.get('data-color')
                 },
 
                 // payment() is called when the button is clicked
@@ -177,7 +177,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     });
                 },
 
-                onError: function() {
+                onError: function () {
                     self.$showErrorMsg(
                         QUILocale.get(pkg, 'PaymentDisplay.processing_error')
                     );

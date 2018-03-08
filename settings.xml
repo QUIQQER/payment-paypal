@@ -24,6 +24,21 @@
                 </conf>
             </section>
 
+            <section name="widgets">
+                <conf name="btn_color">
+                    <type><![CDATA[string]]></type>
+                    <defaultvalue><![CDATA[gold]]></defaultvalue>
+                </conf>
+                <conf name="btn_size">
+                    <type><![CDATA[string]]></type>
+                    <defaultvalue><![CDATA[large]]></defaultvalue>
+                </conf>
+                <conf name="btn_shape">
+                    <type><![CDATA[string]]></type>
+                    <defaultvalue><![CDATA[rect]]></defaultvalue>
+                </conf>
+            </section>
+
         </config>
 
         <window>
@@ -94,6 +109,61 @@
                                 <locale group="quiqqer/payment-paypal" var="settings.payment.display_paypal_basket.description"/>
                             </description>
                         </input>
+
+                    </settings>
+
+                    <settings title="widgets" name="widgets">
+                        <title>
+                            <locale group="quiqqer/payment-paypal" var="settings.widgets.title"/>
+                        </title>
+
+                        <select conf="widgets.btn_color">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_color.title"/>
+                            </text>
+                            <option value="gold">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_color.options.gold"/>
+                            </option>
+                            <option value="blue">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_color.options.blue"/>
+                            </option>
+                            <option value="silver">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_color.options.silver"/>
+                            </option>
+                            <option value="black">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_color.options.black"/>
+                            </option>
+                        </select>
+
+                        <select conf="widgets.btn_size">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_size.title"/>
+                            </text>
+                            <option value="small">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_size.options.small"/>
+                            </option>
+                            <option value="medium">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_size.options.medium"/>
+                            </option>
+                            <option value="large">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_size.options.large"/>
+                            </option>
+                            <option value="responsive">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_size.options.responsive"/>
+                            </option>
+                        </select>
+
+                        <select conf="widgets.btn_shape">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_shape.title"/>
+                            </text>
+                            <option value="rect">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_shape.options.rect"/>
+                            </option>
+                            <option value="pill">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_shape.options.pill"/>
+                            </option>
+                        </select>
 
                     </settings>
                 </category>
