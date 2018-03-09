@@ -19,6 +19,8 @@ class Events
      * @param Collector $Collector
      * @param Basket $Basket
      * @return void
+     *
+     * @throws QUI\Exception
      */
     public static function templateOrderProcessBasketEnd(Collector $Collector, Basket $Basket)
     {
@@ -26,8 +28,11 @@ class Events
             return;
         }
 
+        $Basket->updateOrder();
+
         $Collector->append(
-            '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtn"
+            '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
+                  data-qui-options-context="basket"
                   data-qui-options-baskethash="' . $Basket->getHash() . '">
             </div>'
         );

@@ -20,10 +20,6 @@ QUI::$Ajax->registerFunction(
         try {
             $Order = Handler::getInstance()->getOrderByHash($orderHash);
 
-            // @todo entfernen
-            $CurrentInvoiceAdress = $Order->getInvoiceAddress();
-            \QUI\System\Log::writeRecursive($CurrentInvoiceAdress);
-
             $Payment = new Payment();
             $Payment->createPayPalOrder($Order);
         } catch (PayPalException $Exception) {

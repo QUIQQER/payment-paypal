@@ -3,6 +3,7 @@
 use QUI\ERP\Order\Handler;
 use QUI\ERP\Payments\PayPal\Payment;
 use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\PaymentExpress;
 use QUI\Utils\Security\Orthos;
 
 /**
@@ -23,7 +24,12 @@ QUI::$Ajax->registerFunction(
         try {
             $Order = Handler::getInstance()->getOrderByHash($orderHash);
 
-            $Payment = new Payment();
+            if (boolval($express)) {
+                $Payment = new PaymentExpress();
+            } else {
+                $Payment = new Payment();
+            }
+
             $Payment->executePayPalOrder($Order, $paymentId, $payerId);
             $Payment->authorizePayPalOrder($Order);
             $Payment->capturePayPalOrder($Order);

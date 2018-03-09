@@ -8,6 +8,7 @@ namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
 use QUI\ERP\Accounting\Payments\Api\AbstractPaymentProvider;
+use QUI\ERP\Accounting\Payments\Types\Factory as PaymentsFactory;
 
 /**
  * Class Provider
@@ -79,6 +80,24 @@ class Provider extends AbstractPaymentProvider
         }
 
         return $Conf->get('widgets', $setting);
+    }
+
+    /**
+     * Get PayPal Express payment
+     *
+     * @return QUI\ERP\Accounting\Payments\Types\Payment|false
+     */
+    public static function getPayPalExpressPayment()
+    {
+        $payments = PaymentsFactory::getInstance()->getChildren([
+            'where' => ['payment_type' => PaymentExpress::class]
+        ]);
+
+        if (empty($payments)) {
+            return false;
+        }
+
+        return current($payments);
     }
 
     /**

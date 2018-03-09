@@ -8,6 +8,7 @@ namespace QUI\ERP\Payments\PayPal;
 
 use PayPal\v1\Payments\OrderAuthorizeRequest;
 use PayPal\v1\Payments\OrderCaptureRequest;
+use PayPal\v1\Payments\OrderVoidRequest;
 use PayPal\v1\Payments\PaymentExecuteRequest;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use PayPal\Core\PayPalHttpClient as PayPalClient;
@@ -17,6 +18,8 @@ use PayPal\v1\Payments\PaymentCreateRequest;
 use QUI;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Order\Handler as OrderHandler;
+use QUI\ERP\Utils\User as ERPUserUtils;
+use QUI\ERP\Accounting\CalculationValue;
 
 /**
  * Class Payment
@@ -43,6 +46,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const PAYPAL_REQUEST_TYPE_EXECUTE_ORDER   = 'paypal-api-execute_order';
     const PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER = 'paypal-api-authorize_order';
     const PAYPAL_REQUEST_TYPE_CAPTURE_ORDER   = 'paypal-api-capture_order';
+    const PAYPAL_REQUEST_TYPE_VOID_ORDER      = 'paypal-api-void_oder';
 
     /**
      * Error codes
@@ -168,25 +172,34 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     {
         $Order->addHistory('PayPal :: Create Order');
 
+        $PriceCalculation = $Order->getPriceCalculation();
+        $currencyCode     = $Order->getCurrency()->getCode();
+
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)) {
             $Order->addHistory('PayPal :: Order already created');
             $this->saveOrder($Order);
             return;
         }
 
-        $PriceCalculation = $Order->getPriceCalculation();
-        $currencyCode     = $Order->getCurrency()->getCode();
+        $isNetto = ERPUserUtils::isNettoUser($Order->getCustomer());
 
         // Basic payment data
+        $amount = [
+            'currency' => $currencyCode,
+            'total'    => $PriceCalculation->getSum()->precision(2)->get()
+        ];
+
+        // @todo always add subtotal if shipping costs are avaiable / included
+
+        if ($isNetto) {
+            $amount['details'] = [
+                'subtotal' => $PriceCalculation->getNettoSum()->precision(2)->get(),
+                'tax'      => $PriceCalculation->getVatSum()->precision(2)->get()
+            ];
+        }
+
         $transactionData = [
-            'amount'      => [
-                'currency' => $currencyCode,
-                'total'    => 100,//$PriceCalculation->getSum()->precision(2)->get(),
-                'details'  => [
-                    'subtotal' => 90,//$PriceCalculation->getSubSum()->precision(2)->get(),
-                    'tax'      => 10,//$PriceCalculation->getVatSum()->precision(2)->get()
-                ]
-            ],
+            'amount'      => $amount,
             'description' => $this->getLocale()->get(
                 'quiqqer/payment-paypal',
                 'Payment.order.create.description', [
@@ -201,12 +214,40 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $items = [];
 
             /** @var QUI\ERP\Accounting\Article $OrderArticle */
-            foreach ($Order->getArticles()->getArticles() as $OrderArticle) {
+            foreach ($PriceCalculation->getArticles() as $OrderArticle) {
+                $articleData = $OrderArticle->toArray();
+                $calculated  = $articleData['calculated'];
+                $FactorPrice = new CalculationValue($calculated['basisPrice']);
+
+                $item = [
+                    'name'        => $OrderArticle->getTitle(),
+                    'description' => $OrderArticle->getDescription(),
+                    'quantity'    => $OrderArticle->getQuantity(),
+                    'price'       => $FactorPrice->precision(2)->get(),
+                    'sku'         => $OrderArticle->getArticleNo(),
+                    'currency'    => $currencyCode
+                ];
+
+                $items[] = $item;
+            }
+
+            // add price factors
+            $priceFactors = $Order->getArticles()->getPriceFactors()->sort();
+
+            /** @var QUI\ERP\Discount\PriceFactor $PriceFactor */
+            foreach ($priceFactors as $PriceFactor) {
+                $FactorPriceCalc = new CalculationValue($PriceFactor->getSum());
+                $factorExtraText = $PriceFactor->getValueText();
+                $name            = $PriceFactor->getTitle();
+
+                if (!empty($factorExtraText)) {
+                    $name .= ' (' . $factorExtraText . ')';
+                }
+
                 $items[] = [
-                    'name'     => $OrderArticle->getTitle(),
-                    'quantity' => $OrderArticle->getQuantity(),
-                    'price'    => $OrderArticle->getUnitPrice()->value(),
-                    'sku'      => $OrderArticle->getArticleNo(),
+                    'name'     => $name,
+                    'quantity' => 1,
+                    'price'    => $FactorPriceCalc->precision(2)->get(),
                     'currency' => $currencyCode
                 ];
             }
@@ -439,6 +480,59 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     }
 
     /**
+     * Void a PayPal Order
+     *
+     * @param AbstractOrder $Order
+     * @return void
+     *
+     * @throws PayPalException
+     */
+    protected function voidPayPalOrder(AbstractOrder $Order)
+    {
+        $Order->addHistory('PayPal :: Void Order');
+
+        if (!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
+            $Order->addHistory(
+                'PayPal :: Order cannot be voided because it has not been created yet'
+                . ' or was voided before'
+            );
+
+            $this->saveOrder($Order);
+            return;
+        }
+
+        $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_VOID_ORDER, [], $Order);
+
+        if (empty($response['state'])
+            || $response['state'] !== 'voided') {
+            if (empty($response['reason_code'])) {
+                $Order->addHistory(
+                    'PayPal :: Order could not be voided because of an unknown reason.'
+                );
+            } else {
+                $Order->addHistory(
+                    'PayPal :: Order could not be voided. Reason: "' . $response['reason_code'] . '"'
+                );
+            }
+
+            $this->saveOrder($Order);
+            $this->throwPayPalException();
+        }
+
+        // reset payment data so the order can be created again
+        $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, null);
+        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_DATA, null);
+        $Order->setPaymentData(self::ATTR_PAYPAL_AUTHORIZATION_ID, null);
+        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_ID, null);
+        $Order->setPaymentData(self::ATTR_PAYPAL_CAPTURE_ID, null);
+        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, null);
+        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, false);
+
+        $Order->addHistory('PayPal :: Order successfully voided');
+        $this->saveOrder($Order);
+    }
+
+    /**
      * Throw AmazonPayException for specific Amazon API Error
      *
      * @param string $errorCode (optional) - default: general error message
@@ -502,6 +596,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             case self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER:
                 $Request = new OrderCaptureRequest(
+                    $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)
+                );
+                break;
+
+            case self::PAYPAL_REQUEST_TYPE_VOID_ORDER:
+                $Request = new OrderVoidRequest(
                     $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)
                 );
                 break;
