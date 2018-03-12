@@ -20,19 +20,32 @@ QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_executeOrder',
     function ($orderHash, $paymentId, $payerId, $express = false) {
         $orderHash = Orthos::clear($orderHash);
+        $express   = boolval($express);
 
         try {
             $Order = Handler::getInstance()->getOrderByHash($orderHash);
 
-            if (boolval($express)) {
+            if ($express) {
                 $Payment = new PaymentExpress();
             } else {
                 $Payment = new Payment();
             }
 
             $Payment->executePayPalOrder($Order, $paymentId, $payerId);
-            $Payment->authorizePayPalOrder($Order);
-            $Payment->capturePayPalOrder($Order);
+
+            /*
+             * Authorization and capturing are only executed
+             * if the user finalizes the Order by clicking
+             * "Pay now" in the QUIQQER ERP Shop (not the PayPal popup)
+             *
+             * With Express checkout this step has not been completed yet here
+             * so these operations are only executed here if it is a
+             * normal PayPal checkout
+             */
+            if (!$express) {
+                $Payment->authorizePayPalOrder($Order);
+                $Payment->capturePayPalOrder($Order);
+            }
         } catch (PayPalException $Exception) {
             throw $Exception;
         } catch (\Exception $Exception) {

@@ -316,9 +316,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $Order
         );
 
-        \QUI\System\Log::writeRecursive($response);
-
-
         if (empty($response['state'])
             || $response['state'] !== 'approved') {
             if (empty($response['failure_reason'])) {
@@ -331,6 +328,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             }
 
+            $this->voidPayPalOrder($Order);
             $this->saveOrder($Order);
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_APPROVED);
         }
@@ -369,6 +367,13 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $PriceCalculation = $Order->getPriceCalculation();
 
+        \QUI\System\Log::writeRecursive([
+            'amount' => [
+                'total'    => $PriceCalculation->getSum()->precision(2)->get(),
+                'currency' => $Order->getCurrency()->getCode()
+            ]
+        ]);
+
         $response = $this->payPalApiRequest(
             self::PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER,
             [
@@ -393,6 +398,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             }
 
             $this->saveOrder($Order);
+            $this->voidPayPalOrder($Order);
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_AUTHORIZED);
         }
 
@@ -449,8 +455,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             }
 
             // @todo mark $Order as problematic
-            // @todo void order?
-
+            $this->voidPayPalOrder($Order);
             $this->saveOrder($Order);
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_CAPTURED);
         }

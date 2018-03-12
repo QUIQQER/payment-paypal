@@ -178,12 +178,12 @@ class PaymentExpress extends Payment
             $PayPalAddress->setCustomDataEntry('source', 'PayPal');
             $PayPalAddress->save($SystemUser);
 
-            $Order->addHistory('PayPal Express :: PayPal QUIQQER Address successfully created');
+            $Order->addHistory('PayPal Express :: PayPal QUIQQER address successfully created');
         }
 
         $Order->setInvoiceAddress($PayPalAddress);
         $Order->addHistory(
-            'PayPal Express :: Order invoice address set (QUIQQER Address ID: #' . $PayPalAddress->getId() . ')'
+            'PayPal Express :: Order invoice address set (QUIQQER address ID: #' . $PayPalAddress->getId() . ')'
         );
 
         $this->saveOrder($Order);
