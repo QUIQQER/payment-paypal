@@ -90,13 +90,29 @@
             <de><![CDATA[Der detaillierte Warenkorb einer Bestellung soll mit allen Positionen an PayPal übertragen werden (der Benutzer kann bei PayPal die Details der Bestellung einsehen)]]></de>
             <en><![CDATA[The detailed shopping cart of an order should be transferred with all positions to PayPal (the user can see the details of the order at PayPal)]]></en>
         </locale>
-        <locale name="settings.payment.show_express_btn.title">
-            <de><![CDATA[PayPal Express]]></de>
-            <en><![CDATA[PayPal Express]]></en>
+        <locale name="settings.payment.display_express_basket.title">
+            <de><![CDATA[PayPal Express Button - Warenkorb]]></de>
+            <en><![CDATA[PayPal Express button - Basket]]></en>
         </locale>
-        <locale name="settings.payment.show_express_btn.description" html="true">
-            <de><![CDATA[<b>PayPal Express</b> aktivieren (schnellerer Bestellprozess für den Kunden; zeigt eine PayPal-Schaltfläche im Warenkorb; Rechnungs- und ggf. Lieferadresse werden direkt von PayPal übernommen)]]></de>
-            <en><![CDATA[Activate <b>PayPal Express</b> (faster checkout for the customer; shows a PayPal button in the basket; Invoice and shipping adress (if applicable) are taken directly from PayPal)]]></en>
+        <locale name="settings.payment.display_express_basket.description" html="true">
+            <de><![CDATA[<b>PayPal Express</b> Button im <b>Warenkorb</b> anzeigen]]></de>
+            <en><![CDATA[Display <b>PayPal Express</b> button in the <b>basket</b>]]></en>
+        </locale>
+        <locale name="settings.payment.display_express_smallbasket.title">
+            <de><![CDATA[PayPal Express Button - Mini-Warenkorb]]></de>
+            <en><![CDATA[PayPal Express button - Mini Basket]]></en>
+        </locale>
+        <locale name="settings.payment.display_express_smallbasket.description" html="true">
+            <de><![CDATA[<b>PayPal Express</b> Button im <b>Mini-Warenkorb</b> anzeigen]]></de>
+            <en><![CDATA[Display <b>PayPal Express</b> button in the <b>mini basket</b>]]></en>
+        </locale>
+        <locale name="settings.payment.display_express_product.title">
+            <de><![CDATA[PayPal Express Button - Produkte]]></de>
+            <en><![CDATA[PayPal Express button - Products]]></en>
+        </locale>
+        <locale name="settings.payment.display_express_product.description" html="true">
+            <de><![CDATA[<b>PayPal Express</b> Button auf <b>Produkt-Seiten</b> anzeigen (ermöglicht den Express-Kauf einzelner Produkte direkt von der Produkt-Seite aus)]]></de>
+            <en><![CDATA[Display <b>PayPal Express</b> button on <b>Product pages</b> (offers express checkout of single products directly from the product page)]]></en>
         </locale>
         <locale name="settings.widgets.title">
             <de><![CDATA[Darstellung]]></de>
@@ -213,6 +229,12 @@
         <locale name="PaymentDisplay.execute_payment">
             <de><![CDATA[Zahlung wird durchgeführt]]></de>
             <en><![CDATA[Payment is being processed]]></en>
+        </locale>
+
+        <!-- Control: ExpressPaymentDisplay -->
+        <locale name="ExpressPaymentDisplay.msg.error">
+            <de><![CDATA[Bei der Durchführung der Zahlung mit PayPal ist leider ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsweise. Sie werden in wenigen Sekunden zum Schritt "Zahlungsweise" weitergeleitet.]]></de>
+            <en><![CDATA[Unfortunately, there was an error while paying with PayPal. Your PayPal account has not been charged. Please choose a different method of payment.]]></en>
         </locale>
 
     </groups>

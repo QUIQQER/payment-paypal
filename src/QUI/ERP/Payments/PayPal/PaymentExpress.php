@@ -147,7 +147,7 @@ class PaymentExpress extends Payment
                 'street_no'  => implode(' ', $streetParts),
                 'zip'        => !empty($payPalAddressData['postal_code']) ? $payPalAddressData['postal_code'] : '',
                 'city'       => !empty($payPalAddressData['city']) ? $payPalAddressData['city'] : '',
-                'country'    => !empty($payPalAddressData['country_code']) ? mb_strtolower($payPalAddressData['country_code']) : ''
+                'country'    => !empty($payPalAddressData['country_code']) ? mb_strtoupper($payPalAddressData['country_code']) : ''
             ], $SystemUser);
 
             $userPrimaryAddressId = false;
@@ -187,5 +187,32 @@ class PaymentExpress extends Payment
         );
 
         $this->saveOrder($Order);
+    }
+
+    /**
+     * If the Payment method is a payment gateway, it can return a gateway display
+     *
+     * @param AbstractOrder $Order
+     * @param QUI\ERP\Order\Controls\OrderProcess\Processing $Step
+     * @return string
+     *
+     * @throws QUI\Exception
+     */
+    public function getGatewayDisplay(AbstractOrder $Order, $Step = null)
+    {
+        $Control = new ExpressPaymentDisplay();
+        $Control->setAttribute('Order', $Order);
+
+        $Step->setTitle(
+            QUI::getLocale()->get(
+                'quiqqer/payment-paypal',
+                'payment.step.title'
+            )
+        );
+
+        $Engine = QUI::getTemplateManager()->getEngine();
+        $Step->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
+
+        return $Control->create();
     }
 }

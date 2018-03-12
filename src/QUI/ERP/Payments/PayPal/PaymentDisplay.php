@@ -7,6 +7,7 @@
 namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
+use QUI\ERP\Order\Handler as OrderHandler;
 
 /**
  * Class PaymentDisplay
@@ -43,6 +44,7 @@ class PaymentDisplay extends QUI\Control
 
         /* @var $Order QUI\ERP\Order\OrderInProcess */
         $Order            = $this->getAttribute('Order');
+        $Basket           = OrderHandler::getInstance()->getBasketByHash($Order->getHash());
         $PriceCalculation = $Order->getPriceCalculation();
 
         $Engine->assign([
@@ -53,6 +55,7 @@ class PaymentDisplay extends QUI\Control
             'btn_shape'     => Provider::getWidgetsSetting('btn_shape')
         ]);
 
+        $this->setJavaScriptControlOption('basketid', $Basket->getId());
         $this->setJavaScriptControlOption('orderhash', $Order->getHash());
 
         // Check if an PayPal authorization already exists (i.e. Order is successful / can be processed)

@@ -21,8 +21,10 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
         ],
 
         options: {
-            context   : false,
-            baskethash: false
+            context        : false,
+            basketid       : false,
+            orderprocessurl: false,
+            checkout       : false
         },
 
         initialize: function (options) {
@@ -37,10 +39,11 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
          * Event: onImport
          */
         $onInject: function () {
-            var Elm    = this.getElm();
-            var BtnElm = false;
+            var Elm     = this.getElm();
+            var BtnElm  = false;
+            var context = this.getAttribute('context');
 
-            switch (this.getAttribute('context')) {
+            switch (context) {
                 case 'basket':
                     var OrderProcessElm = Elm.getParent(
                         '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]'
@@ -51,16 +54,31 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
                     }
                     break;
 
-                case 'minibasket':
-                    // @todo
+                case 'smallbasket':
+                    var MiniBasketElm = Elm.getParent('.quiqqer-order-basket-small-container');
+
+                    if (!MiniBasketElm) {
+                        break;
+                    }
+
+                    var MiniBasketBtnElm = MiniBasketElm.getElement('.quiqqer-order-basket-small-buttons');
+
+                    if (MiniBasketBtnElm) {
+                        BtnElm = MiniBasketBtnElm;
+                    }
                     break;
             }
 
             if (BtnElm) {
                 new ExpressBtn({
-                    baskethash: this.getAttribute('baskethash')
+                    context        : context,
+                    basketid       : this.getAttribute('basketid'),
+                    orderprocessurl: this.getAttribute('orderprocessurl'),
+                    checkout       : this.getAttribute('checkout')
                 }).inject(BtnElm);
             }
+
+            this.destroy();
         }
     });
 });

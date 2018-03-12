@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <events>
     <event on="onQuiqqer::order::orderProcessBasketEnd" fire="\QUI\ERP\Payments\PayPal\Events::templateOrderProcessBasketEnd"/>
+    <event on="onQuiqqer::order::basketSmall::end" fire="\QUI\ERP\Payments\PayPal\Events::templateOrderBasketSmallEnd"/>
 </events>

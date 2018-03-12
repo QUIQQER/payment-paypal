@@ -176,9 +176,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $currencyCode     = $Order->getCurrency()->getCode();
 
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)) {
-            $Order->addHistory('PayPal :: Order already created');
-            $this->saveOrder($Order);
-            return;
+            $Order->addHistory('PayPal :: Order already created. Voiding and re-creating...');
+            $this->voidPayPalOrder($Order);
         }
 
         $isNetto = ERPUserUtils::isNettoUser($Order->getCustomer());
@@ -209,7 +208,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         ];
 
         // Article List
-        // @todo consider whole basket discounts as items with negative price
         if (Provider::getPaymentSetting('display_paypal_basket')) {
             $items = [];
 
@@ -232,12 +230,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             }
 
             // add price factors
-            $priceFactors = $Order->getArticles()->getPriceFactors()->sort();
+            $PriceFactors = $Order->getArticles()->getPriceFactors();
 
-            /** @var QUI\ERP\Discount\PriceFactor $PriceFactor */
-            foreach ($priceFactors as $PriceFactor) {
+            /** @var QUI\ERP\Accounting\PriceFactors\Factor $PriceFactor */
+            foreach ($PriceFactors as $PriceFactor) {
                 $FactorPriceCalc = new CalculationValue($PriceFactor->getSum());
-                $factorExtraText = $PriceFactor->getValueText();
+                $factorExtraText = ''; // @todo
                 $name            = $PriceFactor->getTitle();
 
                 if (!empty($factorExtraText)) {
@@ -271,6 +269,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         ];
 
         $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_ORDER, $body, $Order);
+
+        \QUI\System\Log::writeRecursive($response);
 
         $Order->addHistory('PayPal :: Order successfully created');
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, $response['id']);

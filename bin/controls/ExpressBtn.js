@@ -31,16 +31,19 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             '$onImport',
             '$onInject',
             '$renderPayPalBtn',
-            '$onPayPalLoginReady',
-            '$showPayPalWallet',
             '$showErrorMsg',
-            '$onPayBtnClick'
+            '$showLoader',
+            '$hideLoader',
+            '$toCheckout'
         ],
 
         options: {
-            sandbox   : true,
-            baskethash: false,
-            productid : false
+            sandbox        : true,
+            basketid       : false,
+            productid      : false,
+            context        : false,
+            orderprocessurl: false,
+            checkout       : false
         },
 
         initialize: function (options) {
@@ -48,8 +51,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
             this.$PayPalBtnElm  = null;
             this.$MsgElm        = null;
-            this.$OrderProcess  = null;
+            this.$ContextParent = null; // this can be either an OrderProcess or a SmallBasket
             this.Loader         = new QUILoader();
+            this.PageLoader     = new QUILoader();
             this.$hash          = false;
             this.$widgetsLoaded = false;
 
@@ -78,15 +82,33 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.$MsgElm       = Elm.getElement('.quiqqer-payment-paypal-express-msg');
             this.$PayPalBtnElm = Elm.getElement('.quiqqer-payment-paypal-express-btn');
 
+            this.PageLoader.inject(document.body);
             this.Loader.inject(Elm);
             this.Loader.show();
 
             self.$loadPayPalWidgets();
 
+            // load context parent
+            var contextParentControlSelector = false;
+
+            switch (this.getAttribute('context')) {
+                case 'basket':
+                    contextParentControlSelector = '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]';
+                    break;
+
+                case 'smallbasket':
+                    contextParentControlSelector = '.quiqqer-order-basket-small-container > .qui-control';
+                    break;
+
+                case 'product':
+                    // @todo
+                    break;
+            }
+
             QUIControlUtils.getControlByElement(
-                Elm.getParent('[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]')
-            ).then(function (OrderProcess) {
-                self.$OrderProcess = OrderProcess;
+                Elm.getParent(contextParentControlSelector)
+            ).then(function (ContextControl) {
+                self.$ContextParent = ContextControl;
 
                 if (self.$widgetsLoaded) {
                     self.Loader.hide();
@@ -144,35 +166,35 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
             paypal.Button.render({
                 env   : !this.getAttribute('sandbox') ? 'production' : 'sandbox',
-                commit: true,
+                commit: false,
 
                 style: {
                     label: 'checkout',
-                    size : 'medium',
+                    size : 'small',
                     shape: 'pill',
                     color: 'gold'
                 },
 
                 // payment() is called when the button is clicked
                 payment: function () {
-                    self.$OrderProcess.Loader.show(
-                        QUILocale.get(pkg, 'ExpressBtn.confirm_payment')
-                    );
+                    self.$showLoader(QUILocale.get(pkg, 'ExpressBtn.confirm_payment'));
 
-                    return PayPalApi.createOrder(self.$hash).then(function (payPalOrderId) {
-                        self.$OrderProcess.Loader.hide();
-                        return payPalOrderId;
+                    return PayPalApi.createOrder(
+                        self.$hash,
+                        self.getAttribute('basketid')
+                    ).then(function (Order) {
+                        self.$hideLoader();
+                        self.$hash = Order.hash;
+                        return Order.payPalPaymentId;
                     }, function (Error) {
-                        self.$OrderProcess.Loader.hide();
+                        self.$hideLoader();
                         self.$showErrorMsg(Error.getMessage());
                     });
                 },
 
                 // onAuthorize() is called when the buyer approves the payment
                 onAuthorize: function (data) {
-                    self.$OrderProcess.Loader.show(
-                        QUILocale.get(pkg, 'ExpressBtn.execute_payment')
-                    );
+                    self.$showLoader(QUILocale.get(pkg, 'ExpressBtn.execute_payment'));
 
                     self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
 
@@ -183,17 +205,17 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                         true
                     ).then(function (success) {
                         if (success) {
-                            self.$OrderProcess.next();
+                            self.$toCheckout();
                             return;
                         }
 
-                        self.$OrderProcess.Loader.hide();
+                        self.$hideLoader();
 
                         self.$showErrorMsg(
                             QUILocale.get(pkg, 'ExpressBtn.processing_error')
                         );
                     }, function (Error) {
-                        self.$OrderProcess.Loader.hide();
+                        self.$hideLoader();
                         self.$showErrorMsg(Error.getMessage());
                     });
                 },
@@ -205,13 +227,64 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
                     self.$renderPayPalBtn();
                 }
-            }, '.' + this.$PayPalBtnElm.get('class'));
+            }, this.$PayPalBtnElm).then(function () {
+                if (self.$ContextParent) {
+                    self.Loader.hide();
+                }
+            });
 
             this.$widgetsLoaded = true;
+        },
 
-            if (this.$OrderProcess) {
-                this.Loader.hide();
+        /**
+         * Show Loader of the contextual Order process
+         *
+         * @param {String} [msg] - Loader message
+         */
+        $showLoader: function (msg) {
+            switch (this.getAttribute('context')) {
+                case 'basket':
+                    if (this.$ContextParent) {
+                        this.$ContextParent.Loader.show(msg);
+                    }
+                    break;
+
+                case 'smallbasket':
+                    this.PageLoader.show(msg);
+                    break;
+
+                case 'product':
+
+                    break;
             }
+        },
+
+        /**
+         * Hide Loader of the contextual Order process
+         */
+        $hideLoader: function () {
+            switch (this.getAttribute('context')) {
+                case 'basket':
+                    if (this.$ContextParent) {
+                        this.$ContextParent.Loader.hide();
+                    }
+                    break;
+
+                case 'smallbasket':
+                    this.PageLoader.hide();
+                    break;
+
+                case 'product':
+
+                    break;
+            }
+        },
+
+        /**
+         * Go to Checkout step
+         */
+        $toCheckout: function () {
+            window.location = this.getAttribute('orderprocessurl');
         },
 
         /**

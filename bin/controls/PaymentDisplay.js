@@ -34,6 +34,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
         options: {
             sandbox   : true,
+            basketid  : false,
             orderhash : '',
             successful: false
         },
@@ -138,9 +139,11 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         QUILocale.get(pkg, 'PaymentDisplay.confirm_payment')
                     );
 
-                    return self.$createOrder().then(function (payPalOrderId) {
+                    return self.$createOrder(
+                        self.getAttribute('basketid')
+                    ).then(function (Order) {
                         self.$OrderProcess.Loader.hide();
-                        return payPalOrderId;
+                        return Order.payPalPaymentId;
                     }, function (Error) {
                         self.$OrderProcess.Loader.hide();
                         self.$showErrorMsg(Error.getMessage());
