@@ -52,6 +52,9 @@ class Events
                   data-qui-options-context="basket"
                   data-qui-options-basketid="' . $Basket->getId() . '"
                   data-qui-options-checkout="' . $checkout . '"
+                  data-qui-options-displaysize="' . Provider::getWidgetsSetting('btn_express_size') . '"
+                  data-qui-options-displaycolor="' . Provider::getWidgetsSetting('btn_express_color') . '"
+                  data-qui-options-displayshape="' . Provider::getWidgetsSetting('btn_express_shape') . '"
                   data-qui-options-orderprocessurl="' . OrderUtils::getOrderProcessUrl($Project, $CheckoutStep) . '">
             </div>'
         );
@@ -98,6 +101,9 @@ class Events
                   data-qui-options-context="smallbasket"
                   data-qui-options-basketid="' . $Basket->getId() . '"
                   data-qui-options-checkout="' . $checkout . '"
+                  data-qui-options-displaysize="' . Provider::getWidgetsSetting('btn_express_size_smallbasket') . '"
+                  data-qui-options-displaycolor="' . Provider::getWidgetsSetting('btn_express_color') . '"
+                  data-qui-options-displayshape="' . Provider::getWidgetsSetting('btn_express_shape') . '"
                   data-qui-options-orderprocessurl="' . OrderUtils::getOrderProcessUrl($Project, $CheckoutStep) . '">
             </div>'
         );

@@ -270,6 +270,10 @@
     <groups name="quiqqer/payment-paypal" datatype="php">
 
         <!-- Payment -->
+        <locale name="payment.step.title">
+            <de><![CDATA[Bezahlung mit PayPal]]></de>
+            <en><![CDATA[Payment with PayPal]]></en>
+        </locale>
         <locale name="Payment.order.create.description">
             <de><![CDATA[Bestellung #[orderId]]]></de>
             <en><![CDATA[Order #[orderId]]]></en>
@@ -303,7 +307,17 @@
             <en><![CDATA[Payment is being processed]]></en>
         </locale>
 
+        <!-- Control: ExpressBtn -->
+        <locale name="ExpressBtn.confirm_payment">
+            <de><![CDATA[Sende Bestellungsdaten an PayPal]]></de>
+            <en><![CDATA[Sending order data to PayPal]]></en>
+        </locale>
+
         <!-- Control: ExpressPaymentDisplay -->
+        <locale name="ExpressPaymentDisplay.order.execute">
+            <de><![CDATA[Zahlung mit PayPal wird durchgeführt]]></de>
+            <en><![CDATA[Executing PayPal payment]]></en>
+        </locale>
         <locale name="ExpressPaymentDisplay.msg.error">
             <de><![CDATA[Bei der Durchführung der Zahlung mit PayPal ist leider ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsweise. Sie werden in wenigen Sekunden zum Schritt "Zahlungsweise" weitergeleitet.]]></de>
             <en><![CDATA[Unfortunately, there was an error while paying with PayPal. Your PayPal account has not been charged. Please choose a different method of payment.]]></en>

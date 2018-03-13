@@ -186,7 +186,6 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                         self.$hash,
                         self.getAttribute('basketid')
                     ).then(function (Order) {
-                        self.$hideLoader();
                         self.$hash = Order.hash;
                         return Order.payPalPaymentId;
                     }, function (Error) {
@@ -197,8 +196,6 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
                 // onAuthorize() is called when the buyer approves the payment
                 onAuthorize: function (data) {
-                    self.$showLoader(QUILocale.get(pkg, 'ExpressBtn.execute_payment'));
-
                     self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
 
                     PayPalApi.executeOrder(

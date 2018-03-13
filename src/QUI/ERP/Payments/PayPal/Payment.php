@@ -189,7 +189,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         ];
 
         // @todo always add subtotal if shipping costs are avaiable / included
-
         if ($isNetto) {
             $amount['details'] = [
                 'subtotal' => $PriceCalculation->getNettoSum()->precision(2)->get(),
@@ -215,7 +214,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             foreach ($PriceCalculation->getArticles() as $OrderArticle) {
                 $articleData = $OrderArticle->toArray();
                 $calculated  = $articleData['calculated'];
-                $FactorPrice = new CalculationValue($calculated['basisPrice']);
+                $FactorPrice = new CalculationValue($calculated['sum']);
 
                 $item = [
                     'name'        => $OrderArticle->getTitle(),
@@ -268,9 +267,13 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             ]
         ];
 
-        $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_ORDER, $body, $Order);
-
-        \QUI\System\Log::writeRecursive($response);
+        try {
+            $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_ORDER, $body, $Order);
+        } catch (PayPalException $Exception) {
+            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $this->saveOrder($Order);
+            throw $Exception;
+        }
 
         $Order->addHistory('PayPal :: Order successfully created');
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, $response['id']);
@@ -310,11 +313,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $this->throwPayPalException();
         }
 
-        $response = $this->payPalApiRequest(
-            self::PAYPAL_REQUEST_TYPE_EXECUTE_ORDER,
-            ['payer_id' => $payerId],
-            $Order
-        );
+        try {
+            $response = $this->payPalApiRequest(
+                self::PAYPAL_REQUEST_TYPE_EXECUTE_ORDER,
+                ['payer_id' => $payerId],
+                $Order
+            );
+        } catch (PayPalException $Exception) {
+            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $this->saveOrder($Order);
+            throw $Exception;
+        }
 
         if (empty($response['state'])
             || $response['state'] !== 'approved') {
@@ -367,23 +376,22 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $PriceCalculation = $Order->getPriceCalculation();
 
-        \QUI\System\Log::writeRecursive([
-            'amount' => [
-                'total'    => $PriceCalculation->getSum()->precision(2)->get(),
-                'currency' => $Order->getCurrency()->getCode()
-            ]
-        ]);
-
-        $response = $this->payPalApiRequest(
-            self::PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER,
-            [
-                'amount' => [
-                    'total'    => $PriceCalculation->getSum()->precision(2)->get(),
-                    'currency' => $Order->getCurrency()->getCode()
-                ]
-            ],
-            $Order
-        );
+        try {
+            $response = $this->payPalApiRequest(
+                self::PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER,
+                [
+                    'amount' => [
+                        'total'    => $PriceCalculation->getSum()->precision(2)->get(),
+                        'currency' => $Order->getCurrency()->getCode()
+                    ]
+                ],
+                $Order
+            );
+        } catch (PayPalException $Exception) {
+            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $this->saveOrder($Order);
+            throw $Exception;
+        }
 
         if (empty($response['state'])
             || $response['state'] !== 'authorized') {
@@ -430,17 +438,23 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $PriceCalculation = $Order->getPriceCalculation();
 
-        $response = $this->payPalApiRequest(
-            self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER,
-            [
-                'amount'           => [
-                    'total'    => $PriceCalculation->getSum()->precision(2)->get(),
-                    'currency' => $Order->getCurrency()->getCode()
+        try {
+            $response = $this->payPalApiRequest(
+                self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER,
+                [
+                    'amount'           => [
+                        'total'    => $PriceCalculation->getSum()->precision(2)->get(),
+                        'currency' => $Order->getCurrency()->getCode()
+                    ],
+                    'is_final_capture' => true // capture full amount directly
                 ],
-                'is_final_capture' => true // capture full amount directly
-            ],
-            $Order
-        );
+                $Order
+            );
+        } catch (PayPalException $Exception) {
+            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $this->saveOrder($Order);
+            throw $Exception;
+        }
 
         if (empty($response['state'])
             || $response['state'] !== 'completed') {
@@ -471,9 +485,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         // Gateway purchase
         $Order->addHistory('PayPal :: Set Gateway purchase');
 
-        $Gateway = Gateway::getInstance();
-
-        $Gateway->purchase(
+        Gateway::getInstance()->purchase(
             $response['amount']['total'],
             new QUI\ERP\Currency\Currency($response['amount']['currency']),
             $Order,

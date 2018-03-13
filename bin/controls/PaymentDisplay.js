@@ -11,7 +11,9 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
     'utils/Controls',
 
     'Ajax',
-    'Locale'
+    'Locale',
+
+    'css!package/quiqqer/payment-paypal/bin/controls/PaymentDisplay.css'
 
 ], function (QUIControl, QUIButton, QUIControlUtils, QUIAjax, QUILocale) {
     "use strict";
@@ -116,7 +118,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
         $showPayPalBtn: function () {
             var self = this;
 
-            this.$OrderProcess.Loader.hide();
+            this.$OrderProcess.Loader.show();
 
             // re-display if button was previously rendered and hidden
             this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
@@ -139,14 +141,13 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         QUILocale.get(pkg, 'PaymentDisplay.confirm_payment')
                     );
 
-                    return self.$createOrder(
-                        self.getAttribute('basketid')
-                    ).then(function (Order) {
+                    return self.$createOrder().then(function (Order) {
                         self.$OrderProcess.Loader.hide();
                         return Order.payPalPaymentId;
                     }, function (Error) {
                         self.$OrderProcess.Loader.hide();
                         self.$showErrorMsg(Error.getMessage());
+                        self.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
                     });
                 },
 
@@ -155,8 +156,6 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     self.$OrderProcess.Loader.show(
                         QUILocale.get(pkg, 'PaymentDisplay.execute_payment')
                     );
-
-                    self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
 
                     self.$executeOrder(data.paymentID, data.payerID).then(function (success) {
                         if (success) {
@@ -182,7 +181,9 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
                     self.$showPayPalBtn();
                 }
-            }, '#quiqqer-payment-paypal-btn-pay');
+            }, '#quiqqer-payment-paypal-btn-pay').then(function () {
+                self.$OrderProcess.Loader.hide();
+            });
         },
 
         /**
@@ -196,7 +197,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             return new Promise(function (resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_createOrder', resolve, {
                     'package': pkg,
-                    orderHash: self.getAttribute('orderhash'),
+                    basketId : self.getAttribute('basketid'),
                     onError  : reject
                 })
             });

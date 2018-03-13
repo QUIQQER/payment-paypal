@@ -1,0 +1,3 @@
+[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"] > .qui-loader {
+    z-index: 1000 !important;
+}
