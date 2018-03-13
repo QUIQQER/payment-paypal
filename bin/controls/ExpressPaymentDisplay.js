@@ -65,9 +65,11 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
             ).then(function (OrderProcess) {
                 self.$OrderProcess = OrderProcess;
 
-                OrderProcess.Loader.show(
-                    QUILocale.get(pkg, 'ExpressExpressPaymentDisplay.order.execute')
-                );
+                (function() {
+                    OrderProcess.Loader.show(
+                        QUILocale.get(pkg, 'ExpressExpressPaymentDisplay.order.execute')
+                    );
+                }).delay(500);
 
                 var onError = function() {
                     OrderProcess.Loader.hide();
@@ -78,7 +80,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
 
                     (function() {
                         OrderProcess.previous();
-                    }).delay();
+                    }).delay(5000);
                 };
 
                 self.$expressCheckout().then(function (success) {

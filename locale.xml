@@ -156,7 +156,7 @@
         </locale>
         <locale name="settings.widgets.btn_size.options.responsive">
             <de><![CDATA[Automatisch (abhängig von der Größe des Browser-Fenster)]]></de>
-            <en><![CDATA[AUto (depending on browser window size)]]></en>
+            <en><![CDATA[Auto (depending on browser window size)]]></en>
         </locale>
         <locale name="settings.widgets.btn_shape.title">
             <de><![CDATA["PayPal"-Button Form]]></de>
@@ -169,6 +169,78 @@
         <locale name="settings.widgets.btn_shape.options.pill">
             <de><![CDATA[Pillenförmig]]></de>
             <en><![CDATA[Pill]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.title">
+            <de><![CDATA["PayPal Express"-Button Farbe]]></de>
+            <en><![CDATA["PayPal Express" button color]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.options.gold">
+            <de><![CDATA[Gold (Standard)]]></de>
+            <en><![CDATA[Gold (default)]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.options.blue">
+            <de><![CDATA[Blaue]]></de>
+            <en><![CDATA[Blue]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.options.silver">
+            <de><![CDATA[Silber]]></de>
+            <en><![CDATA[Silver]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.options.black">
+            <de><![CDATA[Schwarz]]></de>
+            <en><![CDATA[Black]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.title">
+            <de><![CDATA["PayPal Express"-Button Größe]]></de>
+            <en><![CDATA["PayPal Express" button size]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.options.small">
+            <de><![CDATA[Klein]]></de>
+            <en><![CDATA[Small]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.options.medium">
+            <de><![CDATA[Mittel (Standard)]]></de>
+            <en><![CDATA[Medium (default)]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.options.large">
+            <de><![CDATA[Groß]]></de>
+            <en><![CDATA[Large]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.options.responsive">
+            <de><![CDATA[Automatisch (abhängig von der Größe des Browser-Fenster)]]></de>
+            <en><![CDATA[Auto (depending on browser window size)]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_shape.title">
+            <de><![CDATA["PayPal Express"-Button Form]]></de>
+            <en><![CDATA["PayPal Express" button shape]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_shape.options.rect">
+            <de><![CDATA[Rechteckig (Standard)]]></de>
+            <en><![CDATA[Rectangular (default)]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_shape.options.pill">
+            <de><![CDATA[Pillenförmig]]></de>
+            <en><![CDATA[Pill]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.title">
+            <de><![CDATA["PayPal Express"-Button Größe (Mini-Warenkorb)]]></de>
+            <en><![CDATA["PayPal Express" button size (mini basket)]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.options.small">
+            <de><![CDATA[Klein (Standard)]]></de>
+            <en><![CDATA[Small (default)]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.options.medium">
+            <de><![CDATA[Mittel]]></de>
+            <en><![CDATA[Medium]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.options.large">
+            <de><![CDATA[Groß]]></de>
+            <en><![CDATA[Large]]></en>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.options.responsive">
+            <de><![CDATA[Automatisch (abhängig von der Größe des Browser-Fenster)]]></de>
+            <en><![CDATA[Auto (depending on browser window size)]]></en>
         </locale>
 
         <!-- Payment -->

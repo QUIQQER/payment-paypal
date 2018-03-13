@@ -43,7 +43,10 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             productid      : false,
             context        : false,
             orderprocessurl: false,
-            checkout       : false
+            checkout       : false,
+            displaysize    : '',
+            displaycolor   : '',
+            displayshape   : ''
         },
 
         initialize: function (options) {
@@ -170,9 +173,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
                 style: {
                     label: 'checkout',
-                    size : 'small',
-                    shape: 'pill',
-                    color: 'gold'
+                    size : this.getAttribute('displaysize'),
+                    shape: this.getAttribute('displayshape'),
+                    color: this.getAttribute('displaycolor')
                 },
 
                 // payment() is called when the button is clicked

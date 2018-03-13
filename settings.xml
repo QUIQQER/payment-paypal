@@ -49,6 +49,22 @@
                     <type><![CDATA[string]]></type>
                     <defaultvalue><![CDATA[rect]]></defaultvalue>
                 </conf>
+                <conf name="btn_express_color">
+                    <type><![CDATA[string]]></type>
+                    <defaultvalue><![CDATA[gold]]></defaultvalue>
+                </conf>
+                <conf name="btn_express_size">
+                    <type><![CDATA[string]]></type>
+                    <defaultvalue><![CDATA[medium]]></defaultvalue>
+                </conf>
+                <conf name="btn_express_shape">
+                    <type><![CDATA[string]]></type>
+                    <defaultvalue><![CDATA[rect]]></defaultvalue>
+                </conf>
+                <conf name="btn_express_size_smallbasket">
+                    <type><![CDATA[string]]></type>
+                    <defaultvalue><![CDATA[small]]></defaultvalue>
+                </conf>
             </section>
 
         </config>
@@ -140,14 +156,15 @@
                             </description>
                         </input>
 
-                        <input conf="payment.display_express_product" type="checkbox">
-                            <text>
-                                <locale group="quiqqer/payment-paypal" var="settings.payment.display_express_product.title"/>
-                            </text>
-                            <description>
-                                <locale group="quiqqer/payment-paypal" var="settings.payment.display_express_product.description"/>
-                            </description>
-                        </input>
+                        <!-- Temporarily disabled until product express checkout is implemented -->
+                        <!--<input conf="payment.display_express_product" type="checkbox">-->
+                            <!--<text>-->
+                                <!--<locale group="quiqqer/payment-paypal" var="settings.payment.display_express_product.title"/>-->
+                            <!--</text>-->
+                            <!--<description>-->
+                                <!--<locale group="quiqqer/payment-paypal" var="settings.payment.display_express_product.description"/>-->
+                            <!--</description>-->
+                        <!--</input>-->
 
                     </settings>
 
@@ -201,6 +218,72 @@
                             </option>
                             <option value="pill">
                                 <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_shape.options.pill"/>
+                            </option>
+                        </select>
+
+                        <select conf="widgets.btn_express_color">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_color.title"/>
+                            </text>
+                            <option value="gold">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_color.options.gold"/>
+                            </option>
+                            <option value="blue">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_color.options.blue"/>
+                            </option>
+                            <option value="silver">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_color.options.silver"/>
+                            </option>
+                            <option value="black">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_color.options.black"/>
+                            </option>
+                        </select>
+
+                        <select conf="widgets.btn_express_size">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size.title"/>
+                            </text>
+                            <option value="small">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size.options.small"/>
+                            </option>
+                            <option value="medium">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size.options.medium"/>
+                            </option>
+                            <option value="large">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size.options.large"/>
+                            </option>
+                            <option value="responsive">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size.options.responsive"/>
+                            </option>
+                        </select>
+
+                        <select conf="widgets.btn_express_size_smallbasket">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size_smallbasket.title"/>
+                            </text>
+                            <option value="small">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size_smallbasket.options.small"/>
+                            </option>
+                            <option value="medium">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size_smallbasket.options.medium"/>
+                            </option>
+                            <option value="large">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size_smallbasket.options.large"/>
+                            </option>
+                            <option value="responsive">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_size_smallbasket.options.responsive"/>
+                            </option>
+                        </select>
+
+                        <select conf="widgets.btn_express_shape">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_shape.title"/>
+                            </text>
+                            <option value="rect">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_shape.options.rect"/>
+                            </option>
+                            <option value="pill">
+                                <locale group="quiqqer/payment-paypal" var="settings.widgets.btn_express_shape.options.pill"/>
                             </option>
                         </select>
 
