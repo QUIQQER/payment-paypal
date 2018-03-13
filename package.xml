@@ -8,7 +8,14 @@
             <locale group="quiqqer/payment-paypal" var="package.description"/>
         </description>
 
-        <image src="URL_OPT_DIR/quiqqer/payment-amazon/bin/images/Logo.jpg"/>
+        <image src="URL_OPT_DIR/quiqqer/payment-paypal/bin/images/Logo.png"/>
+
+        <preview>
+            <image src="URL_OPT_DIR/quiqqer/payment-paypal/bin/images/preview/Frontend_Basket.png"/>
+            <image src="URL_OPT_DIR/quiqqer/payment-paypal/bin/images/preview/Frontend_SmallBasket.png"/>
+            <image src="URL_OPT_DIR/quiqqer/payment-paypal/bin/images/preview/Frontend_Button.png"/>
+            <image src="URL_OPT_DIR/quiqqer/payment-paypal/bin/images/preview/Backend_Settings.png"/>
+        </preview>
 
         <support>
             <email><![CDATA[support@pcsg.de]]></email>
