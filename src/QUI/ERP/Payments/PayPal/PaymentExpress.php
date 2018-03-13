@@ -41,6 +41,16 @@ class PaymentExpress extends Payment
     }
 
     /**
+     * This flag indicates whether the payment module can be created more than once
+     *
+     * @return bool
+     */
+    public function isUnique()
+    {
+        return true;
+    }
+
+    /**
      * Execute a PayPal Order
      *
      * @param string $paymentId - The paymentID from the user authorization of the Order

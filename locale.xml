@@ -312,6 +312,14 @@
             <de><![CDATA[Sende Bestellungsdaten an PayPal]]></de>
             <en><![CDATA[Sending order data to PayPal]]></en>
         </locale>
+        <locale name="ExpressBtn.error.title">
+            <de><![CDATA[Fehler]]></de>
+            <en><![CDATA[Fehler]]></en>
+        </locale>
+        <locale name="ExpressBtn.error.text_title">
+            <de><![CDATA[Leider ist ein Fehler aufgetreten]]></de>
+            <en><![CDATA[Unfortunately, an error occurred]]></en>
+        </locale>
 
         <!-- Control: ExpressPaymentDisplay -->
         <locale name="ExpressPaymentDisplay.order.execute">

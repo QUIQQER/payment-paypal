@@ -7,6 +7,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
     'qui/controls/Control',
     'qui/controls/buttons/Button',
+    'qui/controls/windows/Confirm',
     'qui/controls/loader/Loader',
 
     'utils/Controls',
@@ -17,7 +18,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
     'css!package/quiqqer/payment-paypal/bin/controls/ExpressBtn.css'
 
-], function (QUIControl, QUIButton, QUILoader, QUIControlUtils, PayPalApi, QUIAjax, QUILocale) {
+], function (QUIControl, QUIButton, QUIConfirm, QUILoader, QUIControlUtils, PayPalApi, QUIAjax, QUILocale) {
     "use strict";
 
     var pkg = 'quiqqer/payment-paypal';
@@ -293,10 +294,28 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
          * @param {String} msg
          */
         $showErrorMsg: function (msg) {
-            this.$MsgElm.set(
-                'html',
-                '<span class="message-error">' + msg + '</span>'
-            );
+            new QUIConfirm({
+                maxHeight: 300,
+                autoclose: false,
+
+                information: msg,
+                title      : QUILocale.get(pkg, 'ExpressBtn.error.title'),
+                texticon   : 'fa fa-exclamation-triangle',
+                text       : QUILocale.get(pkg, 'ExpressBtn.error.text_title'),
+                icon       : 'fa fa-exclamation-triangle',
+
+                cancel_button: false,
+                ok_button    : {
+                    text     : false,
+                    textimage: 'icon-ok fa fa-check'
+                },
+
+                events: {
+                    onSubmit: function(Popup) {
+                        Popup.close();
+                    }
+                }
+            }).open();
         },
 
         /**
