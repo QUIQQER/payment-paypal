@@ -404,6 +404,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             throw $Exception;
         }
 
+        // @todo handle pending status
+
         if (empty($response['state'])
             || $response['state'] !== 'authorized') {
             if (empty($response['reason_code'])) {
@@ -480,6 +482,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             }
 
             // @todo mark $Order as problematic
+            // @todo pending status
             $this->voidPayPalOrder($Order);
             $this->saveOrder($Order);
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_CAPTURED);
