@@ -195,6 +195,10 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                     });
                 },
 
+                onCancel: function() {
+                    self.$hideLoader();
+                },
+
                 // onAuthorize() is called when the buyer approves the payment
                 onAuthorize: function (data) {
                     self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
