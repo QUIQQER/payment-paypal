@@ -56,10 +56,11 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.$PayPalBtnElm  = null;
             this.$MsgElm        = null;
             this.$ContextParent = null; // this can be either an OrderProcess or a SmallBasket
-            this.Loader         = new QUILoader();
-            this.PageLoader     = new QUILoader();
             this.$hash          = false;
             this.$widgetsLoaded = false;
+
+            this.Loader     = new QUILoader();
+            this.PageLoader = new QUILoader();
 
             this.addEvents({
                 onImport: this.$onImport,
@@ -195,7 +196,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                     });
                 },
 
-                onCancel: function() {
+                onCancel: function () {
                     self.$hideLoader();
                 },
 
@@ -315,7 +316,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 },
 
                 events: {
-                    onSubmit: function(Popup) {
+                    onSubmit: function (Popup) {
                         Popup.close();
                     }
                 }
