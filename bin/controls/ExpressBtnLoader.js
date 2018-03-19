@@ -41,36 +41,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
          */
         $onInject: function () {
             var Elm     = this.getElm();
-            var BtnElm  = false;
             var context = this.getAttribute('context');
 
-            switch (context) {
-                case 'basket':
-                    var OrderProcessElm = Elm.getParent(
-                        '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]'
-                    );
-
-                    if (OrderProcessElm) {
-                        BtnElm = OrderProcessElm.getElement('.quiqqer-order-ordering-buttons');
-                    }
-                    break;
-
-                case 'smallbasket':
-                    var MiniBasketElm = Elm.getParent('.quiqqer-order-basket-small-container');
-
-                    if (!MiniBasketElm) {
-                        break;
-                    }
-
-                    var MiniBasketBtnElm = MiniBasketElm.getElement('.quiqqer-order-basket-small-buttons');
-
-                    if (MiniBasketBtnElm) {
-                        BtnElm = MiniBasketBtnElm;
-                    }
-                    break;
-            }
-
-            if (BtnElm) {
+            if (context === 'basket') {
                 new ExpressBtn({
                     context        : context,
                     basketid       : this.getAttribute('basketid'),
@@ -79,7 +52,31 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
                     displaysize    : this.getAttribute('displaysize'),
                     displaycolor   : this.getAttribute('displaycolor'),
                     displayshape   : this.getAttribute('displayshape')
-                }).inject(BtnElm);
+                }).inject(Elm, 'after');
+            }
+
+            if (context === 'smallbasket') {
+                var MiniBasketElm = Elm.getParent('.quiqqer-order-basket-small-container');
+
+                if (!MiniBasketElm) {
+                    return;
+                }
+
+                var MiniBasketBtnElm = MiniBasketElm.getElement('.quiqqer-order-basket-small-buttons');
+
+                if (!MiniBasketBtnElm) {
+                    return;
+                }
+
+                new ExpressBtn({
+                    context        : context,
+                    basketid       : this.getAttribute('basketid'),
+                    orderprocessurl: this.getAttribute('orderprocessurl'),
+                    checkout       : this.getAttribute('checkout'),
+                    displaysize    : this.getAttribute('displaysize'),
+                    displaycolor   : this.getAttribute('displaycolor'),
+                    displayshape   : this.getAttribute('displayshape')
+                }).inject(MiniBasketBtnElm, 'after');
             }
 
             this.destroy();
