@@ -27,7 +27,9 @@ class Events
      */
     public static function templateOrderProcessBasketEnd(Collector $Collector, $Basket)
     {
-        if (!Provider::getPaymentSetting('display_express_basket')) {
+        $PaymentExpress = Provider::getPayPalExpressPayment();
+
+        if (!$PaymentExpress || !$PaymentExpress->isActive()) {
             return;
         }
 
@@ -71,7 +73,9 @@ class Events
      */
     public static function templateOrderBasketSmallEnd(Collector $Collector, $Basket)
     {
-        if (!Provider::getPaymentSetting('display_express_smallbasket')) {
+        $PaymentExpress = Provider::getPayPalExpressPayment();
+
+        if (!$PaymentExpress || !$PaymentExpress->isActive()) {
             return;
         }
 
