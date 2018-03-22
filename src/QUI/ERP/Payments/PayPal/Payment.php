@@ -8,6 +8,7 @@ namespace QUI\ERP\Payments\PayPal;
 
 use PayPal\v1\Payments\OrderAuthorizeRequest;
 use PayPal\v1\Payments\OrderCaptureRequest;
+use PayPal\v1\Payments\OrderGetRequest;
 use PayPal\v1\Payments\OrderVoidRequest;
 use PayPal\v1\Payments\PaymentExecuteRequest;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
@@ -40,8 +41,18 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const ATTR_PAYPAL_PAYER_DATA         = 'paypal-PayerData';
 
     /**
+     * PayPal Order states
+     */
+    const PAYPAL_ORDER_STATE_PENDING    = 'pending';
+    const PAYPAL_ORDER_STATE_AUTHORIZED = 'authorized';
+    const PAYPAL_ORDER_STATE_CAPTURED   = 'captured';
+    const PAYPAL_ORDER_STATE_COMPLETED  = 'completed';
+    const PAYPAL_ORDER_STATE_VOIDED     = 'voided';
+
+    /**
      * PayPal REST API request types
      */
+    const PAYPAL_REQUEST_TYPE_GET_ORDER       = 'paypal-api-get_order';
     const PAYPAL_REQUEST_TYPE_CREATE_ORDER    = 'paypal-api-create_order';
     const PAYPAL_REQUEST_TYPE_EXECUTE_ORDER   = 'paypal-api-execute_order';
     const PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER = 'paypal-api-authorize_order';
@@ -87,7 +98,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     public function getIcon()
     {
-        return URL_OPT_DIR.'quiqqer/payment-paypal/bin/images/Payment.png';
+        return URL_OPT_DIR . 'quiqqer/payment-paypal/bin/images/Payment.png';
     }
 
     /**
@@ -225,7 +236,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             foreach ($PriceCalculation->getArticles() as $OrderArticle) {
                 $articleData = $OrderArticle->toArray();
                 $calculated  = $articleData['calculated'];
-                $FactorPrice = new CalculationValue($calculated['sum']);
+                $FactorPrice = new CalculationValue($calculated['price']); // unit price
 
                 $item = [
                     'name'        => $OrderArticle->getTitle(),
@@ -301,7 +312,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @return void
      *
      * @throws PayPalException
-     * @throws QUI\ERP\Exception
      * @throws QUI\Exception
      */
     public function executePayPalOrder(AbstractOrder $Order, $paymentId, $payerId)
@@ -443,13 +453,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     {
         $Order->addHistory('PayPal :: Capture Order');
 
-        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_CAPTURE_ID)) {
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL)) {
             $Order->addHistory('PayPal :: Order already captured');
             $this->saveOrder($Order);
             return;
         }
 
         $PriceCalculation = $Order->getPriceCalculation();
+        $captureId        = false;
 
         try {
             $response = $this->payPalApiRequest(
@@ -463,14 +474,36 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 ],
                 $Order
             );
+
+            $captured  = !empty($response['state']) && $response['state'] === self::PAYPAL_ORDER_STATE_COMPLETED;
+            $captureId = $response['id'];
+            $amount    = $response['amount'];
         } catch (PayPalException $Exception) {
             $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
             $this->saveOrder($Order);
-            throw $Exception;
+
+            // it may happen that the capture was actually completed and the PHP SDK just
+            // threw an exception
+            $orderDetails = $this->getPayPalOrderDetails($Order);
+
+            if ($orderDetails) {
+                $this->throwPayPalException();
+            }
+
+            $orderStatus = $orderDetails['status'];
+            $captured    = $orderStatus === self::PAYPAL_ORDER_STATE_COMPLETED
+                           || $orderStatus === self::PAYPAL_ORDER_STATE_CAPTURED;
+            $amount      = $orderDetails['amount'];
+
+            if ($captured) {
+                $Order->addHistory(
+                    'PayPal :: Order capture REST request failed. But Order capture was still completed on PayPal site.'
+                    . ' Continuing payment process.'
+                );
+            }
         }
 
-        if (empty($response['state'])
-            || $response['state'] !== 'completed') {
+        if (!$captured) {
             if (empty($response['reason_code'])) {
                 $Order->addHistory(
                     'PayPal :: Order capture was not completed by PayPal because of an unknown error'
@@ -488,7 +521,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_CAPTURED);
         }
 
-        $Order->setPaymentData(self::ATTR_PAYPAL_CAPTURE_ID, $response['id']);
+        if ($captureId) {
+            $Order->setPaymentData(self::ATTR_PAYPAL_CAPTURE_ID, $captureId);
+        }
+
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, true);
 
         $Order->addHistory('PayPal :: Order successfully captured');
@@ -500,14 +536,42 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->addHistory('PayPal :: Set Gateway purchase');
 
         Gateway::getInstance()->purchase(
-            $response['amount']['total'],
-            new QUI\ERP\Currency\Currency($response['amount']['currency']),
+            $amount['total'],
+            new QUI\ERP\Currency\Currency($amount['currency']),
             $Order,
             $this
         );
 
         $Order->addHistory('PayPal :: Gateway purchase completed and Order payment finished');
         $this->saveOrder($Order);
+    }
+
+    /**
+     * Get details of a PayPal Order
+     *
+     * @param AbstractOrder $Order
+     * @return false|string - false if details cannot be fetched (e.g. if Order has not been created with PayPal);
+     * details otherwise
+     */
+    protected function getPayPalOrderDetails(AbstractOrder $Order)
+    {
+        $payPalOrderId = $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID);
+
+        if (!$payPalOrderId) {
+            return false;
+        }
+
+        try {
+            $response = $this->payPalApiRequest(
+                self::PAYPAL_REQUEST_TYPE_GET_ORDER,
+                [],
+                $Order
+            );
+        } catch (PayPalException $Exception) {
+            return false;
+        }
+
+        return $response;
     }
 
     /**
@@ -532,7 +596,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             return;
         }
 
-        $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_VOID_ORDER, [], $Order);
+        try {
+            $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_VOID_ORDER, [], $Order);
+        } catch (PayPalException $Exception) {
+            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $this->saveOrder($Order);
+
+            throw $Exception;
+        }
 
         if (empty($response['state'])
             || $response['state'] !== 'voided') {
@@ -609,6 +680,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     protected function payPalApiRequest($request, $body, AbstractOrder $Order)
     {
         switch ($request) {
+            case self::PAYPAL_REQUEST_TYPE_GET_ORDER:
+                $Request = new OrderGetRequest(
+                    $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)
+                );
+                break;
+
             case self::PAYPAL_REQUEST_TYPE_CREATE_ORDER:
                 $Request = new PaymentCreateRequest();
                 break;
