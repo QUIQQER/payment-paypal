@@ -495,12 +495,16 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                            || $orderStatus === self::PAYPAL_ORDER_STATE_CAPTURED;
             $amount      = $orderDetails['amount'];
 
+            $Order->addHistory('PayPal :: Order status after failed capture request: "' . $orderStatus . '"');
+
             if ($captured) {
                 $Order->addHistory(
                     'PayPal :: Order capture REST request failed. But Order capture was still completed on PayPal site.'
                     . ' Continuing payment process.'
                 );
             }
+
+            $this->saveOrder($Order);
         }
 
         if (!$captured) {
@@ -514,10 +518,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             }
 
+            $this->saveOrder($Order);
+
             // @todo mark $Order as problematic
             // @todo pending status
             $this->voidPayPalOrder($Order);
-            $this->saveOrder($Order);
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_CAPTURED);
         }
 
