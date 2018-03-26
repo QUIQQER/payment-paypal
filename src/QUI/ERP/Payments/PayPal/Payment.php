@@ -486,7 +486,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             // threw an exception
             $orderDetails = $this->getPayPalOrderDetails($Order);
 
-            if ($orderDetails) {
+            if (!$orderDetails) {
                 $Order->addHistory('PayPal :: Order details could not be queried after failed capture request');
                 $this->saveOrder($Order);
                 $this->throwPayPalException();
