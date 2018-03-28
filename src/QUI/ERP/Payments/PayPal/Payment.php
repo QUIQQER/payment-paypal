@@ -492,12 +492,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $this->throwPayPalException();
             }
 
-            $orderStatus = $orderDetails['status'];
-            $captured    = $orderStatus === self::PAYPAL_ORDER_STATE_COMPLETED
-                           || $orderStatus === self::PAYPAL_ORDER_STATE_CAPTURED;
-            $amount      = $orderDetails['amount'];
+            $orderState = $orderDetails['state'];
+            $captured   = $orderState === self::PAYPAL_ORDER_STATE_COMPLETED
+                          || $orderState === self::PAYPAL_ORDER_STATE_CAPTURED;
+            $amount     = $orderDetails['amount'];
 
-            $Order->addHistory('PayPal :: Order status after failed capture request: "' . $orderStatus . '"');
+            $Order->addHistory('PayPal :: Order status after failed capture request: "' . $orderState . '"');
 
             if ($captured) {
                 $Order->addHistory(
