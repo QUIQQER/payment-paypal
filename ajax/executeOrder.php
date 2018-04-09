@@ -22,6 +22,8 @@ QUI::$Ajax->registerFunction(
         $orderHash = Orthos::clear($orderHash);
         $express   = boolval($express);
 
+        throw new Exception('Hens Fehler');
+
         try {
             $Order = Handler::getInstance()->getOrderByHash($orderHash);
 

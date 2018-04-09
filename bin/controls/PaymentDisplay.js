@@ -148,6 +148,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         self.$OrderProcess.Loader.hide();
                         self.$showErrorMsg(Error.getMessage());
                         self.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
+
+                        self.fireEvent('processingError', [self]);
                     });
                 },
 
@@ -171,6 +173,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     }, function (Error) {
                         self.$OrderProcess.Loader.hide();
                         self.$showErrorMsg(Error.getMessage());
+
+                        self.fireEvent('processingError', [self]);
                     });
                 },
 
@@ -180,6 +184,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     );
 
                     self.$showPayPalBtn();
+
+                    self.fireEvent('processingError', [self]);
                 }
             }, '#quiqqer-payment-paypal-btn-pay').then(function () {
                 self.$OrderProcess.Loader.hide();
