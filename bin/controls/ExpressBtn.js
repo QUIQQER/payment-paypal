@@ -139,30 +139,31 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             var self      = this;
             var widgetUrl = "https://www.paypalobjects.com/api/checkout.js";
 
-            if (typeof paypal !== 'undefined') {
+            if (document.id('paypal-checkout-api')) {
                 this.$renderPayPalBtn();
                 return;
             }
 
             new Element('script', {
                 async: "async",
-                src  : widgetUrl
+                src  : widgetUrl,
+                id   : 'paypal-checkout-api'
             }).inject(document.body);
 
-            var checkPayPayLoaded = setInterval(function () {
-                if (typeof paypal === 'undefined') {
-                    return;
-                }
-
-                clearInterval(checkPayPayLoaded);
-                self.$renderPayPalBtn();
-            }, 200);
+            self.$renderPayPalBtn();
         },
 
         /**
          * Show PayPal Pay Button widget (btn)
          */
         $renderPayPalBtn: function () {
+            if (typeof paypal === 'undefined') {
+                (function () {
+                    this.$renderPayPalBtn();
+                }).delay(200, this);
+                return;
+            }
+
             var self = this;
 
             // re-display if button was previously rendered and hidden

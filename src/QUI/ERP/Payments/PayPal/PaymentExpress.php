@@ -4,6 +4,7 @@ namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
 use QUI\ERP\Order\AbstractOrder;
+use QUI\Users\User as QUIQQERUser;
 
 class PaymentExpress extends Payment
 {
@@ -60,7 +61,6 @@ class PaymentExpress extends Payment
      * @return void
      *
      * @throws PayPalException
-     * @throws QUI\ERP\Exception
      * @throws QUI\Exception
      */
     public function executePayPalOrder(AbstractOrder $Order, $paymentId, $payerId)
@@ -106,8 +106,6 @@ class PaymentExpress extends Payment
             $this->throwPayPalException(self::PAYPAL_ERROR_NO_PAYER_ADDRESS);
         }
 
-        $payPalAddressData = $payerInfo['shipping_address'];
-
         // do not allow checkout with addresses that are not yet confirmed by PayPal
         if (empty($payerData['status'])
             || $payerData['status'] !== 'VERIFIED') {
@@ -122,45 +120,28 @@ class PaymentExpress extends Payment
         $Customer            = $Order->getCustomer();
         $CustomerQuiqqerUser = QUI::getUsers()->get($Customer->getId());
 
-        $PayPalAddress = false;
+        $InvoiceAddress       = false;
+        $PayPalQuiqqerAddress = $this->getQuiqqerAddressFromPayPalPayerInfo($payerInfo, $CustomerQuiqqerUser);
 
+        // Check if $PayPalQuiqqerAddress already exists
         /** @var QUI\Users\Address $Address */
         foreach ($CustomerQuiqqerUser->getAddressList() as $Address) {
-            if ($Address->getCustomDataEntry('source') === 'PayPal') {
-                $PayPalAddress = $Address;
+            if ($Address->equals($PayPalQuiqqerAddress)) {
+                $InvoiceAddress = $Address;
+                $PayPalQuiqqerAddress->delete();
                 break;
             }
         }
 
         // Create new address with source "PayPal"
-        if (!$PayPalAddress) {
+        if (!$InvoiceAddress) {
             $Order->addHistory(
-                'PayPal Express :: No PayPal QUIQQER Address found in QUIQQER User -> Adding PayPal QUIQQER Address'
+                'PayPal Express :: PayPal Address found in QUIQQER User -> Adding PayPal QUIQQER Address'
             );
 
-            $SystemUser  = QUI::getUsers()->getSystemUser();
-            $streetParts = [];
-
-            if (!empty($payPalAddressData['line1'])) {
-                $streetParts[] = $payPalAddressData['line1'];
-            }
-
-            if (!empty($payPalAddressData['line2'])) {
-                $streetParts[] = $payPalAddressData['line2'];
-            }
-
-            $PayPalAddress = $CustomerQuiqqerUser->addAddress([
-                'salutation' => !empty($payerInfo['salutation']) ? $payerInfo['salutation'] : '',
-                'firstname'  => !empty($payerInfo['first_name']) ? $payerInfo['first_name'] : '',
-                'lastname'   => !empty($payerInfo['last_name']) ? $payerInfo['last_name'] : '',
-                'mail'       => !empty($payerInfo['email']) ? $payerInfo['email'] : '',
-                'street_no'  => implode(' ', $streetParts),
-                'zip'        => !empty($payPalAddressData['postal_code']) ? $payPalAddressData['postal_code'] : '',
-                'city'       => !empty($payPalAddressData['city']) ? $payPalAddressData['city'] : '',
-                'country'    => !empty($payPalAddressData['country_code']) ? mb_strtoupper($payPalAddressData['country_code']) : ''
-            ], $SystemUser);
-
+            $InvoiceAddress       = $PayPalQuiqqerAddress;
             $userPrimaryAddressId = false;
+            $SystemUser           = QUI::getUsers()->getSystemUser();
 
             try {
                 $userPrimaryAddressId = $CustomerQuiqqerUser->getStandardAddress()->getId();
@@ -172,31 +153,78 @@ class PaymentExpress extends Payment
 
             // Set the PayPal address as default address if no default address previously set
             if (!$userPrimaryAddressId) {
-                $CustomerQuiqqerUser->setAttribute('address', $userPrimaryAddressId);
+                $CustomerQuiqqerUser->setAttribute('address', $InvoiceAddress->getId());
                 $CustomerQuiqqerUser->save($SystemUser);
 
                 $Order->addHistory('PayPal Express :: PayPal QUIQQER Address set as default address');
             }
 
-            if (!empty($payPalAddressData['phone'])) {
-                $PayPalAddress->addPhone([
-                    'type' => 'tel',
-                    'no'   => $payPalAddressData['phone']
-                ]);
-            }
-
-            $PayPalAddress->setCustomDataEntry('source', 'PayPal');
-            $PayPalAddress->save($SystemUser);
-
             $Order->addHistory('PayPal Express :: PayPal QUIQQER address successfully created');
         }
 
-        $Order->setInvoiceAddress($PayPalAddress);
+        $Order->setInvoiceAddress($InvoiceAddress);
         $Order->addHistory(
-            'PayPal Express :: Order invoice address set (QUIQQER address ID: #' . $PayPalAddress->getId() . ')'
+            'PayPal Express :: Order invoice address set (QUIQQER address ID: #' . $InvoiceAddress->getId() . ')'
         );
 
         $this->saveOrder($Order);
+    }
+
+    /**
+     * Parse a QUIQQER Address from PayPal payer info
+     *
+     * Due to the nature of the QUIQQER Address API this method has to create an actual
+     * User address in the database. If you do not need the address this method returns later on,
+     * delete it by calling $Address->delete()
+     *
+     * @param array $payerInfo
+     * @param QUIQQERUser $QuiqqerUser
+     * @return QUI\Users\Address
+     *
+     * @throws QUI\Exception
+     */
+    protected function getQuiqqerAddressFromPayPalPayerInfo($payerInfo, QUIQQERUser $QuiqqerUser)
+    {
+        $payPalAddressData = $payerInfo['shipping_address'];
+        $SystemUser        = QUI::getUsers()->getSystemUser();
+
+        // Create Address
+        $streetParts = [];
+
+        if (!empty($payPalAddressData['line1'])) {
+            $streetParts[] = $payPalAddressData['line1'];
+        }
+
+        if (!empty($payPalAddressData['line2'])) {
+            $streetParts[] = $payPalAddressData['line2'];
+        }
+
+        $Address = $QuiqqerUser->addAddress([
+            'salutation' => !empty($payerInfo['salutation']) ? $payerInfo['salutation'] : '',
+            'firstname'  => !empty($payerInfo['first_name']) ? $payerInfo['first_name'] : '',
+            'lastname'   => !empty($payerInfo['last_name']) ? $payerInfo['last_name'] : '',
+            'street_no'  => implode(' ', $streetParts),
+            'zip'        => !empty($payPalAddressData['postal_code']) ? $payPalAddressData['postal_code'] : '',
+            'city'       => !empty($payPalAddressData['city']) ? $payPalAddressData['city'] : '',
+            'country'    => !empty($payPalAddressData['country_code']) ? mb_strtoupper($payPalAddressData['country_code']) : ''
+        ], $SystemUser);
+
+        if (!empty($payerInfo['email'])) {
+            $Address->addMail($payerInfo['email']);
+        }
+
+        if (!empty($payPalAddressData['phone'])) {
+            $Address->addPhone([
+                'type' => 'tel',
+                'no'   => $payPalAddressData['phone']
+            ]);
+        }
+
+        $Address->setCustomDataEntry('source', 'PayPal');
+        $Address->save($SystemUser);
+
+        // reload Address from DB to set correct attributes
+        return new QUI\Users\Address($QuiqqerUser, $Address->getId());
     }
 
     /**
