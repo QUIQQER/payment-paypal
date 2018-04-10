@@ -22,8 +22,6 @@ QUI::$Ajax->registerFunction(
         $orderHash = Orthos::clear($orderHash);
         $express   = boolval($express);
 
-        throw new Exception('Hens Fehler');
-
         try {
             $Order = Handler::getInstance()->getOrderByHash($orderHash);
 
@@ -52,6 +50,7 @@ QUI::$Ajax->registerFunction(
             throw $Exception;
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
+
             return false;
         }
 
