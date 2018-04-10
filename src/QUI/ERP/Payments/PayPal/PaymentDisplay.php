@@ -25,7 +25,7 @@ class PaymentDisplay extends QUI\Control
     {
         parent::__construct($attributes);
 
-        $this->addCSSFile(dirname(__FILE__) . '/PaymentDisplay.css');
+        $this->addCSSFile(dirname(__FILE__).'/PaymentDisplay.css');
 
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay');
         $this->setJavaScriptControlOption('sandbox', boolval(Provider::getApiSetting('sandbox')));
@@ -47,6 +47,10 @@ class PaymentDisplay extends QUI\Control
         $Basket           = OrderHandler::getInstance()->getBasketByHash($Order->getHash());
         $PriceCalculation = $Order->getPriceCalculation();
 
+        if (Provider::isApiSetUp() === false) {
+            $this->Events->fireEvent('processingError', [$this]);
+        }
+
         $Engine->assign([
             'display_price' => $PriceCalculation->getSum()->formatted(),
             'apiSetUp'      => Provider::isApiSetUp(),
@@ -61,6 +65,6 @@ class PaymentDisplay extends QUI\Control
         // Check if an PayPal authorization already exists (i.e. Order is successful / can be processed)
         $this->setJavaScriptControlOption('successful', $Order->isSuccessful());
 
-        return $Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.html');
+        return $Engine->fetch(dirname(__FILE__).'/PaymentDisplay.html');
     }
 }
