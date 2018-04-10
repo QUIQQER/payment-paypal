@@ -40,6 +40,7 @@ class Provider extends AbstractPaymentProvider
             $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
+
             return false;
         }
 
@@ -58,6 +59,7 @@ class Provider extends AbstractPaymentProvider
             $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
+
             return false;
         }
 
@@ -76,6 +78,7 @@ class Provider extends AbstractPaymentProvider
             $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
+
             return false;
         }
 
@@ -104,12 +107,15 @@ class Provider extends AbstractPaymentProvider
      * Check if the PayPal API settings are correct
      *
      * @return bool
-     * @throws QUI\Exception
      */
     public static function isApiSetUp()
     {
-        $Conf        = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
-        $apiSettings = $Conf->getSection('api');
+        try {
+            $Conf        = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+            $apiSettings = $Conf->getSection('api');
+        } catch (QUI\Exception $Exception) {
+            return false;
+        }
 
         foreach ($apiSettings as $k => $v) {
             switch ($k) {
@@ -121,9 +127,9 @@ class Provider extends AbstractPaymentProvider
             if (empty($v)) {
                 QUI\System\Log::addError(
                     'Your PayPal API credentials seem to be (partially) missing.'
-                    . ' PayPal CAN NOT be used at the moment. Please enter all your'
-                    . ' API credentials. See https://dev.quiqqer.com/quiqqer/payment-paypal/wikis/api-configuration'
-                    . ' for further instructions.'
+                    .' PayPal CAN NOT be used at the moment. Please enter all your'
+                    .' API credentials. See https://dev.quiqqer.com/quiqqer/payment-paypal/wikis/api-configuration'
+                    .' for further instructions.'
                 );
 
                 return false;
