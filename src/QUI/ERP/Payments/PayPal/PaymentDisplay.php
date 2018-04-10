@@ -20,6 +20,7 @@ class PaymentDisplay extends QUI\Control
      * Constructor
      *
      * @param array $attributes
+     * @throws QUI\ERP\Order\ProcessingException
      */
     public function __construct(array $attributes = [])
     {
@@ -29,6 +30,13 @@ class PaymentDisplay extends QUI\Control
 
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay');
         $this->setJavaScriptControlOption('sandbox', boolval(Provider::getApiSetting('sandbox')));
+
+        if (Provider::isApiSetUp() === false) {
+            throw new QUI\ERP\Order\ProcessingException([
+                'quiqqer/payment-paypal',
+                'exception.message.missing.setup'
+            ]);
+        }
     }
 
     /**
@@ -46,10 +54,6 @@ class PaymentDisplay extends QUI\Control
         $Order            = $this->getAttribute('Order');
         $Basket           = OrderHandler::getInstance()->getBasketByHash($Order->getHash());
         $PriceCalculation = $Order->getPriceCalculation();
-
-        if (Provider::isApiSetUp() === false) {
-            $this->Events->fireEvent('processingError', [$this]);
-        }
 
         $Engine->assign([
             'display_price' => $PriceCalculation->getSum()->formatted(),

@@ -317,6 +317,16 @@
             <en><![CDATA[Payment with PayPal]]></en>
         </locale>
 
+        <locale name="exception.message.missing.setup">
+            <de><![CDATA[
+            Bezahlung per PayPal kann zur Zeit nicht verwendet werden.
+            Bitte wenden Sie sich an den Shopbetreiber und / oder wählen eine andere Bezahlmethode.
+            ]]></de>
+            <en><![CDATA[
+            Payment by PayPal cannot be used at the moment.
+            Please contact the shop owner and / or choose another payment method.
+            ]]></en>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="js">
