@@ -2,7 +2,7 @@
   "name": "quiqqer/payment-paypal",
   "type": "quiqqer-module",
   "description": "PayPal - Payment method for QUIQQER ERP stack",
-  "version": "dev-master",
+  "version": "1.2.0",
   "license": [
     "GPL-3.0+",
     "PCSG QL-1.0"
