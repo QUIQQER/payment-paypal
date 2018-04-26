@@ -124,7 +124,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
             this.$PayPalBtnElm.set('html', '');
 
-            paypal.Button.render({
+            window.paypal.Button.render({
                 env   : !this.getAttribute('sandbox') ? 'production' : 'sandbox',
                 commit: true,
 
@@ -148,6 +148,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         self.$OrderProcess.Loader.hide();
                         self.$showErrorMsg(Error.getMessage());
                         self.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
+
+                        self.fireEvent('processingError', [self]);
                     });
                 },
 
@@ -171,6 +173,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     }, function (Error) {
                         self.$OrderProcess.Loader.hide();
                         self.$showErrorMsg(Error.getMessage());
+
+                        self.fireEvent('processingError', [self]);
                     });
                 },
 
@@ -180,8 +184,10 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     );
 
                     self.$showPayPalBtn();
+
+                    self.fireEvent('processingError', [self]);
                 }
-            }, '#quiqqer-payment-paypal-btn-pay').then(function () {
+            }, self.$PayPalBtnElm).then(function () {
                 self.$OrderProcess.Loader.hide();
             });
         },
@@ -199,7 +205,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     'package': pkg,
                     basketId : self.getAttribute('basketid'),
                     onError  : reject
-                })
+                });
             });
         },
 
@@ -220,7 +226,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     paymentId: paymentId,
                     payerId  : payerId,
                     onError  : reject
-                })
+                });
             });
         },
 
