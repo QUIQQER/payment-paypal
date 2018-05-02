@@ -98,7 +98,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     public function getIcon()
     {
-        return URL_OPT_DIR . 'quiqqer/payment-paypal/bin/images/Payment.png';
+        return URL_OPT_DIR.'quiqqer/payment-paypal/bin/images/Payment.png';
     }
 
     /**
@@ -114,8 +114,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $Order = OrderHandler::getInstance()->getOrderByHash($hash);
         } catch (\Exception $Exception) {
             QUI\System\Log::addError(
-                'PayPal :: Cannot check if payment process for Order #' . $hash . ' is successful'
-                . ' -> ' . $Exception->getMessage()
+                'PayPal :: Cannot check if payment process for Order #'.$hash.' is successful'
+                .' -> '.$Exception->getMessage()
             );
 
             return false;
@@ -175,7 +175,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
+        $Step->setContent($Engine->fetch(dirname(__FILE__).'/PaymentDisplay.Header.html'));
 
         return $Control->create();
     }
@@ -219,11 +219,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $transactionData = [
-            'amount'      => $amount,
-            'description' => $this->getLocale()->get(
+            'reference_id' => $Order->getHash(),
+            'amount'       => $amount,
+            'description'  => $this->getLocale()->get(
                 'quiqqer/payment-paypal',
                 'Payment.order.create.description', [
-                    'orderId' => $Order->getId()
+                    'orderId' => $Order->getPrefixedId()
                 ]
             )
         ];
@@ -260,7 +261,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $name            = $PriceFactor->getTitle();
 
                 if (!empty($factorExtraText)) {
-                    $name .= ' (' . $factorExtraText . ')';
+                    $name .= ' ('.$factorExtraText.')';
                 }
 
                 $items[] = [
@@ -327,7 +328,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID) !== $paymentId) {
             $Order->addHistory(
                 'PayPal :: PayPal Order ID that was saved in the QUIQQER Order'
-                . ' did not match the PayPal paymentID that was given to the executePayPalOrder method'
+                .' did not match the PayPal paymentID that was given to the executePayPalOrder method'
             );
 
             $this->saveOrder($Order);
@@ -354,7 +355,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order execution was not approved by PayPal. Reason: "' . $response['failure_reason'] . '"'
+                    'PayPal :: Order execution was not approved by PayPal. Reason: "'.$response['failure_reason'].'"'
                 );
             }
 
@@ -424,7 +425,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order was not authorized by PayPal. Reason: "' . $response['reason_code'] . '"'
+                    'PayPal :: Order was not authorized by PayPal. Reason: "'.$response['reason_code'].'"'
                 );
             }
 
@@ -497,12 +498,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                           || $orderState === self::PAYPAL_ORDER_STATE_CAPTURED;
             $amount     = $orderDetails['amount'];
 
-            $Order->addHistory('PayPal :: Order status after failed capture request: "' . $orderState . '"');
+            $Order->addHistory('PayPal :: Order status after failed capture request: "'.$orderState.'"');
 
             if ($captured) {
                 $Order->addHistory(
                     'PayPal :: Order capture REST request failed. But Order capture was still completed on PayPal site.'
-                    . ' Continuing payment process.'
+                    .' Continuing payment process.'
                 );
             }
 
@@ -516,7 +517,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order capture was not completed by PayPal. Reason: "' . $response['reason_code'] . '"'
+                    'PayPal :: Order capture was not completed by PayPal. Reason: "'.$response['reason_code'].'"'
                 );
             }
 
@@ -596,7 +597,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         if (!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
             $Order->addHistory(
                 'PayPal :: Order cannot be voided because it has not been created yet'
-                . ' or was voided before'
+                .' or was voided before'
             );
 
             $this->saveOrder($Order);
@@ -620,7 +621,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order could not be voided. Reason: "' . $response['reason_code'] . '"'
+                    'PayPal :: Order could not be voided. Reason: "'.$response['reason_code'].'"'
                 );
             }
 
@@ -654,7 +655,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     {
         $L   = $this->getLocale();
         $lg  = 'quiqqer/payment-paypal';
-        $msg = $L->get($lg, 'payment.error_msg.' . $errorCode);
+        $msg = $L->get($lg, 'payment.error_msg.'.$errorCode);
 
         $Exception = new PayPalException($msg);
         $Exception->setAttributes($exceptionAttributes);

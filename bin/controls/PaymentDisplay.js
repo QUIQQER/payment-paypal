@@ -188,6 +188,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     self.fireEvent('processingError', [self]);
                 }
             }, self.$PayPalBtnElm).then(function () {
+                self.$OrderProcess.resize();
                 self.$OrderProcess.Loader.hide();
             });
         },
