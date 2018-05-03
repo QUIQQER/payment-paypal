@@ -304,6 +304,10 @@
             <de><![CDATA[Bestellung #[orderId]]]></de>
             <en><![CDATA[Order #[orderId]]]></en>
         </locale>
+        <locale name="history.order_id">
+            <de><![CDATA[PayPal Bestellnummer: [orderId]]]></de>
+            <en><![CDATA[PayPal Order ID: [orderId]]]></en>
+        </locale>
 
         <!-- PaymentDisplay -->
         <locale name="PaymentDisplay.no_javascript">
