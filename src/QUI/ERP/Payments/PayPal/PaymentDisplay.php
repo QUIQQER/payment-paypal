@@ -28,6 +28,7 @@ class PaymentDisplay extends QUI\Control
 
         $this->addCSSFile(dirname(__FILE__).'/PaymentDisplay.css');
 
+        $this->addCSSClass('quiqqer-payment-paypal');
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay');
         $this->setJavaScriptControlOption('sandbox', boolval(Provider::getApiSetting('sandbox')));
 

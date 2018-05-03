@@ -369,6 +369,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $resources   = current($transaction['related_resources']);
 
         $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, $resources['order']['id']);
+
+        $Order->addHistory(
+            QUI::getLocale()->get(
+                'quiqqer/payment-paypal',
+                'history.order_id',
+                [
+                    'orderId' => $resources['order']['id']
+                ]
+            )
+        );
+
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_ID, $payerId);
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_DATA, $response['payer']);
 
