@@ -308,6 +308,10 @@
             <de><![CDATA[PayPal Bestellnummer: [orderId]]]></de>
             <en><![CDATA[PayPal Order ID: [orderId]]]></en>
         </locale>
+        <locale name="history.capture_id">
+            <de><![CDATA[PayPal Zahlungs-Transaktionscode: [captureId]]]></de>
+            <en><![CDATA[PayPal payment transaction code: [captureId]]]></en>
+        </locale>
 
         <!-- PaymentDisplay -->
         <locale name="PaymentDisplay.no_javascript">

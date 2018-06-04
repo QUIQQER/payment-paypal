@@ -547,6 +547,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, true);
 
         $Order->addHistory('PayPal :: Order successfully captured');
+
+        $Order->addHistory(
+            QUI::getLocale()->get(
+                'quiqqer/payment-paypal',
+                'history.capture_id',
+                [
+                    'captureId' => $captureId
+                ]
+            )
+        );
+
         $this->saveOrder($Order);
 
         $Order->setSuccessfulStatus();
