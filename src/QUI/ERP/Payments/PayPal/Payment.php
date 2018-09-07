@@ -17,6 +17,7 @@ use PayPal\Core\ProductionEnvironment;
 use PayPal\Core\SandboxEnvironment;
 use PayPal\v1\Payments\PaymentCreateRequest;
 use QUI;
+use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Order\Handler as OrderHandler;
 use QUI\ERP\Utils\User as ERPUserUtils;
@@ -146,9 +147,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * Execute a refund
      *
      * @param QUI\ERP\Accounting\Payments\Transactions\Transaction $Transaction
+     * @param $amount
+     * @param string $message
      */
-    public function refund(QUI\ERP\Accounting\Payments\Transactions\Transaction $Transaction)
-    {
+    public function refund(
+        Transaction $Transaction,
+        $amount,
+        $message = ''
+    ) {
         // @todo
     }
 
