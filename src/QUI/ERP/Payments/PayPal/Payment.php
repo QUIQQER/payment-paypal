@@ -11,6 +11,7 @@ use PayPal\v1\Payments\OrderCaptureRequest;
 use PayPal\v1\Payments\OrderGetRequest;
 use PayPal\v1\Payments\OrderVoidRequest;
 use PayPal\v1\Payments\PaymentExecuteRequest;
+use PayPal\v1\Payments\CaptureRefundRequest;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use PayPal\Core\PayPalHttpClient as PayPalClient;
 use PayPal\Core\ProductionEnvironment;
@@ -22,6 +23,7 @@ use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Order\Handler as OrderHandler;
 use QUI\ERP\Utils\User as ERPUserUtils;
 use QUI\ERP\Accounting\CalculationValue;
+use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 
 /**
  * Class Payment
@@ -40,6 +42,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const ATTR_PAYPAL_CAPTURE_ID         = 'paypal-CaptureId';
     const ATTR_PAYPAL_PAYMENT_SUCCESSFUL = 'paypal-PaymentSuccessful';
     const ATTR_PAYPAL_PAYER_DATA         = 'paypal-PayerData';
+    const ATTR_PAYPAL_REFUND_IDS         = 'paypal-RefundIds';
 
     /**
      * PayPal Order states
@@ -51,6 +54,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const PAYPAL_ORDER_STATE_VOIDED     = 'voided';
 
     /**
+     * PayPal Refund states
+     */
+    const PAYPAL_REFUND_STATE_PENDING   = 'pending';
+    const PAYPAL_REFUND_STATE_COMPLETED = 'completed';
+
+    /**
      * PayPal REST API request types
      */
     const PAYPAL_REQUEST_TYPE_GET_ORDER       = 'paypal-api-get_order';
@@ -59,14 +68,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER = 'paypal-api-authorize_order';
     const PAYPAL_REQUEST_TYPE_CAPTURE_ORDER   = 'paypal-api-capture_order';
     const PAYPAL_REQUEST_TYPE_VOID_ORDER      = 'paypal-api-void_oder';
+    const PAYPAL_REQUEST_TYPE_REFUND_ORDER    = 'paypal-api-refund_order';
 
     /**
      * Error codes
      */
-    const PAYPAL_ERROR_GENERAL_ERROR        = 'general_error';
-    const PAYPAL_ERROR_ORDER_NOT_APPROVED   = 'order_not_approved';
-    const PAYPAL_ERROR_ORDER_NOT_AUTHORIZED = 'order_not_authorized';
-    const PAYPAL_ERROR_ORDER_NOT_CAPTURED   = 'order_not_captured';
+    const PAYPAL_ERROR_GENERAL_ERROR                         = 'general_error';
+    const PAYPAL_ERROR_ORDER_NOT_APPROVED                    = 'order_not_approved';
+    const PAYPAL_ERROR_ORDER_NOT_AUTHORIZED                  = 'order_not_authorized';
+    const PAYPAL_ERROR_ORDER_NOT_CAPTURED                    = 'order_not_captured';
+    const PAYPAL_ERROR_ORDER_NOT_REFUNDED                    = 'order_not_refunded';
+    const PAYPAL_ERROR_ORDER_NOT_REFUNDED_ORDER_NOT_CAPTURED = 'order_not_refunded_order_not_captured';
 
     /**
      * PayPal PHP REST Client (v2)
@@ -150,6 +162,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @param int|float $amount
      * @param string $message
      * @param false|string $hash - if a new hash will be used
+     * @throws QUI\ERP\Accounting\Payments\Transactions\RefundException
      */
     public function refund(
         Transaction $Transaction,
@@ -157,7 +170,49 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $message = '',
         $hash = false
     ) {
-        // @todo
+        try {
+            $Order = OrderHandler::getInstance()->getOrderByGlobalProcessId(
+                $Transaction->getGlobalProcessId()
+            );
+
+            $this->refundPayPalOrder($Order, $amount, $message);
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+
+            throw new QUI\ERP\Accounting\Payments\Transactions\RefundException([
+                'quiqqer/payment-paypal',
+                'exception.Payment.refund_error'
+            ]);
+        }
+
+        try {
+            if ($hash === false) {
+                $hash = $Transaction->getHash();
+            }
+
+            // create a refund transaction
+            $RefundTransaction = TransactionFactory::createPaymentRefundTransaction(
+                $amount,
+                $Transaction->getCurrency(),
+                $hash,
+                $Transaction->getPayment()->getName(),
+                [
+                    'isRefund' => 1,
+                    'message'  => $message
+                ],
+                null,
+                false,
+                $Transaction->getGlobalProcessId()
+            );
+
+            QUI::getEvents()->fireEvent('transactionSuccessfullyRefunded', [
+                $RefundTransaction,
+                $this
+            ]);
+        } catch (QUI\Exception $Exception) {
+            QUI\System\Log::writeDebugException($Exception);
+            QUI\System\Log::writeException($Exception);
+        }
     }
 
     /**
@@ -416,13 +471,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $PriceCalculation = $Order->getPriceCalculation();
+        $amountTotal      = $this->formatPrice($PriceCalculation->getSum()->get());
 
         try {
             $response = $this->payPalApiRequest(
                 self::PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER,
                 [
                     'amount' => [
-                        'total'    => $PriceCalculation->getSum()->precision(2)->get(),
+                        'total'    => $amountTotal,
                         'currency' => $Order->getCurrency()->getCode()
                     ]
                 ],
@@ -480,6 +536,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $PriceCalculation = $Order->getPriceCalculation();
+        $amountTotal      = $this->formatPrice($PriceCalculation->getSum()->get());
         $captureId        = false;
 
         try {
@@ -487,7 +544,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER,
                 [
                     'amount'           => [
-                        'total'    => $PriceCalculation->getSum()->precision(2)->get(),
+                        'total'    => $amountTotal,
                         'currency' => $Order->getCurrency()->getCode()
                     ],
                     'is_final_capture' => true // capture full amount directly
@@ -581,6 +638,92 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         );
 
         $Order->addHistory('PayPal :: Gateway purchase completed and Order payment finished');
+        $this->saveOrder($Order);
+    }
+
+    /**
+     * Execute a PayPal Order refund
+     *
+     * @param AbstractOrder $Order
+     * @param float $amount - The amount that should be captured
+     * @param string $reason - The refund reasn [default: empty; max length: 30 characters!]
+     * @return void
+     *
+     * @throws PayPalException
+     * @throws QUI\Exception
+     */
+    protected function refundPayPalOrder(AbstractOrder $Order, $amount, $reason = '')
+    {
+        $Order->addHistory('PayPal :: Refund Order');
+
+        if (!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL)) {
+            $Order->addHistory('PayPal :: Order cannot be refunded because it is not yet captured / completed.');
+            $this->saveOrder($Order);
+            $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED_ORDER_NOT_CAPTURED);
+            return;
+        }
+
+        $Currency       = $Order->getCurrency();
+        $AmountCalc     = new CalculationValue($amount, $Currency, 2);
+        $amountRefunded = $this->formatPrice($AmountCalc->get());
+
+        try {
+            $response = $this->payPalApiRequest(
+                self::PAYPAL_REQUEST_TYPE_REFUND_ORDER,
+                [
+                    'amount' => [
+                        'total'    => $amountRefunded,
+                        'currency' => $Currency->getCode()
+                    ],
+                    'reason' => mb_substr($reason, 0, 30)
+                ],
+                $Order
+            );
+        } catch (PayPalException $Exception) {
+            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $this->saveOrder($Order);
+            throw $Exception;
+        }
+
+        switch ($response['state']) {
+            case self::PAYPAL_REFUND_STATE_COMPLETED:
+            case self::PAYPAL_REFUND_STATE_PENDING:
+                // everything is fine, proceed
+                break;
+
+            default:
+                $Order->addHistory(
+                    'PayPal :: Order refund was not completed by PayPal because of an unknown error.'
+                    .' Refund state: '.$response['state']
+                );
+
+                $this->saveOrder($Order);
+                $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED);
+        }
+
+
+        $refundIds = $Order->getPaymentDataEntry(self::ATTR_PAYPAL_REFUND_IDS);
+
+        if (empty($refundIds)) {
+            $refundIds = [];
+        }
+
+        $refundIds[] = $response['id'];
+
+        $Order->setPaymentData(self::ATTR_PAYPAL_REFUND_IDS, $refundIds);
+
+        $Order->addHistory(
+            QUI::getLocale()->get(
+                'quiqqer/payment-paypal',
+                'history.refund',
+                [
+                    'refundId' => $response['id'],
+                    'amount'   => $response['amount']['total'],
+                    'currency' => $response['amount']['currency']
+                ]
+            )
+        );
+
         $this->saveOrder($Order);
     }
 
@@ -752,6 +895,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
                 break;
 
+            case self::PAYPAL_REQUEST_TYPE_REFUND_ORDER:
+                $Request = new CaptureRefundRequest(
+                    $Order->getPaymentDataEntry(self::ATTR_PAYPAL_CAPTURE_ID)
+                );
+                break;
+
             default:
                 $this->throwPayPalException();
         }
@@ -792,5 +941,24 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $this->PayPalClient = new PayPalClient($Environment);
 
         return $this->PayPalClient;
+    }
+
+    /**
+     * Format a price for PayPal API use
+     *
+     * @param float $amount
+     * @return string - Amount with trailing zeroes
+     */
+    protected function formatPrice($amount)
+    {
+        $AmountValue     = new CalculationValue($amount, null, 2);
+        $amount          = $AmountValue->get();
+        $formattedAmount = sprintf("%.2f", $amount);
+
+        if (mb_strpos($formattedAmount, '.00') !== false) {
+            return (string)(float)$formattedAmount;
+        }
+
+        return $formattedAmount;
     }
 }

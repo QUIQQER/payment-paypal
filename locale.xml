@@ -278,6 +278,14 @@
             <en>
                 <![CDATA[The payment process with PayPal could not be completed because PayPal did not authorize the payment. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
+        <locale name="payment.error_msg.order_not_refunded">
+            <de><![CDATA[Der Gutschrifts-Vorgang konnte bei PayPal nicht durchgeführt werden.]]></de>
+            <en><![CDATA[The refund process with PayPal could not be completed.]]></en>
+        </locale>
+        <locale name="payment.error_msg.order_not_refunded_order_not_captured">
+            <de><![CDATA[Der Gutschrifts-Vorgang bei PayPal konnte nicht durchgeführt werden, da die Bestellung auf Seite von PayPal noch nicht vollständig bezahlt wurde.]]></de>
+            <en><![CDATA[The refund process with PayPal could not be completed because the order has not yet been fully paid on the PayPal side.]]></en>
+        </locale>
         <locale name="payment.error_msg.no_payer_address">
             <de>
                 <![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
@@ -312,13 +320,19 @@
             <de><![CDATA[PayPal Zahlungs-Transaktionscode: [captureId]]]></de>
             <en><![CDATA[PayPal payment transaction code: [captureId]]]></en>
         </locale>
+        <locale name="history.refund">
+            <de><![CDATA[PayPal Erstattung: ID #[refundId] | Betrag: [amount] [currency]]]></de>
+            <en><![CDATA[PayPal refund: ID #[refundId] | Amount: [amount] [currency]]]></en>
+        </locale>
+        <locale name="exception.Payment.refund_error">
+            <de><![CDATA[Die Gutschrift mit PayPal konnte nicht erfolgreich durchgeführt werden. Bitte überprüfen Sie die Fehlerlogs.]]></de>
+            <en><![CDATA[The refund with PayPal could not be successfully completed. Please check the error logs.]]></en>
+        </locale>
 
         <!-- PaymentDisplay -->
         <locale name="PaymentDisplay.no_javascript">
-            <de>
-                <![CDATA[In Ihrem Browser ist JavaScript deaktiviert. Um Zahlungen mit PayPal durchzuführen, aktivieren Sie bitte JavaScript.]]></de>
-            <en>
-                <![CDATA[JavaScript is deactivated in your browser. To make payments using PayPal, please enable JavaScript.]]></en>
+            <de><![CDATA[In Ihrem Browser ist JavaScript deaktiviert. Um Zahlungen mit PayPal durchzuführen, aktivieren Sie bitte JavaScript.]]></de>
+            <en><![CDATA[JavaScript is deactivated in your browser. To make payments using PayPal, please enable JavaScript.]]></en>
         </locale>
         <locale name="PaymentDisplay.header.title">
             <de><![CDATA[Bezahlung mit PayPal]]></de>
