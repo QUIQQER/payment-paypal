@@ -830,7 +830,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     }
 
     /**
-     * Throw AmazonPayException for specific Amazon API Error
+     * Throw PayPalException for specific PayPal API Error
      *
      * @param string $errorCode (optional) - default: general error message
      * @param array $exceptionAttributes (optional) - Additional Exception attributes that may be relevant for the Frontend
