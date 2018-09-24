@@ -43,7 +43,7 @@ QUI::$Ajax->registerFunction(
              * normal PayPal checkout
              */
             if (!$express) {
-                $Payment->authorizePayPalOrder($Order);
+//                $Payment->authorizePayPalOrder($Order);
                 $Payment->capturePayPalOrder($Order);
             }
         } catch (PayPalException $Exception) {

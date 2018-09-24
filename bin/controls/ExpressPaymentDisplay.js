@@ -71,7 +71,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
                     OrderProcess.Loader.show(
                         QUILocale.get(pkg, 'ExpressPaymentDisplay.order.execute')
                     );
-                }).delay(500);
+                }).delay(1000);
 
                 var onError = function() {
                     OrderProcess.Loader.hide();

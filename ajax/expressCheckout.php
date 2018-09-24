@@ -21,7 +21,7 @@ QUI::$Ajax->registerFunction(
             $Order = Handler::getInstance()->getOrderByHash($orderHash);
 
             $Payment = new PaymentExpress();
-            $Payment->authorizePayPalOrder($Order);
+//            $Payment->authorizePayPalOrder($Order);
             $Payment->capturePayPalOrder($Order);
         } catch (PayPalException $Exception) {
             throw $Exception;
