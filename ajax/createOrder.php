@@ -3,6 +3,7 @@
 use QUI\ERP\Order\Handler;
 use QUI\ERP\Payments\PayPal\Payment;
 use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\Utils\Security\Orthos;
 
 /**
  * Create PayPal payment for an Order
@@ -13,14 +14,11 @@ use QUI\ERP\Payments\PayPal\PayPalException;
  */
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_createOrder',
-    function ($basketId) {
-        $basketId = (int)$basketId;
-
+    function ($orderHash) {
         try {
-            $Basket = Handler::getInstance()->getBasketById($basketId);
-            $Basket->updateOrder();
+            $orderHash = Orthos::clear($orderHash);
+            $Order     = Handler::getInstance()->getOrderByHash($orderHash);
 
-            $Order   = $Basket->getOrder();
             $Payment = new Payment();
             $Payment->createPayPalOrder($Order);
         } catch (PayPalException $Exception) {
@@ -35,5 +33,5 @@ QUI::$Ajax->registerFunction(
             'hash'            => $Order->getHash()
         ];
     },
-    ['basketId']
+    ['orderHash']
 );

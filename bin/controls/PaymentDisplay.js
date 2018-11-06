@@ -36,7 +36,6 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
         options: {
             sandbox   : true,
-            basketid  : false,
             orderhash : '',
             successful: false
         },
@@ -204,7 +203,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             return new Promise(function (resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_createOrder', resolve, {
                     'package': pkg,
-                    basketId : self.getAttribute('basketid'),
+                    orderHash: self.getAttribute('orderhash'),
                     onError  : reject
                 });
             });

@@ -278,6 +278,12 @@
             <en>
                 <![CDATA[The payment process with PayPal could not be completed because PayPal did not authorize the payment. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
+        <locale name="payment.error_msg.order_not_captured">
+            <de>
+                <![CDATA[Der Bezahlungsvorgang mit PayPal ist fehlgeschlagen, da PayPal die Bezahlung nicht autorisiert hat. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
+            <en>
+                <![CDATA[The payment process with PayPal could not be completed because PayPal did not authorize the payment. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
+        </locale>
         <locale name="payment.error_msg.order_not_refunded">
             <de><![CDATA[Der Gutschrifts-Vorgang konnte bei PayPal nicht durchgeführt werden.]]></de>
             <en><![CDATA[The refund process with PayPal could not be completed.]]></en>
