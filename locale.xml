@@ -42,6 +42,10 @@
             An error occurred while paying with PayPal. The payment could not be processed. Your PayPal account has not been charged. Please try again or contact the merchant.
             ]]></en>
         </locale>
+        <locale name="PaymentDisplay.user_cancel">
+            <de><![CDATA[Sie haben die Zahlung mit PayPal abgebrochen. Bitte wählen Sie eine andere Zahlungsmethode oder starten Sie den Zahlungsvorgang mit PayPal erneut, indem Sie auf die PayPal-Schaltfläche klicken.]]></de>
+            <en><![CDATA[You have cancelled the payment with PayPal. Please select another payment method or restart the PayPal payment process by clicking on the PayPal button.]]></en>
+        </locale>
 
         <!-- Settings -->
         <locale name="settings.menu.title">
