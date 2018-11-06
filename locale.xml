@@ -289,14 +289,12 @@
             <en><![CDATA[The refund process with PayPal could not be completed.]]></en>
         </locale>
         <locale name="payment.error_msg.order_not_refunded_order_not_captured">
-            <de><![CDATA[Der Gutschrifts-Vorgang bei PayPal konnte nicht durchgeführt werden, da die Bestellung auf Seite von PayPal noch nicht vollständig bezahlt wurde.]]></de>
-            <en><![CDATA[The refund process with PayPal could not be completed because the order has not yet been fully paid on the PayPal side.]]></en>
+            <de><![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
+            <en><![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
         <locale name="payment.error_msg.no_payer_address">
-            <de>
-                <![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
-            <en>
-                <![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
+            <de><![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
+            <en><![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
         <locale name="payment.error_msg.address_not_verified">
             <de>
