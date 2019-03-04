@@ -11,7 +11,6 @@ use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Order\Controls\OrderProcess\Finish as FinishStep;
 use QUI\ERP\Accounting\Payments\Order\Payment as PaymentStep;
 
-
 /**
  * Class PaymentDisplay
  *

@@ -267,7 +267,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             'amount'       => $amount,
             'description'  => $this->getLocale()->get(
                 'quiqqer/payment-paypal',
-                'Payment.order.create.description', [
+                'Payment.order.create.description',
+                [
                     'orderId' => $Order->getPrefixedId()
                 ]
             )
