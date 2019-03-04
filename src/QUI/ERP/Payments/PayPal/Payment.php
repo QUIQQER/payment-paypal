@@ -6,6 +6,8 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use PayPal\v1\BillingPlans\PlanCreateRequest;
+use PayPal\v1\BillingPlans\PlanUpdateRequest;
 use PayPal\v1\Payments\OrderAuthorizeRequest;
 use PayPal\v1\Payments\OrderCaptureRequest;
 use PayPal\v1\Payments\OrderGetRequest;
@@ -24,6 +26,7 @@ use QUI\ERP\Order\Handler as OrderHandler;
 use QUI\ERP\Utils\User as ERPUserUtils;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
+use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 
 /**
  * Class Payment
@@ -927,6 +930,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
                 break;
 
+            // Billing
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN:
+                $Request = new PlanCreateRequest();
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN:
+                $Request = new PlanUpdateRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)
+                );
+                break;
+
             default:
                 $this->throwPayPalException();
         }
@@ -986,5 +1000,16 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         return $formattedAmount;
+    }
+
+    /**
+     * Get translated history text
+     *
+     * @param string $context
+     * @return string
+     */
+    protected function getHistoryText(string $context)
+    {
+        return QUI::getLocale()->get('quiqqer/payment-paypal', 'history.'.$context);
     }
 }

@@ -26,6 +26,14 @@
             <de><![CDATA[Schnelle Bezahlung einer Bestellung oder eines Einzel-Artikels per PayPal Express.]]></de>
             <en><![CDATA[Quick payment of an order or a single article via PayPal Express checkout.]]></en>
         </locale>
+        <locale name="payment.recurring.title">
+            <de><![CDATA[PayPal]]></de>
+            <en><![CDATA[PayPal]]></en>
+        </locale>
+        <locale name="payment.recurring.description">
+            <de><![CDATA[Komfortable Bezahlung per PayPal-Konto.]]></de>
+            <en><![CDATA[Comfortable payment via PayPal account.]]></en>
+        </locale>
 
         <!-- PaymentDisplay -->
         <locale name="PaymentDisplay.configuration_error">
@@ -307,6 +315,20 @@
                 <![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
 
+        <!-- History -->
+        <locale name="history.order.create_billing_plan">
+            <de><![CDATA[Erstelle PayPal Billing Plan (Abrechnungsplan)]]></de>
+            <en><![CDATA[Creating PayPal Billing Plan]]></en>
+        </locale>
+        <locale name="history.order.read_billing_plan.error">
+            <de><![CDATA[Fehler bei Erstellung des PayPal Billing Plans -> Es konnten keine Abonnement-Informationen aus der Bestellung gelesen werden]]></de>
+            <en><![CDATA[Error while creating the PayPal Billing Plan -> No plan (subscription) information could be read from the order]]></en>
+        </locale>
+        <locale name="history.order.create_billing_agreement">
+            <de><![CDATA[Erstelle PayPal Billing Agreement (Zustimmung zu Abrechnungsplan)]]></de>
+            <en><![CDATA[Creating PayPal Billing Agreement]]></en>
+        </locale>
+
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
@@ -357,6 +379,39 @@
             Please contact the shop owner and / or choose another payment method.
             ]]></en>
         </locale>
+
+        <!-- Class: QUI\ERP\Payments\PayPal\Recurring\Payment -->
+        <locale name="exception.Recurring.order.error">
+            <de><![CDATA[Bei der Bearbeitung Ihrer Bestellung mit PayPal ist ein Fehler aufgetreten. Bitte wählen Sie eine andere Zahlungsart.]]></de>
+            <en><![CDATA[An error occurred while processing your order with PayPal. Please choose another payment method.]]></en>
+        </locale>
+        <locale name="recurring.billing_plan.name">
+            <de><![CDATA[Abrechnungsplan für Bestellung [orderReference]]]></de>
+            <en><![CDATA[Billing Plan for order [orderReference]]]></en>
+        </locale>
+        <locale name="recurring.billing_plan.description">
+            <de><![CDATA[Abrechnungsplan für wiederkehrende Zahlungen für Bestellung [orderReference] bei [url]]]></de>
+            <en><![CDATA[Billing Plan for recurring payments for order [orderReference] at [url]]]></en>
+        </locale>
+        <locale name="recurring.payment_definition.name">
+            <de><![CDATA[Ihre Rechnung für Bestellung [orderReference]]]></de>
+            <en><![CDATA[Your invoice for order [orderReference]]]></en>
+        </locale>
+        <locale name="recurring.billing_agreement.name">
+            <de><![CDATA[Ihre Zustimmung zu Abrechnungsplan für Bestellung [orderReference]]]></de>
+            <en><![CDATA[Your agreement to Billing Plan for order [orderReference]]]></en>
+        </locale>
+        <locale name="recurring.billing_agreement.description">
+            <de><![CDATA[Abrechnungsplan für wiederkehrende Zahlungen für Bestellung [orderReference] bei [url]]]></de>
+            <en><![CDATA[Billing Plan for recurring payments for order [orderReference] at [url]]]></en>
+        </locale>
+
+        <!-- Events -->
+        <locale name="exception.onPaymentsCreateBegin.erp_plans_missing" html="true">
+            <de><![CDATA[Die Zahlungsart kann nicht angelegt werden, da das Paket <b>quiqqer/erp-plans</b> nicht installiert ist. Bitte installieren Sie das Paket, um Zahlungsarten für wiederkehrende Zahlungen anzulegen.]]></de>
+            <en><![CDATA[The payment method can not be created because the module <b>quiqqer/erp-plans</b> is not installed. Please install the module to create payment methods for recurring payments.]]></en>
+        </locale>
+
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="js">

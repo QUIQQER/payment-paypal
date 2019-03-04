@@ -8,6 +8,7 @@ use QUI\ERP\Order\Basket\Basket;
 use QUI\ERP\Order\Basket\BasketGuest;
 use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Order\Controls\OrderProcess\Checkout as CheckoutStep;
+use QUI\ERP\Accounting\Payments\Exceptions\PaymentCanNotBeUsed;
 
 /**
  * Class Events
@@ -113,5 +114,27 @@ class Events
                   data-qui-options-orderprocessurl="'.OrderUtils::getOrderProcessUrl($Project, $CheckoutStep).'">
             </div>'
         );
+    }
+
+    /**
+     * quiqqer/payments: onPaymentsCreateBegin
+     *
+     * Check if a PayPal payment can be created
+     *
+     * @param string $paymentClass
+     * @return void
+     * @throws QUI\ERP\Accounting\Payments\Exceptions\PaymentCanNotBeUsed
+     */
+    public static function onPaymentsCreateBegin($paymentClass)
+    {
+        if ($paymentClass === QUI\ERP\Payments\PayPal\Recurring\Payment::class
+            && !QUI::getPackageManager()->isInstalled('quiqqer/erp-plans')) {
+            throw new PaymentCanNotBeUsed(
+                QUI::getLocale()->get(
+                    'quiqqer/payments-paypal',
+                    'exception.onPaymentsCreateBegin.erp_plans_missing'
+                )
+            );
+        }
     }
 }

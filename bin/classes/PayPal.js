@@ -54,6 +54,22 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
                     onError  : reject
                 })
             });
+        },
+
+        /**
+         * Create PayPal Billing Agreement for Order
+         *
+         * @param {String} orderHash - Unique order hash
+         * @return {Promise}
+         */
+        createBillingAgreement: function (orderHash) {
+            return new Promise(function (resolve, reject) {
+                QUIAjax.post('package_quiqqer_payment-paypal_ajax_recurring_createBillingAgreement', resolve, {
+                    'package': pkg,
+                    orderHash: orderHash,
+                    onError  : reject
+                })
+            });
         }
     });
 });
