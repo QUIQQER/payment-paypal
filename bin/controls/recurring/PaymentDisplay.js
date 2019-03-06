@@ -9,16 +9,17 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
     'qui/controls/buttons/Button',
 
     'utils/Controls',
+    'package/quiqqer/payment-paypal/bin/PayPal',
 
     'Ajax',
     'Locale',
 
     'css!package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay.css'
 
-], function (QUIControl, QUIButton, QUIControlUtils, QUIAjax, QUILocale) {
+], function (QUIControl, QUIButton, QUIControlUtils, PayPal, QUIAjax, QUILocale) {
     "use strict";
 
-    var pkg = 'quiqqer/payment-paypal';
+    var lg = 'quiqqer/payment-paypal';
 
     return new Class({
 
@@ -33,7 +34,6 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
         ],
 
         options: {
-            sandbox   : true,
             orderhash : '',
             successful: false
         },
@@ -41,7 +41,6 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
         initialize: function (options) {
             this.parent(options);
 
-            this.$PayPalBtnElm = null;
             this.$MsgElm       = null;
             this.$OrderProcess = null;
 
@@ -61,10 +60,10 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
                 return;
             }
 
-            this.$MsgElm       = Elm.getElement('.quiqqer-payment-paypal-message');
-            this.$PayPalBtnElm = Elm.getElement('#quiqqer-payment-paypal-btn-pay');
+            this.$MsgElm  = Elm.getElement('.quiqqer-payment-paypal-message');
+            this.$Content = Elm.getElement('.quiqqer-payment-paypal-content');
 
-            this.$showMsg(QUILocale.get(pkg, 'PaymentDisplay.info'));
+            this.$showMsg(QUILocale.get(lg, 'PaymentDisplay.info'));
 
             QUIControlUtils.getControlByElement(
                 Elm.getParent('[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]')
@@ -84,9 +83,32 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
          * Load PayPal Pay widgets
          */
         $loadBillingAgreementButton: function () {
-            var PayPalButton = new QUIButton({
+            var self = this;
 
-            }).inject(this.$PayPalBtnElm);
+            var PayPalButton = new QUIButton({
+                'class'  : 'btn-primary',
+                disabled : true,
+                text     : QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text'),
+                textimage: 'fa fa-spinner fa-spin',
+                events   : {
+                    onClick: function (Btn) {
+                        window.location = Btn.getAttribute('approvalUrl');
+                    }
+                }
+            }).inject(this.$Content);
+
+            this.$OrderProcess.Loader.show(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.Loader.create_billing_agreement'));
+
+            PayPal.createBillingAgreement(this.getAttribute('orderhash')).then(function (Data) {
+                self.$OrderProcess.Loader.hide();
+
+                PayPalButton.setAttribute('approvalUrl', Data.approvalUrl);
+                PayPalButton.enable();
+            }, function () {
+                PayPalButton.destroy();
+                self.$showErrorMsg(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.error'));
+                self.fireEvent('processingError', [self]);
+            });
         },
 
         /**

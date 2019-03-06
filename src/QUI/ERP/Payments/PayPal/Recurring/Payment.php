@@ -2,31 +2,62 @@
 
 namespace QUI\ERP\Payments\PayPal\Recurring;
 
+use Symfony\Component\HttpFoundation\Response;
 use QUI;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
-use QUI\ERP\Plans\Utils as ERPPlansUtils;
 use QUI\ERP\Payments\PayPal\PayPalException;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use QUI\ERP\Accounting\Payments\Order\Payment as OrderProcessStepPayments;
+use QUI\ERP\Payments\PayPal\Utils;
+use QUI\ERP\Order\Handler as OrderHandler;
+use QUI\ERP\Accounting\Payments\Types\RecurringPaymentInterface;
+use QUI\ERP\Accounting\Invoice\Invoice;
 
 /**
  * Class Payment
  *
  * Main payment provider for PayPal billing
  */
-class Payment extends BasePayment
+class Payment extends BasePayment implements RecurringPaymentInterface
 {
+    const TBL_BILLING_AGREEMENTS = 'paypal_billing_agreements';
+
     /**
      * PayPal Order attribute for recurring payments
      */
     const ATTR_PAYPAL_BILLING_PLAN_ID                = 'paypal-BillingPlanId';
+    const ATTR_PAYPAL_BILLING_AGREEMENT_ID           = 'paypal-BillingAgreementId';
+    const ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN        = 'paypal-BillingAgreementToken';
     const ATTR_PAYPAL_BILLING_AGREEMENT_APPROVAL_URL = 'paypal-BillingAgreementApprovalUrl';
 
     /**
      * PayPal REST API request types for Billing
      */
-    const PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN = 'paypal-api-create_billing_plan';
-    const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN = 'paypal-api-update_billing_plan';
+    const PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN       = 'paypal-api-create_billing_plan';
+    const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN       = 'paypal-api-update_billing_plan';
+    const PAYPAL_REQUEST_TYPE_GET_BILLING_PLAN          = 'paypal-api-get_billing_plan';
+    const PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT  = 'paypal-api-create_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_AGREEMENT  = 'paypal-api-update_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT = 'paypal-api-execute_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT    = 'paypal-api-bill_billing_agreement';
+
+    /**
+     * @return string
+     */
+    public function getTitle()
+    {
+        return $this->getLocale()->get('quiqqer/payment-paypal', 'payment.recurring.title');
+    }
+
+    /**
+     * @return string
+     */
+    public function getDescription()
+    {
+        return $this->getLocale()->get('quiqqer/payment-paypal', 'payment.recurring.description');
+    }
 
     /**
      * Does the payment support recurring payments (e.g. for subscriptions)?
@@ -60,30 +91,41 @@ class Payment extends BasePayment
      */
     public function createBillingAgreement(AbstractOrder $Order)
     {
-        $this->createBillingPlan($Order);
-        $this->activateBillingPlan($Order);
+        $billingPlanId = BillingPlans::createBillingPlanFromOrder($Order);
 
-        $Order->addHistory($this->getHistoryText('order.create_billing_agreement'));
+        $Order->addHistory($this->getHistoryText('order.billing_plan_created', [
+            'billingPlandId' => $billingPlanId
+        ]));
+
+        $Order->setPaymentData(self::ATTR_PAYPAL_BILLING_PLAN_ID, $billingPlanId);
+
+        $this->saveOrder($Order);
+
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_APPROVAL_URL)) {
+            return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_APPROVAL_URL);
+        }
 
         $Customer = $Order->getCustomer();
+        $Gateway  = new Gateway();
+        $Gateway->setOrder($Order);
 
         $body = [
-            'name'        => QUI::getLocale()->get(
+            'name'                          => QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
                 'recurring.billing_agreement.name',
                 [
                     'orderReference' => $Order->getPrefixedId()
                 ]
             ),
-            'description' => QUI::getLocale()->get(
+            'description'                   => QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
                 'recurring.billing_agreement.description',
                 [
                     'orderReference' => $Order->getPrefixedId(),
-                    'url'            => QUI::getRewrite()->getRequestUri()
+                    'url'            => Utils::getProjectUrl()
                 ]
             ),
-            'payer'       => [
+            'payer'                         => [
                 'payment_method' => 'paypal',
                 'payer_info'     => [
                     'email'      => $Customer->getAttribute('email'),
@@ -91,19 +133,23 @@ class Payment extends BasePayment
                     'last_name'  => $Customer->getAttribute('lastname')
                 ]
             ],
-            'plan'        => [
+            'plan'                          => [
                 'id' => $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_PLAN_ID)
+            ],
+            'override_merchant_preferences' => [
+                'cancel_url' => $Gateway->getCancelUrl(),
+                'return_url' => $Gateway->getSuccessUrl()
             ]
         ];
 
         // Determine start date
         $Now = new \DateTime();
-//        $Now->add(new \DateInterval('P24H'));
+//        $Now->add(new \DateInterval('PT24H'));
 
-        $body['start_date'] = $Now->format('Y-m-dTH:i:sZ');
+        $body['start_date'] = $Now->format('Y-m-d\TH:i:s\Z');
 
         try {
-            $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN, $body, $Order);
+            $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT, $body, $Order);
         } catch (PayPalException $Exception) {
             $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
             $this->saveOrder($Order);
@@ -128,6 +174,10 @@ class Payment extends BasePayment
 
         foreach ($response['links'] as $link) {
             if (!empty($link['href']) && !empty($link['rel']) && $link['rel'] === 'approval_url') {
+                $Order->addHistory($this->getHistoryText('order.billing_agreement_created', [
+                    'approvalUrl' => $link['href']
+                ]));
+
                 $Order->setPaymentData(self::ATTR_PAYPAL_BILLING_AGREEMENT_APPROVAL_URL, $link['href']);
                 $this->saveOrder($Order);
 
@@ -151,181 +201,185 @@ class Payment extends BasePayment
     }
 
     /**
-     * Create a PayPal Billing Plan
+     * Execute a Billing Agreement
      *
      * @param AbstractOrder $Order
-     * @return void
-     * @throws QUI\ERP\Payments\PayPal\PayPalException
-     * @throws QUI\ERP\Exception
-     * @throws QUI\Exception
-     */
-    protected function createBillingPlan(AbstractOrder $Order)
-    {
-        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_PLAN_ID)) {
-            return;
-        }
-
-        $Order->addHistory($this->getHistoryText('order.create_billing_plan'));
-
-        $body = [
-            'name'        => QUI::getLocale()->get(
-                'quiqqer/payment-paypal',
-                'recurring.billing_plan.name',
-                [
-                    'orderReference' => $Order->getPrefixedId()
-                ]
-            ),
-            'description' => QUI::getLocale()->get(
-                'quiqqer/payment-paypal',
-                'recurring.billing_plan.description',
-                [
-                    'orderReference' => $Order->getPrefixedId(),
-                    'url'            => QUI::getRewrite()->getRequestUri()
-                ]
-            )
-        ];
-
-        // Parse billing plan details from order
-        $planDetails = ERPPlansUtils::getPlanDetailsFromOrder($Order);
-
-        // Determine plan type
-        $autoExtend   = !empty($planDetails['auto_extend']);
-        $body['type'] = $autoExtend ? 'INFINITE' : 'FIXED';
-
-        // Determine payment definitions
-        $body['payment_definitions'] = $this->parsePaymentDefinitionFromOrder($Order);
-
-        // Merchant preferences
-        $Gateway = new Gateway();
-        $Gateway->setOrder($Order);
-
-        $body['merchans_preferences'] = [
-            'cancel_url' => $Gateway->getCancelUrl(),
-            'return_url' => $Gateway->getGatewayUrl()
-        ];
-
-        try {
-            $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN, $body, $Order);
-        } catch (PayPalException $Exception) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
-            $this->saveOrder($Order);
-            throw $Exception;
-        }
-
-        $Order->setPaymentData(self::ATTR_PAYPAL_BILLING_PLAN_ID, $response['id']);
-        $this->saveOrder($Order);
-    }
-
-    /**
-     * Activate a Billing Plan
-     *
-     * @param AbstractOrder $Order
+     * @param string $agreementToken
      * @return void
      * @throws PayPalException
      */
-    protected function activateBillingPlan(AbstractOrder $Order)
+    protected function executeBillingAgreement(AbstractOrder $Order, string $agreementToken)
     {
         try {
-            $this->payPalApiRequest(
-                self::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN,
+            $response = $this->payPalApiRequest(
+                self::PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT,
+                [],
                 [
-                    'op'    => 'replace',
-                    'path'  => '/',
-                    'value' => [
-                        'state' => 'ACTIVE'
-                    ]
-                ],
-                $Order
+                    self::ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN => $agreementToken
+                ]
             );
         } catch (PayPalException $Exception) {
             $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
             $this->saveOrder($Order);
-            throw $Exception;
+
+            QUI\System\Log::writeException($Exception);
+
+            throw new PayPalException(
+                QUI::getLocale()->get(
+                    'quiqqer/payment-paypal',
+                    'exception.Recurring.order.error'
+                )
+            );
+        }
+
+        $Order->addHistory($this->getHistoryText('order.billing_agreement_accepted', [
+            'agreementToken' => $agreementToken,
+            'agreementId'    => $response['id']
+        ]));
+
+        $Order->setPaymentData(self::ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN, $agreementToken);
+        $Order->setPaymentData(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID, $response['id']);
+        $Order->setPaymentData(BasePayment::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, true);
+        $this->saveOrder($Order);
+
+        // Save billing agreement reference in database
+        try {
+            QUI::getDataBase()->insert(
+                $this->getBillingAgreementsTable(),
+                [
+                    'paypal_agreement_id' => $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID),
+                    'paypal_plan_id'      => $response['id'],
+                    'order_hash'          => $Order->getHash()
+                ]
+            );
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+
+            throw new PayPalException(
+                QUI::getLocale()->get(
+                    'quiqqer/payment-paypal',
+                    'exception.Recurring.order.error'
+                )
+            );
         }
     }
 
     /**
-     * Parse PayPal Billing Plan "payment_definition" details from an Order
+     * Bills the balance for an agreement based on an Invoice
      *
-     * @see https://developer.paypal.com/docs/api/payments.billing-plans/v1/#definition-payment_definition
-     *
-     * @param AbstractOrder $Order
-     * @return array
-     * @throws QUI\ERP\Payments\PayPal\PayPalException
-     * @throws QUI\ERP\Exception
-     * @throws QUI\Exception
+     * @param Invoice $Invoice
+     * @return void
+     * @throws PayPalException
      */
-    protected function parsePaymentDefinitionFromOrder(AbstractOrder $Order)
+    public function billBillingAgreementBalance(Invoice $Invoice)
     {
-        $planDetails          = ERPPlansUtils::getPlanDetailsFromOrder($Order);
-        $invoiceIntervalParts = explode('-', $planDetails['invoice_interval']);
+        $billingAgreementId = $Invoice->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
 
-        $paymentDefinition = [
-            'name'               => QUI::getLocale()->get(
-                'quiqqer/payment-paypal',
-                'recurring.payment_definition.name',
-                [
-                    'orderReference' => $Order->getPrefixedId()
-                ]
-            ),
-            'type'               => 'REGULAR',
-            'frequency_interval' => $invoiceIntervalParts[0], // e.g. "1"
-            'frequency'          => mb_strtoupper($invoiceIntervalParts[1]) // e.g. "MONTH"
-        ];
-
-        // Calculate cycles
-        $autoExtend = !empty($planFields['auto_extend']);
-
-        if ($autoExtend) {
-            $paymentDefinition['cycles'] = 0;
-        } else {
-            try {
-                $DurationInterval = ERPPlansUtils::parseIntervalFromDuration($planDetails['duration_interval']);
-                $InvoiceInterval  = ERPPlansUtils::parseIntervalFromDuration($planDetails['invoice_interval']);
-                $cycles           = 0;
-
-                $Start = new \DateTime();
-                $End   = $Start->add($DurationInterval)->sub(new \DateInterval('P1D'));
-            } catch (\Exception $Exception) {
-                QUI\System\Log::writeException($Exception);
-
-                $Order->addHistory($this->getHistoryText('order.read_billing_plan.error'));
-
-                throw new QUI\ERP\Payments\PayPal\PayPalException(
-                    QUI::getLocale()->get(
-                        'quiqqer/payment-paypal',
-                        'exception.Recurring.order.error'
-                    )
-                );
-            }
-
-            while ($Start <= $End) {
-                $Start->add($InvoiceInterval);
-                $cycles++;
-            }
-
-            $paymentDefinition['cycles'] = $cycles;
+        if (empty($billingAgreementId)) {
+            throw new PayPalException(
+                QUI::getLocale()->get(
+                    'quiqqer/payment-paypal',
+                    'exception.Recurring.agreement_id_not_found',
+                    [
+                        'invoiceId' => $Invoice->getId()
+                    ]
+                ),
+                404
+            );
         }
 
-        // Amount
-        $PriceCalculation = $Order->getPriceCalculation();
-        $amountNetTotal   = $this->formatPrice($PriceCalculation->getNettoSum()->get());
-        $amountTaxTotal   = $this->formatPrice($PriceCalculation->getVatSum()->get());
+        $data = $this->getBillingAgreementData($billingAgreementId);
 
-        $paymentDefinition['amount'] = [
-            'value'    => $amountNetTotal,
-            'currency' => $Order->getCurrency()->getCode()
-        ];
+        if ($data === false) {
+            throw new PayPalException(
+                QUI::getLocale()->get(
+                    'quiqqer/payment-paypal',
+                    'exception.Recurring.agreement_not_found',
+                    [
+                        'billingAgreementId' => $billingAgreementId
+                    ]
+                ),
+                404
+            );
+        }
 
-        $paymentDefinition['charge_models'] = [
-            'type'   => 'TAX',
-            'amount' => [
-                'value'    => $amountTaxTotal,
-                'currency' => $Order->getCurrency()->getCode()
+        try {
+            /** @var QUI\Locale $Locale */
+            $Locale = $Invoice->getCustomer()->getLocale();
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return;
+        }
+
+        $this->payPalApiRequest(
+            self::PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT,
+            [
+                'note' => $Locale->get(
+                    'quiqqer/payment-paypal',
+                    'recurring.billing_agreement.bill_balance.note',
+                    [
+                        'invoiceReference' => $Invoice->getId(),
+                        'url'              => Utils::getProjectUrl()
+                    ]
+                )
+            ],
+            [
+                self::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
             ]
-        ];
+        );
+    }
 
-        return $paymentDefinition;
+    /**
+     * Execute the request from the payment provider
+     *
+     * @param QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway
+     *
+     * @throws QUI\ERP\Accounting\Payments\Exception
+     */
+    public function executeGatewayPayment(QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway)
+    {
+        $Order        = $Gateway->getOrder();
+        $OrderProcess = new QUI\ERP\Order\OrderProcess([
+            'orderHash' => $Order->getHash()
+        ]);
+
+        $goToBasket = false;
+
+        if ($Gateway->isSuccessRequest()) {
+            if (empty($_REQUEST['token'])) {
+                $goToBasket = true;
+            } else {
+                try {
+                    $this->executeBillingAgreement($Order, $_REQUEST['token']);
+
+                    $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Finish([
+                        'Order' => $Gateway->getOrder()
+                    ]);
+                } catch (\Exception $Exception) {
+                    $goToBasket = true;
+                }
+            }
+        } elseif ($Gateway->isCancelRequest()) {
+            $GoToStep = new OrderProcessStepPayments([
+                'Order' => $Gateway->getOrder()
+            ]);
+        }
+
+        if ($goToBasket) {
+            $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Basket([
+                'Order' => $Gateway->getOrder()
+            ]);
+        }
+
+        $processingUrl = $OrderProcess->getStepUrl($GoToStep->getName());
+
+        // Umleitung zur Bestellung
+        $Redirect = new RedirectResponse($processingUrl);
+        $Redirect->setStatusCode(Response::HTTP_SEE_OTHER);
+
+        echo $Redirect->getContent();
+        $Redirect->send();
+        exit;
     }
 
     /**
@@ -339,7 +393,7 @@ class Payment extends BasePayment
      */
     public function getGatewayDisplay(AbstractOrder $Order, $Step = null)
     {
-        $Control = new ExpressPaymentDisplay();
+        $Control = new PaymentDisplay();
         $Control->setAttribute('Order', $Order);
 
         $Step->setTitle(
@@ -350,8 +404,59 @@ class Payment extends BasePayment
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__).'/PaymentDisplay.Header.html'));
+        $Step->setContent($Engine->fetch(dirname(__FILE__, 2).'/PaymentDisplay.Header.html'));
 
         return $Control->create();
+    }
+
+    /**
+     * Can the Billing Agreement of this payment method be edited
+     * regarding essential data like invoice frequency, amount etc.?
+     *
+     * @return bool
+     */
+    public function isBillingAgreementEditable()
+    {
+        return false;
+    }
+
+    /**
+     * Get available data by Billing Agreement ID
+     *
+     * @param string $billingAgreementId - PayPal Billing Agreement ID
+     * @return array|false
+     */
+    protected function getBillingAgreementData($billingAgreementId)
+    {
+        try {
+            $result = QUI::getDataBase()->fetch([
+                'from'  => self::getBillingAgreementsTable(),
+                'where' => [
+                    'paypal_agreement_id' => $billingAgreementId
+                ]
+            ]);
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return false;
+        }
+
+        if (empty($result)) {
+            return false;
+        }
+
+        $data = current($result);
+
+        return [
+            'orderHash'     => $data['order_hash'],
+            'billingPlanId' => $data['paypal_plan_id'],
+        ];
+    }
+
+    /**
+     * @return string
+     */
+    protected function getBillingAgreementsTable()
+    {
+        return QUI::getDBTableName(self::TBL_BILLING_AGREEMENTS);
     }
 }

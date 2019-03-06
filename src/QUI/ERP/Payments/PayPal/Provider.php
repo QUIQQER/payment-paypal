@@ -9,6 +9,7 @@ namespace QUI\ERP\Payments\PayPal;
 use QUI;
 use QUI\ERP\Accounting\Payments\Api\AbstractPaymentProvider;
 use QUI\ERP\Accounting\Payments\Types\Factory as PaymentsFactory;
+use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 
 /**
  * Class Provider
@@ -24,7 +25,8 @@ class Provider extends AbstractPaymentProvider
     {
         return [
             Payment::class,
-            PaymentExpress::class
+            PaymentExpress::class,
+            RecurringPayment::class
         ];
     }
 

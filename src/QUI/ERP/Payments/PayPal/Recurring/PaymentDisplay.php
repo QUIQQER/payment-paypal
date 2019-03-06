@@ -4,12 +4,13 @@
  * This file contains QUI\ERP\Payments\Example\ExpressPaymentDisplay
  */
 
-namespace QUI\ERP\Payments\PayPal;
+namespace QUI\ERP\Payments\PayPal\Recurring;
 
 use QUI;
 use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Order\Controls\OrderProcess\Finish as FinishStep;
 use QUI\ERP\Accounting\Payments\Order\Payment as PaymentStep;
+use QUI\ERP\Payments\PayPal\Provider;
 
 /**
  * Class PaymentDisplay
@@ -28,7 +29,6 @@ class PaymentDisplay extends QUI\Control
     {
         parent::__construct($attributes);
 
-//        $this->addCSSFile(dirname(__FILE__) . '/ExpressPaymentDisplay.css');
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay');
 
         if (Provider::isApiSetUp() === false) {
@@ -56,6 +56,6 @@ class PaymentDisplay extends QUI\Control
             'apiSetUp' => Provider::isApiSetUp()
         ]);
 
-        return $Engine->fetch(dirname(__FILE__).'/ExpressPaymentDisplay.html');
+        return $Engine->fetch(dirname(__FILE__).'/PaymentDisplay.html');
     }
 }

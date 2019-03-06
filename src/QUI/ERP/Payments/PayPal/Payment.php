@@ -6,7 +6,11 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use PayPal\v1\BillingAgreements\AgreementBillBalanceRequest;
+use PayPal\v1\BillingAgreements\AgreementCreateRequest;
+use PayPal\v1\BillingAgreements\AgreementExecuteRequest;
 use PayPal\v1\BillingPlans\PlanCreateRequest;
+use PayPal\v1\BillingPlans\PlanGetRequest;
 use PayPal\v1\BillingPlans\PlanUpdateRequest;
 use PayPal\v1\Payments\OrderAuthorizeRequest;
 use PayPal\v1\Payments\OrderCaptureRequest;
@@ -456,7 +460,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $PriceCalculation = $Order->getPriceCalculation();
-        $amountTotal      = $this->formatPrice($PriceCalculation->getSum()->get());
+        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
 
         try {
             $response = $this->payPalApiRequest(
@@ -521,7 +525,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $PriceCalculation = $Order->getPriceCalculation();
-        $amountTotal      = $this->formatPrice($PriceCalculation->getSum()->get());
+        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
         $captureId        = false;
 
         try {
@@ -680,7 +684,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $Currency       = $Transaction->getCurrency();
         $AmountCalc     = new CalculationValue($amount, $Currency, 2);
-        $amountRefunded = $this->formatPrice($AmountCalc->get());
+        $amountRefunded = Utils::formatPrice($AmountCalc->get());
 
         try {
             $response = $this->payPalApiRequest(
@@ -870,13 +874,13 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
      * @param array $body - Request data
-     * @param AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
+     * @param AbstractOrder|Transaction|array $TransactionObj - Object that contains necessary request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
      * @return array|false - Response body or false on error
      *
      * @throws PayPalException
      */
-    protected function payPalApiRequest($request, $body, $TransactionObj)
+    public function payPalApiRequest($request, $body, $TransactionObj)
     {
         $getData = function ($key) use ($TransactionObj) {
             if ($TransactionObj instanceof AbstractOrder) {
@@ -885,6 +889,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             if ($TransactionObj instanceof Transaction) {
                 return $TransactionObj->getData($key);
+            }
+
+            if (is_array($TransactionObj) && array_key_exists($key, $TransactionObj)) {
+                return $TransactionObj[$key];
             }
 
             return false;
@@ -942,6 +950,34 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
                 break;
 
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_PLAN:
+                $Request = new PlanGetRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT:
+                $Request = new AgreementCreateRequest();
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_AGREEMENT:
+                $Request = new PlanUpdateRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT:
+                $Request = new AgreementExecuteRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT:
+                $Request = new AgreementBillBalanceRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
             default:
                 $this->throwPayPalException();
         }
@@ -985,32 +1021,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     }
 
     /**
-     * Format a price for PayPal API use
-     *
-     * @param float $amount
-     * @return string - Amount with trailing zeroes
-     */
-    protected function formatPrice($amount)
-    {
-        $AmountValue     = new CalculationValue($amount, null, 2);
-        $amount          = $AmountValue->get();
-        $formattedAmount = sprintf("%.2f", $amount);
-
-        if (mb_strpos($formattedAmount, '.00') !== false) {
-            return (string)(float)$formattedAmount;
-        }
-
-        return $formattedAmount;
-    }
-
-    /**
      * Get translated history text
      *
      * @param string $context
+     * @param array $data (optional) - Additional data for translation
      * @return string
      */
-    protected function getHistoryText(string $context)
+    protected function getHistoryText(string $context, $data = [])
     {
-        return QUI::getLocale()->get('quiqqer/payment-paypal', 'history.'.$context);
+        return QUI::getLocale()->get('quiqqer/payment-paypal', 'history.'.$context, $data);
     }
 }

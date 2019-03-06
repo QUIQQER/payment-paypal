@@ -27,12 +27,12 @@
             <en><![CDATA[Quick payment of an order or a single article via PayPal Express checkout.]]></en>
         </locale>
         <locale name="payment.recurring.title">
-            <de><![CDATA[PayPal]]></de>
-            <en><![CDATA[PayPal]]></en>
+            <de><![CDATA[PayPal - Wiederkehrende Zahlungen]]></de>
+            <en><![CDATA[PayPal - Recurring payments]]></en>
         </locale>
         <locale name="payment.recurring.description">
-            <de><![CDATA[Komfortable Bezahlung per PayPal-Konto.]]></de>
-            <en><![CDATA[Comfortable payment via PayPal account.]]></en>
+            <de><![CDATA[Komfortable regelmäßige Bezahlung per PayPal-Konto.]]></de>
+            <en><![CDATA[Comfortable recurring payments via PayPal account.]]></en>
         </locale>
 
         <!-- PaymentDisplay -->
@@ -51,7 +51,8 @@
             ]]></en>
         </locale>
         <locale name="PaymentDisplay.user_cancel">
-            <de><![CDATA[Sie haben die Zahlung mit PayPal abgebrochen. Bitte wählen Sie eine andere Zahlungsmethode oder starten Sie den Zahlungsvorgang mit PayPal erneut, indem Sie auf die PayPal-Schaltfläche klicken.]]></de>
+            <de>
+                <![CDATA[Sie haben die Zahlung mit PayPal abgebrochen. Bitte wählen Sie eine andere Zahlungsmethode oder starten Sie den Zahlungsvorgang mit PayPal erneut, indem Sie auf die PayPal-Schaltfläche klicken.]]></de>
             <en><![CDATA[You have cancelled the payment with PayPal. Please select another payment method or restart the PayPal payment process by clicking on the PayPal button.]]></en>
         </locale>
 
@@ -301,12 +302,16 @@
             <en><![CDATA[The refund process with PayPal could not be completed.]]></en>
         </locale>
         <locale name="payment.error_msg.order_not_refunded_order_not_captured">
-            <de><![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
-            <en><![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
+            <de>
+                <![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
+            <en>
+                <![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
         <locale name="payment.error_msg.no_payer_address">
-            <de><![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
-            <en><![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
+            <de>
+                <![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
+            <en>
+                <![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
         <locale name="payment.error_msg.address_not_verified">
             <de>
@@ -316,17 +321,21 @@
         </locale>
 
         <!-- History -->
-        <locale name="history.order.create_billing_plan">
-            <de><![CDATA[Erstelle PayPal Billing Plan (Abrechnungsplan)]]></de>
-            <en><![CDATA[Creating PayPal Billing Plan]]></en>
+        <locale name="history.order.billing_plan_created">
+            <de><![CDATA[PayPal Billing Plan (Abrechnungsplan) erstell. ID: [billingPlanId]]]></de>
+            <en><![CDATA[PayPal Billing Plan created. ID: [billingPlanId]]]></en>
         </locale>
         <locale name="history.order.read_billing_plan.error">
             <de><![CDATA[Fehler bei Erstellung des PayPal Billing Plans -> Es konnten keine Abonnement-Informationen aus der Bestellung gelesen werden]]></de>
             <en><![CDATA[Error while creating the PayPal Billing Plan -> No plan (subscription) information could be read from the order]]></en>
         </locale>
-        <locale name="history.order.create_billing_agreement">
-            <de><![CDATA[Erstelle PayPal Billing Agreement (Zustimmung zu Abrechnungsplan)]]></de>
-            <en><![CDATA[Creating PayPal Billing Agreement]]></en>
+        <locale name="history.order.billing_agreement_created">
+            <de><![CDATA[PayPal Billing Agreement (Zustimmung zu Abrechnungsplan) erstellt. Link zur Zustimmung: [approvalUrl]]]></de>
+            <en><![CDATA[PayPal Billing Agreement created. Link for approval: [approvalUrl]]]></en>
+        </locale>
+        <locale name="history.order.billing_agreement_accepted">
+            <de><![CDATA[PayPal Billing Agreement (Zustimmung zu Abrechnungsplan) durch Kunden zugestimmt. Zustimmungs-Token: [agreementToken]. Zustimmungs-ID: [agreementId].]]></de>
+            <en><![CDATA[PayPal Billing Agreement accepted by customer. Approval token: [agreementToken]. Approval ID: [agreementId].]]></en>
         </locale>
 
     </groups>
@@ -385,31 +394,37 @@
             <de><![CDATA[Bei der Bearbeitung Ihrer Bestellung mit PayPal ist ein Fehler aufgetreten. Bitte wählen Sie eine andere Zahlungsart.]]></de>
             <en><![CDATA[An error occurred while processing your order with PayPal. Please choose another payment method.]]></en>
         </locale>
-        <locale name="recurring.billing_plan.name">
-            <de><![CDATA[Abrechnungsplan für Bestellung [orderReference]]]></de>
-            <en><![CDATA[Billing Plan for order [orderReference]]]></en>
-        </locale>
-        <locale name="recurring.billing_plan.description">
-            <de><![CDATA[Abrechnungsplan für wiederkehrende Zahlungen für Bestellung [orderReference] bei [url]]]></de>
-            <en><![CDATA[Billing Plan for recurring payments for order [orderReference] at [url]]]></en>
-        </locale>
         <locale name="recurring.payment_definition.name">
-            <de><![CDATA[Ihre Rechnung für Bestellung [orderReference]]]></de>
-            <en><![CDATA[Your invoice for order [orderReference]]]></en>
+            <de><![CDATA[Ihre Rechnung für [planTitle] auf [url]]]></de>
+            <en><![CDATA[Your invoice for [planTitle] at [url]]]></en>
         </locale>
         <locale name="recurring.billing_agreement.name">
             <de><![CDATA[Ihre Zustimmung zu Abrechnungsplan für Bestellung [orderReference]]]></de>
             <en><![CDATA[Your agreement to Billing Plan for order [orderReference]]]></en>
         </locale>
         <locale name="recurring.billing_agreement.description">
-            <de><![CDATA[Abrechnungsplan für wiederkehrende Zahlungen für Bestellung [orderReference] bei [url]]]></de>
-            <en><![CDATA[Billing Plan for recurring payments for order [orderReference] at [url]]]></en>
+            <de><![CDATA[Bestellung [orderReference] bei [url]]]></de>
+            <en><![CDATA[Order [orderReference] at [url]]]></en>
+        </locale>
+        <locale name="exception.Recurring.agreement_not_found">
+            <de><![CDATA[PayPal Billing Agreement [billingAgreementId] wurde nicht gefunden.]]></de>
+            <en><![CDATA[PayPal Billing Agreement [billingAgreementId] was not found.]]></en>
+        </locale>
+        <locale name="recurring.billing_agreement.bill_balance.note">
+            <de><![CDATA[Bezahlung Ihres Abonnements auf [url]. Beleg-Nummer: [invoiceReference]]]></de>
+            <en><![CDATA[Payment of your subscription at [url]. Document number: [invoiceReference]]]></en>
+        </locale>
+        <locale name="exception.Recurring.agreement_id_not_found">
+            <de><![CDATA[PayPal Billing Agreement ID konnte in Rechnung #[invoiceId] nicht gefunden werden.]]></de>
+            <en><![CDATA[PayPal Billing Agreement ID was not found in Invoice #[invoiceId].]]></en>
         </locale>
 
         <!-- Events -->
         <locale name="exception.onPaymentsCreateBegin.erp_plans_missing" html="true">
-            <de><![CDATA[Die Zahlungsart kann nicht angelegt werden, da das Paket <b>quiqqer/erp-plans</b> nicht installiert ist. Bitte installieren Sie das Paket, um Zahlungsarten für wiederkehrende Zahlungen anzulegen.]]></de>
-            <en><![CDATA[The payment method can not be created because the module <b>quiqqer/erp-plans</b> is not installed. Please install the module to create payment methods for recurring payments.]]></en>
+            <de>
+                <![CDATA[Die Zahlungsart kann nicht angelegt werden, da das Paket <b>quiqqer/erp-plans</b> nicht installiert ist. Bitte installieren Sie das Paket, um Zahlungsarten für wiederkehrende Zahlungen anzulegen.]]></de>
+            <en>
+                <![CDATA[The payment method can not be created because the module <b>quiqqer/erp-plans</b> is not installed. Please install the module to create payment methods for recurring payments.]]></en>
         </locale>
 
     </groups>
@@ -454,6 +469,20 @@
                 <![CDATA[Bei der Durchführung der Zahlung mit PayPal ist leider ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsweise. Sie werden in wenigen Sekunden zum Schritt "Zahlungsweise" weitergeleitet.]]></de>
             <en>
                 <![CDATA[Unfortunately, there was an error while paying with PayPal. Your PayPal account has not been charged. Please choose a different method of payment.]]></en>
+        </locale>
+
+        <!-- Control: recurring/PaymentDisplay -->
+        <locale name="controls.recurring.PaymentDisplay.btn.text">
+            <de><![CDATA[Jetzt Zahlung über PayPal einrichten]]></de>
+            <en><![CDATA[Set up payment via PayPal now]]></en>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.Loader.create_billing_agreement">
+            <de><![CDATA[Sende Abonnement-Informationen an PayPal...]]></de>
+            <en><![CDATA[Sending subscription plan information to PayPal...]]></en>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.error">
+            <de><![CDATA[Leider ist bei der Kommunikation mit PayPal ist ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsmethode oder probieren es zu einem späteren Zeitpunkt nochmal.]]></de>
+            <en><![CDATA[Unfortunately an error occurred during the communication with PayPal. Your PayPal account was not debited. Please choose another payment method or try again later.]]></en>
         </locale>
 
     </groups>
