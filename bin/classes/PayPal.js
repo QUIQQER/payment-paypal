@@ -70,6 +70,22 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
                     onError  : reject
                 })
             });
+        },
+
+        /**
+         * Create PayPal Order
+         *
+         * @param {Object} SearchParams - Grid search params
+         * @return {Promise}
+         */
+        getBillingPlans: function (SearchParams) {
+            return new Promise(function (resolve, reject) {
+                QUIAjax.get('package_quiqqer_payment-paypal_ajax_recurring_getBillingPlans', resolve, {
+                    'package'   : pkg,
+                    searchParams: JSON.encode(SearchParams),
+                    onError     : reject
+                })
+            });
         }
     });
 });

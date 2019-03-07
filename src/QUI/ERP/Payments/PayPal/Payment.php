@@ -7,10 +7,12 @@
 namespace QUI\ERP\Payments\PayPal;
 
 use PayPal\v1\BillingAgreements\AgreementBillBalanceRequest;
+use PayPal\v1\BillingAgreements\AgreementCancelRequest;
 use PayPal\v1\BillingAgreements\AgreementCreateRequest;
 use PayPal\v1\BillingAgreements\AgreementExecuteRequest;
 use PayPal\v1\BillingPlans\PlanCreateRequest;
 use PayPal\v1\BillingPlans\PlanGetRequest;
+use PayPal\v1\BillingPlans\PlanListRequest;
 use PayPal\v1\BillingPlans\PlanUpdateRequest;
 use PayPal\v1\Payments\OrderAuthorizeRequest;
 use PayPal\v1\Payments\OrderCaptureRequest;
@@ -978,11 +980,28 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
                 break;
 
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT:
+                $Request = new AgreementCancelRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_LIST_BILLING_PLANS:
+                $Request = new PlanListRequest();
+
+                $Request->page($getData('page'));
+                $Request->pageSize($getData('page_size'));
+                $Request->status($getData('status'));
+                $Request->totalRequired($getData('total_required'));
+                break;
+
             default:
                 $this->throwPayPalException();
         }
 
-        $Request->body = $body;
+        if (!empty($body)) {
+            $Request->body = $body;
+        }
 
         try {
             $Response = $this->getPayPalClient()->execute($Request);

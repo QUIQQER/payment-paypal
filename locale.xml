@@ -271,6 +271,10 @@
             <de><![CDATA[Automatisch (abhängig von der Größe des Browser-Fenster)]]></de>
             <en><![CDATA[Auto (depending on browser window size)]]></en>
         </locale>
+        <locale name="settings.category.billing_plans.title">
+            <de><![CDATA[Abrechnungsvereinbarungen (Billing Plans)]]></de>
+            <en><![CDATA[Billing Plans]]></en>
+        </locale>
 
         <!-- Payment -->
         <locale name="payment.error_msg.general_error">
@@ -485,6 +489,28 @@
             <en><![CDATA[Unfortunately an error occurred during the communication with PayPal. Your PayPal account was not debited. Please choose another payment method or try again later.]]></en>
         </locale>
 
+        <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans -->
+        <locale name="controls.backend.BillingPlans.tbl.btn.delete">
+            <de><![CDATA[Löschen]]></de>
+            <en><![CDATA[Delete]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.id">
+            <de><![CDATA[ID]]></de>
+            <en><![CDATA[ID]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.name">
+            <de><![CDATA[Name]]></de>
+            <en><![CDATA[Name]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.description">
+            <de><![CDATA[Beschreibung]]></de>
+            <en><![CDATA[Description]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.create_time">
+            <de><![CDATA[erstellt am]]></de>
+            <en><![CDATA[created at]]></en>
+        </locale>
+        
     </groups>
 
 </locales>

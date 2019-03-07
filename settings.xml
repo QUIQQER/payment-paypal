@@ -290,6 +290,19 @@
                     </settings>
                 </category>
 
+                <category name="billing_plans">
+                    <icon>fa fa-paypal</icon>
+                    <title>
+                        <locale group="quiqqer/payment-paypal" var="settings.category.billing_plans.title"/>
+                    </title>
+
+                    <settings name="billing_plans" title="billing_plans">
+                        <input type="hidden" data-qui="package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans" label="false">
+                        </input>
+                    </settings>
+
+                </category>
+
             </categories>
         </window>
 

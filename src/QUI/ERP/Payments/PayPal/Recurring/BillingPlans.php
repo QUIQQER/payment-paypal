@@ -65,7 +65,7 @@ class BillingPlans
             }
         }
 
-        // Read name and description from PlanProduct (= Product that contains plan information)
+        // Read name and description from PlanProduct (= Product that contains subscription plan information)
         $Locale = $Order->getCustomer()->getLocale();
 
         $body = [
@@ -191,6 +191,38 @@ class BillingPlans
             ],
             [
                 RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID => $billingPlanId
+            ]
+        );
+    }
+
+    /**
+     * Get list of all PayPal Billing Plans
+     *
+     * @param int $page (optional) - Start page of list [min: 0]
+     * @param int $pageSize (optional) - Number of plans per page [range: 1 to 20]
+     * @return array
+     * @throws PayPalException
+     */
+    public static function getBillingPlanList($page = 0, $pageSize = 10)
+    {
+        if ($page < 0) {
+            $page = 0;
+        }
+
+        if ($pageSize > 20) {
+            $pageSize = 20;
+        } elseif ($pageSize < 1) {
+            $pageSize = 1;
+        }
+
+        return self::payPalApiRequest(
+            RecurringPayment::PAYPAL_REQUEST_TYPE_LIST_BILLING_PLANS,
+            [],
+            [
+                'page'           => $page,
+                'page_size'      => $pageSize,
+                'status'         => 'ACTIVE',
+                'total_required' => 'yes'
             ]
         );
     }

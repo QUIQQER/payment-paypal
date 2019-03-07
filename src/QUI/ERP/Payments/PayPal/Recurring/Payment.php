@@ -35,13 +35,16 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * PayPal REST API request types for Billing
      */
-    const PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN       = 'paypal-api-create_billing_plan';
-    const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN       = 'paypal-api-update_billing_plan';
-    const PAYPAL_REQUEST_TYPE_GET_BILLING_PLAN          = 'paypal-api-get_billing_plan';
+    const PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN = 'paypal-api-create_billing_plan';
+    const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN = 'paypal-api-update_billing_plan';
+    const PAYPAL_REQUEST_TYPE_GET_BILLING_PLAN    = 'paypal-api-get_billing_plan';
+    const PAYPAL_REQUEST_TYPE_LIST_BILLING_PLANS  = 'paypal-api-list_billing_plans';
+
     const PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT  = 'paypal-api-create_billing_agreement';
     const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_AGREEMENT  = 'paypal-api-update_billing_agreement';
     const PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT = 'paypal-api-execute_billing_agreement';
     const PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT    = 'paypal-api-bill_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT  = 'paypal-api-cancel_billing_agreement';
 
     /**
      * @return string
@@ -249,7 +252,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                 [
                     'paypal_agreement_id' => $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID),
                     'paypal_plan_id'      => $response['id'],
-                    'order_hash'          => $Order->getHash()
+                    'customer'            => json_encode($Order->getCustomer()->getAttributes()),
+                    'global_process_id'   => $Order->getHash()
                 ]
             );
         } catch (\Exception $Exception) {
@@ -421,6 +425,61 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     }
 
     /**
+     * Check if a Billing Agreement is associated with an order and
+     * return its ID (= identification at the payment method side; e.g. PayPal)
+     *
+     * @param AbstractOrder $Order
+     * @return int|string|false - ID or false of no ID associated
+     */
+    public function getBillingAgreementIdByOrder(AbstractOrder $Order)
+    {
+        return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
+    }
+
+    /**
+     * Cancel a Billing Agreement
+     *
+     * @param int|string $billingAgreementId
+     * @return void
+     */
+    public function cancelBillingAgreement($billingAgreementId)
+    {
+        $data = $this->getBillingAgreementData($billingAgreementId);
+
+        if (empty($data)) {
+            return;
+        }
+
+        try {
+            $Locale = new QUI\Locale();
+            $Locale->setCurrent($data['customer']['lang']);
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return;
+        }
+
+        try {
+            $this->payPalApiRequest(
+                self::PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT,
+                [
+                    'note' => $Locale->get(
+                        'quiqqer/payment-paypal',
+                        'recurring.billing_agreement.cancel.note',
+                        [
+                            'url' => Utils::getProjectUrl()
+                        ]
+                    )
+                ],
+                [
+                    self::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
+                ]
+            );
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+        }
+    }
+
+    /**
      * Get available data by Billing Agreement ID
      *
      * @param string $billingAgreementId - PayPal Billing Agreement ID
@@ -447,8 +506,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         $data = current($result);
 
         return [
-            'orderHash'     => $data['order_hash'],
-            'billingPlanId' => $data['paypal_plan_id'],
+            'globalProcessId' => $data['global_process_id'],
+            'customer'        => json_decode($data['customer'], true),
         ];
     }
 
