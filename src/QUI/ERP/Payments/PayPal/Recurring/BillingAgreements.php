@@ -25,7 +25,7 @@ class BillingAgreements
      */
     public static function getBillingAgreements()
     {
-
+        // @todo
     }
 
     /**
