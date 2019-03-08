@@ -10,6 +10,7 @@ use PayPal\v1\BillingAgreements\AgreementBillBalanceRequest;
 use PayPal\v1\BillingAgreements\AgreementCancelRequest;
 use PayPal\v1\BillingAgreements\AgreementCreateRequest;
 use PayPal\v1\BillingAgreements\AgreementExecuteRequest;
+use PayPal\v1\BillingAgreements\AgreementGetRequest;
 use PayPal\v1\BillingPlans\PlanCreateRequest;
 use PayPal\v1\BillingPlans\PlanGetRequest;
 use PayPal\v1\BillingPlans\PlanListRequest;
@@ -995,6 +996,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $Request->totalRequired($getData('total_required'));
                 break;
 
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT:
+                $Request = new AgreementGetRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
             default:
                 $this->throwPayPalException();
         }
@@ -1037,17 +1044,5 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $this->PayPalClient = new PayPalClient($Environment);
 
         return $this->PayPalClient;
-    }
-
-    /**
-     * Get translated history text
-     *
-     * @param string $context
-     * @param array $data (optional) - Additional data for translation
-     * @return string
-     */
-    protected function getHistoryText(string $context, $data = [])
-    {
-        return QUI::getLocale()->get('quiqqer/payment-paypal', 'history.'.$context, $data);
     }
 }

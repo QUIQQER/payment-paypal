@@ -1,10 +1,10 @@
 /**
- * List of all PayPal Billing Plans
+ * List of all PayPal Billing Agreements
  *
- * @module package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans
+ * @module package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements
  * @author www.pcsg.de (Patrick Müller)
  */
-define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
+define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', [
 
     'qui/controls/Control',
     'qui/controls/loader/Loader',
@@ -13,11 +13,13 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
     'controls/grid/Grid',
     'package/quiqqer/payment-paypal/bin/PayPal',
 
+    'package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWindow',
+
     'Locale',
 
-    'css!package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans.css'
+    'css!package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements.css'
 
-], function (QUIControl, QUILoader, QUIConfirm, QUIButton, Grid, PayPal, QUILocale) {
+], function (QUIControl, QUILoader, QUIConfirm, QUIButton, Grid, PayPal, BillingAgreementWindow, QUILocale) {
     "use strict";
 
     var lg = 'quiqqer/payment-paypal';
@@ -25,14 +27,14 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
     return new Class({
 
         Extends: QUIControl,
-        Type   : 'package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans',
+        Type   : 'package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements',
 
         Binds: [
             'refresh',
             '$onCreate',
             '$onImport',
             '$onResize',
-            '$clickDelete'
+            '$clickDetails'
         ],
 
         initialize: function (options) {
@@ -41,6 +43,9 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
             this.$Grid    = null;
             this.$Content = null;
             this.Loader   = new QUILoader();
+
+            this.$search      = false;
+            this.$SearchInput = null;
 
             this.addEvents({
                 onCreate: this.$onCreate,
@@ -59,14 +64,28 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
 
             this.Loader.show();
 
-            return PayPal.getBillingPlans({
+            var search = this.$SearchInput.value.trim();
+
+            if (search === '') {
+                search = false;
+            }
+
+            return PayPal.getBillingAgreementList({
                 perPage: this.$Grid.options.perPage,
                 page   : this.$Grid.options.page,
                 sortBy : this.$Grid.options.sortBy,
-                sortOn : this.$Grid.options.sortOn
+                sortOn : this.$Grid.options.sortOn,
+                search : search
             }).then(function (result) {
                 var TableButtons = this.$Grid.getAttribute('buttons');
-                TableButtons.delete.disable();
+                TableButtons.details.disable();
+
+                for (var i = 0, len = result.data.length; i < len; i++) {
+                    var Row      = result.data[i];
+                    var Customer = JSON.decode(Row.customer);
+
+                    Row.customer_text = Customer.firstname + " " + Customer.lastname + " (" + Customer.id + ")";
+                }
 
                 this.$Grid.setData(result);
                 this.Loader.hide();
@@ -81,7 +100,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
 
         $onImport: function () {
             this.$Content = new Element('div', {
-                'class': 'quiqqer-payment-paypal-billingplans field-container-field'
+                'class': 'quiqqer-payment-paypal-billingagreements field-container-field'
             }).inject(this.getElm(), 'after');
 
             this.Loader.inject(this.$Content);
@@ -102,7 +121,19 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
         $onCreate: function () {
             var self = this;
 
-            // Buttons
+            // Search
+            this.$SearchInput = new Element('input', {
+                'class'    : 'quiqqer-payment-paypal-billingagreements-search',
+                placeholder: QUILocale.get(lg, 'controls.backend.BillingAgreements.search.placeholder'),
+                events     : {
+                    keydown: function (event) {
+                        if (typeof event !== 'undefined' &&
+                            event.code === 13) {
+                            self.refresh();
+                        }
+                    }
+                }
+            }).inject(this.$Content);
 
             // Grid
             var Container = new Element('div', {
@@ -116,7 +147,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
                 pagination       : true,
                 multipleSelection: true,
                 serverSort       : true,
-                sortOn           : 'c_date',
+                sortOn           : 'paypal_agreement_id',
                 sortBy           : 'DESC',
 
                 accordion           : false,
@@ -124,33 +155,33 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
                 openAccordionOnClick: false,
 
                 buttons    : [{
-                    name     : 'delete',
-                    text     : QUILocale.get(lg, 'controls.backend.BillingPlans.tbl.btn.delete'),
-                    textimage: 'fa fa-trash',
+                    name     : 'details',
+                    text     : QUILocale.get(lg, 'controls.backend.BillingAgreements.tbl.btn.details'),
+                    textimage: 'fa fa-paypal',
                     events   : {
-                        onClick: this.$clickDelete
+                        onClick: this.$clickDetails
                     }
                 }],
                 columnModel: [{
-                    header   : QUILocale.get(lg, 'controls.backend.BillingPlans.tbl.id'),
-                    dataIndex: 'id',
-                    dataType : 'string',
-                    width    : 200
-                }, {
-                    header   : QUILocale.get(lg, 'controls.backend.BillingPlans.tbl.name'),
-                    dataIndex: 'name',
-                    dataType : 'string',
-                    width    : 250
-                }, {
-                    header   : QUILocale.get(lg, 'controls.backend.BillingPlans.tbl.description'),
-                    dataIndex: 'description',
-                    dataType : 'string',
-                    width    : 250
-                }, {
-                    header   : QUILocale.get(lg, 'controls.backend.BillingPlans.tbl.create_time'),
-                    dataIndex: 'create_time',
+                    header   : QUILocale.get(lg, 'controls.backend.BillingAgreements.tbl.paypal_agreement_id'),
+                    dataIndex: 'paypal_agreement_id',
                     dataType : 'string',
                     width    : 150
+                }, {
+                    header   : QUILocale.get(lg, 'controls.backend.BillingAgreements.tbl.paypal_plan_id'),
+                    dataIndex: 'paypal_plan_id',
+                    dataType : 'string',
+                    width    : 225
+                }, {
+                    header   : QUILocale.get(lg, 'controls.backend.BillingAgreements.tbl.customer_text'),
+                    dataIndex: 'customer_text',
+                    dataType : 'string',
+                    width    : 250
+                }, {
+                    header   : QUILocale.get(lg, 'controls.backend.BillingAgreements.tbl.global_process_id'),
+                    dataIndex: 'global_process_id',
+                    dataType : 'string',
+                    width    : 250
                 }]
             });
 
@@ -166,18 +197,20 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
                     }
 
                     if (selected === 1) {
-                        TableButtons.delete.enable();
+                        TableButtons.details.enable();
                     } else {
-                        TableButtons.delete.disable();
+                        TableButtons.details.disable();
                     }
                 },
 
-                onDblClick: function (data) {
-                    console.log("dbl click");
-                }
+                onDblClick: this.$clickDetails
             });
 
             this.$onResize();
+            //
+            //new BillingAgreementWindow({
+            //    billingAgreementId: 'I-58NBPN3G4S8J'
+            //}).open();
         },
 
         /**
@@ -198,39 +231,9 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
         /**
          * Delete Billing Plan dialog
          */
-        $clickDelete: function () {
-            var self          = this;
-            var billingPlanId = this.$Grid.getSelectedData()[0].id;
-
-            new QUIConfirm({
-                maxHeight: 300,
-                maxWidth : 500,
-                autoclose: false,
-
-                information: QUILocale.get(lg, 'controls.backend.BillingPlans.delete.information', {
-                    billingPlanId: billingPlanId
-                }),
-                title      : QUILocale.get(lg, 'controls.backend.BillingPlans.delete.title'),
-                texticon   : 'fa fa-trash',
-                text       : QUILocale.get(lg, 'controls.backend.BillingPlans.delete.text'),
-                icon       : 'fa fa-trash',
-                ok_button  : {
-                    text     : QUILocale.get(lg, 'controls.backend.BillingPlans.delete.ok'),
-                    textimage: 'icon-ok fa fa-trash'
-                },
-                events     : {
-                    onSubmit: function (Popup) {
-                        Popup.Loader.show();
-
-                        PayPal.deleteBillingPlan(billingPlanId).then(function () {
-                            self.refresh();
-                            Popup.close();
-                        }, function () {
-                            Popup.Loader.hide();
-                        })
-                    }
-                }
-
+        $clickDetails: function () {
+            new BillingAgreementWindow({
+                billingAgreementId: this.$Grid.getSelectedData()[0].paypal_agreement_id
             }).open();
         }
     });

@@ -1,16 +1,12 @@
 <?php
 
-use QUI\ERP\Order\Handler;
-use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\Utils\Security\Orthos;
-use QUI\Utils\Grid;
 use QUI\ERP\Payments\PayPal\Recurring\BillingPlans;
 
 /**
- * Get list of PayPal Billing Plans
+ * Delete a PayPal Billing Plan
  *
- * @param array $searchParams - Grid search params
+ * @param string $billingPlanId
  * @return void
  * @throws PayPalException
  */
@@ -18,7 +14,17 @@ QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_deleteBillingPlan',
     function ($billingPlanId) {
         BillingPlans::deleteBillingPlan($billingPlanId);
+
+        QUI::getMessagesHandler()->addSuccess(
+            QUI::getLocale()->get(
+                'quiqqer/payment-paypal',
+                'message.ajax.recurring.deleteBillingPlan.success',
+                [
+                    'billingPlanId' => $billingPlanId
+                ]
+            )
+        );
     },
-    ['searchParams'],
+    ['billingPlanId'],
     'Permission::checkAdminUser'
 );

@@ -4,6 +4,7 @@ namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
 use QUI\ERP\Accounting\CalculationValue;
+use QUI\ERP\Order\AbstractOrder;
 
 /**
  * Class Utils
@@ -39,10 +40,34 @@ class Utils
     public static function getProjectUrl()
     {
         try {
-            return QUI::getRewrite()->getProject()->get(1)->getUrlRewrittenWithHost();
+            $url = QUI::getRewrite()->getProject()->get(1)->getUrlRewrittenWithHost();
+            return rtrim($url, '/');
         } catch (\Exception $Exception) {
             QUI\System\Log::writeDebugException($Exception);
             return '';
         }
+    }
+
+    /**
+     * Save Order with SystemUser
+     *
+     * @param AbstractOrder $Order
+     * @return void
+     */
+    public static function saveOrder(AbstractOrder $Order)
+    {
+        $Order->update(QUI::getUsers()->getSystemUser());
+    }
+
+    /**
+     * Get translated history text
+     *
+     * @param string $context
+     * @param array $data (optional) - Additional data for translation
+     * @return string
+     */
+    public static function getHistoryText(string $context, $data = [])
+    {
+        return QUI::getLocale()->get('quiqqer/payment-paypal', 'history.'.$context, $data);
     }
 }

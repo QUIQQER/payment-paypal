@@ -68,9 +68,16 @@ class BillingPlans
         // Read name and description from PlanProduct (= Product that contains subscription plan information)
         $Locale = $Order->getCustomer()->getLocale();
 
+        $name        = $PlanProduct->getTitle($Locale);
+        $description = $PlanProduct->getDescription($Locale);
+
+        if (empty($description)) {
+            $description = $name;
+        }
+
         $body = [
-            'name'        => $PlanProduct->getTitle($Locale),
-            'description' => $PlanProduct->getDescription($Locale)
+            'name'        => $name,
+            'description' => $description
         ];
 
         // Parse billing plan details from order
@@ -159,33 +166,10 @@ class BillingPlans
             RecurringPayment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN,
             [
                 [
-                    'op'   => 'remove',
-                    'path' => '/'
-                ]
-            ],
-            [
-                RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID => $billingPlanId
-            ]
-        );
-    }
-
-    /**
-     * Get details of a Billing Plan
-     *
-     * @param string $billingPlanId
-     * @return array
-     * @throws PayPalException
-     */
-    public static function getBillingPlanDetails($billingPlanId)
-    {
-        return self::payPalApiRequest(
-            RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_PLAN,
-            [
-                [
                     'op'    => 'replace',
                     'path'  => '/',
                     'value' => [
-                        'state' => 'ACTIVE'
+                        'state' => 'DELETED'
                     ]
                 ]
             ],

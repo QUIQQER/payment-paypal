@@ -1,0 +1,10 @@
+.quiqqer-payment-paypal-billingagreements {
+    float: left;
+    height: 100%;
+    width: calc(100% - 190px);
+}
+
+.quiqqer-payment-paypal-billingagreements-search {
+    margin: 10px 0;
+    width: 50%;
+}

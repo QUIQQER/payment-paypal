@@ -272,8 +272,12 @@
             <en><![CDATA[Auto (depending on browser window size)]]></en>
         </locale>
         <locale name="settings.category.billing_plans.title">
-            <de><![CDATA[Abrechnungsvereinbarungen (Billing Plans)]]></de>
+            <de><![CDATA[Abrechnungspläne (Billing Plans)]]></de>
             <en><![CDATA[Billing Plans]]></en>
+        </locale>
+        <locale name="settings.category.billing_agreements.title">
+            <de><![CDATA[Abrechnungsvereinbarungen (Billing Agreements)]]></de>
+            <en><![CDATA[Billing Agreements]]></en>
         </locale>
 
         <!-- Payment -->
@@ -345,6 +349,16 @@
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
+
+        <!-- Ajax -->
+        <locale name="message.ajax.recurring.deleteBillingPlan.success">
+            <de><![CDATA[Der Abrechnungsplan [billingPlanId] wurde erfolgreich gelöscht.]]></de>
+            <en><![CDATA[The Billing Plan [billingPlanId] was deleted successfully.]]></en>
+        </locale>
+        <locale name="message.ajax.recurring.cancelBillingAgreement.success">
+            <de><![CDATA[Die Abrechnungsvereinbarung [billingAgreementId] wurde erfolgreich gekündigt.]]></de>
+            <en><![CDATA[The Billing Agreement [billingAgreementId] has been cancelled successfully.]]></en>
+        </locale>
 
         <!-- Payment -->
         <locale name="payment.step.title">
@@ -422,6 +436,14 @@
             <de><![CDATA[PayPal Billing Agreement ID konnte in Rechnung #[invoiceId] nicht gefunden werden.]]></de>
             <en><![CDATA[PayPal Billing Agreement ID was not found in Invoice #[invoiceId].]]></en>
         </locale>
+        <locale name="recurring.billing_agreement.cancel.note">
+            <de><![CDATA[Kündigung Ihres Abonnements aus Bestellung [globalProcessId] auf [url]]]></de>
+            <en><![CDATA[Cancellation of your subscription from order [globalProcessId] at [url]]]></en>
+        </locale>
+        <locale name="exception.Recurring.cancel.error">
+            <de><![CDATA[Der Kündigungsvorgang der Abrechnungsvereinbarung konnte nicht durchgeführt werden. Bitte wiederholen Sie den Vorgang oder kontaktieren Sie einen Administrator.]]></de>
+            <en><![CDATA[The cancellation of the Billing Agreement could not be executed. Please repeat the process or contact an administrator.]]></en>
+        </locale>
 
         <!-- Events -->
         <locale name="exception.onPaymentsCreateBegin.erp_plans_missing" html="true">
@@ -485,7 +507,8 @@
             <en><![CDATA[Sending subscription plan information to PayPal...]]></en>
         </locale>
         <locale name="controls.recurring.PaymentDisplay.error">
-            <de><![CDATA[Leider ist bei der Kommunikation mit PayPal ist ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsmethode oder probieren es zu einem späteren Zeitpunkt nochmal.]]></de>
+            <de>
+                <![CDATA[Leider ist bei der Kommunikation mit PayPal ist ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsmethode oder probieren es zu einem späteren Zeitpunkt nochmal.]]></de>
             <en><![CDATA[Unfortunately an error occurred during the communication with PayPal. Your PayPal account was not debited. Please choose another payment method or try again later.]]></en>
         </locale>
 
@@ -510,7 +533,59 @@
             <de><![CDATA[erstellt am]]></de>
             <en><![CDATA[created at]]></en>
         </locale>
-        
+        <locale name="controls.backend.BillingPlans.delete.information" html="true">
+            <de><![CDATA[Der Abrechnungsplan <b>[billingPlanId]</b> wird bei PayPal auf den Status <b>DELETED</b> gesetzt.]]></de>
+            <en><![CDATA[The Billinng Plan <b>[billingPlanId]</b> will be set to status <b>DELETED</b> at PayPal.]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.title">
+            <de><![CDATA[PayPal Abrechnungsplan löschen]]></de>
+            <en><![CDATA[Delete PayPal Billing Plan]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.text">
+            <de><![CDATA[Soll der Abrechnungsplan gelöscht werden?]]></de>
+            <en><![CDATA[Shall the Billing Plan be deleted?]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.ok">
+            <de><![CDATA[Abrechnungsplan löschen]]></de>
+            <en><![CDATA[Delete Billing Plan]]></en>
+        </locale>
+
+        <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWindow -->
+        <locale name="controls.backend.BillingAgreementWindow.title">
+            <de><![CDATA[PayPal Abrechnungsvereinbarung (Billing Agreement)]]></de>
+            <en><![CDATA[PayPal Billing Agreement]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.btn.cancel">
+            <de><![CDATA[Vereinbarung kündigen]]></de>
+            <en><![CDATA[Cancel agreement]]></en>
+        </locale>
+
+        <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements -->
+        <locale name="controls.backend.BillingAgreements.tbl.btn.details">
+            <de><![CDATA[Details anzeigen]]></de>
+            <en><![CDATA[Show details]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.paypal_agreement_id">
+            <de><![CDATA[Billing Agreement ID]]></de>
+            <en><![CDATA[Billing Agreement ID]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.paypal_plan_id">
+            <de><![CDATA[Billing Plan ID]]></de>
+            <en><![CDATA[Billing Plan ID]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.customer_text">
+            <de><![CDATA[Kunde]]></de>
+            <en><![CDATA[Customer]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.global_process_id">
+            <de><![CDATA[Vorgangs-Nr.]]></de>
+            <en><![CDATA[Global process ID]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.search.placeholder">
+            <de><![CDATA[Vorgangs-Nr.]]></de>
+            <en><![CDATA[Global process ID]]></en>
+        </locale>
+
     </groups>
 
 </locales>
