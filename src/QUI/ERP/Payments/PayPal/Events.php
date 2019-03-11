@@ -9,6 +9,11 @@ use QUI\ERP\Order\Basket\BasketGuest;
 use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Order\Controls\OrderProcess\Checkout as CheckoutStep;
 use QUI\ERP\Accounting\Payments\Exceptions\PaymentCanNotBeUsed;
+use QUI\ERP\Order\OrderInterface;
+use QUI\ERP\Accounting\Payments\Types\Payment;
+use QUI\ERP\Payments\PayPal\Payment as PayPalPayment;
+use QUI\ERP\Plans\Utils as ErpPlanUtils;
+use QUI\ERP\Plans\Handler as ErpPlanHandler;
 
 /**
  * Class Events
@@ -47,7 +52,7 @@ class Events
         if ($Basket->hasOrder()) {
             $Order = $Basket->getOrder();
 
-            if ($Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_PAYMENT_ID)) {
+            if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)) {
                 $checkout = 1;
             }
         }
@@ -98,7 +103,7 @@ class Events
         if ($Basket->hasOrder()) {
             $Order = $Basket->getOrder();
 
-            if ($Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_PAYMENT_ID)) {
+            if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)) {
                 $checkout = 1;
             }
         }
@@ -135,6 +140,51 @@ class Events
                     'exception.onPaymentsCreateBegin.erp_plans_missing'
                 )
             );
+        }
+    }
+
+    /**
+     * quiqqer/payments: onPaymentsCanUsedInOrder
+     *
+     * PayPal for recurring payments cannot be used on Orders that contain a subscription plan
+     * product with an invoice interval greater than 1 year (12 months).
+     *
+     * @param Payment $Payment
+     * @param OrderInterface $Order
+     * @throws QUI\ERP\Accounting\Payments\Exceptions\PaymentCanNotBeUsed
+     */
+    public static function onPaymentsCanUsedInOrder(Payment $Payment, OrderInterface $Order)
+    {
+        if (!QUI::getPackageManager()->isInstalled('quiqqer/erp-plans')) {
+            return;
+        }
+
+        try {
+            $PaymentType = $Payment->getPaymentType();
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return;
+        }
+
+        if (!($PaymentType instanceof QUI\ERP\Payments\PayPal\Recurring\Payment)) {
+            return;
+        }
+
+        $planDetails = ErpPlanUtils::getPlanDetailsFromOrder($Order);
+
+        try {
+            $InvoiceInterval = ErpPlanUtils::parseIntervalFromDuration(
+                $planDetails[ErpPlanHandler::FIELD_INVOICE_INTERVAL]
+            );
+
+            $OneYearInterval = new \DateInterval('P1Y');
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return;
+        }
+
+        if (ErpPlanUtils::compareDateIntervals($InvoiceInterval, $OneYearInterval) === -1) {
+            throw new PaymentCanNotBeUsed();
         }
     }
 }
