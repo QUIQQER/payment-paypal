@@ -97,8 +97,11 @@ class BillingAgreements
         $body['start_date'] = $Now->format('Y-m-d\TH:i:s\Z');
 
         try {
-            $response = self::payPalApiRequest(RecurringPayment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT, $body,
-                $Order);
+            $response = self::payPalApiRequest(
+                RecurringPayment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT,
+                $body,
+                $Order
+            );
         } catch (PayPalException $Exception) {
             $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
             Utils::saveOrder($Order);
