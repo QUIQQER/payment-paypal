@@ -346,6 +346,36 @@
             <en><![CDATA[PayPal Billing Agreement accepted by customer. Approval token: [agreementToken]. Approval ID: [agreementId].]]></en>
         </locale>
 
+        <!-- Permissions -->
+        <locale name="permission.quiqqer.payments.paypal._header">
+            <de><![CDATA[PayPal]]></de>
+            <en><![CDATA[PayPal]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_plans._header">
+            <de><![CDATA[PayPal - Abrechnungspläne (Billing Plans)]]></de>
+            <en><![CDATA[PayPal - Billing Plans]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_agreements._header">
+            <de><![CDATA[PayPal - Abrechnungsvereinbarungen (Billing Agreements)]]></de>
+            <en><![CDATA[PayPal - Billing Agreements]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_plans.view">
+            <de><![CDATA[Darf Abrechnungspläne ansehen]]></de>
+            <en><![CDATA[Can view Billing Plans]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_plans.delete">
+            <de><![CDATA[Darf Abrechnungspläne löschen]]></de>
+            <en><![CDATA[Can delete Billing Plans]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_agreements.view">
+            <de><![CDATA[Darf Abrechnungsvereinbarungen ansehen]]></de>
+            <en><![CDATA[Can view Billing Agreements]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_agreements.cancel">
+            <de><![CDATA[Darf Abrechnungsvereinbarungen kündigen]]></de>
+            <en><![CDATA[Can cancel Billing Agreements]]></en>
+        </locale>
+
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">

@@ -16,5 +16,5 @@ QUI::$Ajax->registerFunction(
         return BillingAgreements::getBillingAgreementDetails($billingAgreementId);
     },
     ['billingAgreementId'],
-    'Permission::checkAdminUser'
+    ['Permission::checkAdminUser', 'quiqqer.payments.paypal.billing_agreements.view']
 );

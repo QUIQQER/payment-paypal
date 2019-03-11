@@ -1,0 +1,14 @@
+<permissions>
+    <permission name="quiqqer.payments.paypal.billing_plans.view" type="bool">
+        <defaultvalue>1</defaultvalue>
+    </permission>
+    <permission name="quiqqer.payments.paypal.billing_plans.delete" type="bool">
+        <defaultvalue>0</defaultvalue>
+    </permission>
+    <permission name="quiqqer.payments.paypal.billing_agreements.view" type="bool">
+        <defaultvalue>1</defaultvalue>
+    </permission>
+    <permission name="quiqqer.payments.paypal.billing_agreements.cancel" type="bool">
+        <defaultvalue>0</defaultvalue>
+    </permission>
+</permissions>

@@ -47,5 +47,5 @@ QUI::$Ajax->registerFunction(
         return $Grid->parseResult($plans, $count);
     },
     ['searchParams'],
-    'Permission::checkAdminUser'
+    ['Permission::checkAdminUser', 'quiqqer.payments.paypal.billing_plans.view']
 );

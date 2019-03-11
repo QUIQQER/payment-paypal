@@ -26,5 +26,5 @@ QUI::$Ajax->registerFunction(
         );
     },
     ['billingAgreementId'],
-    'Permission::checkAdminUser'
+    ['Permission::checkAdminUser', 'quiqqer.payments.paypal.billing_agreements.cancel']
 );

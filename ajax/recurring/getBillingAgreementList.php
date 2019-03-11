@@ -25,5 +25,5 @@ QUI::$Ajax->registerFunction(
         );
     },
     ['searchParams'],
-    'Permission::checkAdminUser'
+    ['Permission::checkAdminUser', 'quiqqer.payments.paypal.billing_agreements.view']
 );

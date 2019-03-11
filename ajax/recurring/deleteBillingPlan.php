@@ -26,5 +26,5 @@ QUI::$Ajax->registerFunction(
         );
     },
     ['billingPlanId'],
-    'Permission::checkAdminUser'
+    ['Permission::checkAdminUser', 'quiqqer.payments.paypal.billing_plans.delete']
 );
