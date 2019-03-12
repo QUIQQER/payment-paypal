@@ -13,7 +13,8 @@ Features
 
 * Offer your customers the option to pay with an PayPal account
 * Customizable PayPal button
-* Optional PayPal Express button for a fast checkout per basket or single product item 
+* Optional PayPal Express button for a fast checkout per basket or single product item
+* **NEW**: Now features recurring payments with Billing Plans and Billing Agreements for subscription plan products
 
 Installation
 ------------
