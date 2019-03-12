@@ -63,7 +63,7 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
             this.$MsgElm  = Elm.getElement('.quiqqer-payment-paypal-message');
             this.$Content = Elm.getElement('.quiqqer-payment-paypal-content');
 
-            this.$showMsg(QUILocale.get(lg, 'PaymentDisplay.info'));
+            this.$showMsg(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.PaymentDisplay.info'));
 
             QUIControlUtils.getControlByElement(
                 Elm.getParent('[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]')
@@ -88,10 +88,11 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
             var PayPalButton = new QUIButton({
                 'class'  : 'btn-primary',
                 disabled : true,
-                text     : QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text'),
+                text     : QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text_create'),
                 textimage: 'fa fa-spinner fa-spin',
                 events   : {
                     onClick: function (Btn) {
+                        Btn.disable();
                         window.location = Btn.getAttribute('approvalUrl');
                     }
                 }
@@ -102,6 +103,12 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
             PayPal.createBillingAgreement(this.getAttribute('orderhash')).then(function (Data) {
                 self.$OrderProcess.Loader.hide();
 
+                PayPalButton.setAttribute(
+                    'text',
+                    QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text')
+                );
+
+                PayPalButton.setAttribute('textimage', 'fa fa-paypal');
                 PayPalButton.setAttribute('approvalUrl', Data.approvalUrl);
                 PayPalButton.enable();
             }, function () {

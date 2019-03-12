@@ -528,9 +528,17 @@
         </locale>
 
         <!-- Control: recurring/PaymentDisplay -->
+        <locale name="controls.recurring.PaymentDisplay.PaymentDisplay.info">
+            <de><![CDATA[Bitte klicken Sie auf die PayPal-Schaltfläche, um die regelmäßige Zahlung ihres Abonnements bei PayPal zu bestätigen.]]></de>
+            <en><![CDATA[Please click on the PayPal button to confirm the regular payment of your subscription at PayPal.]]></en>
+        </locale>
         <locale name="controls.recurring.PaymentDisplay.btn.text">
             <de><![CDATA[Jetzt Zahlung über PayPal einrichten]]></de>
             <en><![CDATA[Set up payment via PayPal now]]></en>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.btn.text_create">
+            <de><![CDATA[Sende Zahlungsinformationen an PayPal...]]></de>
+            <en><![CDATA[Sending payment information to PayPal...]]></en>
         </locale>
         <locale name="controls.recurring.PaymentDisplay.Loader.create_billing_agreement">
             <de><![CDATA[Sende Abonnement-Informationen an PayPal...]]></de>

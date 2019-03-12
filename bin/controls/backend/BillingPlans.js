@@ -170,10 +170,6 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
                     } else {
                         TableButtons.delete.disable();
                     }
-                },
-
-                onDblClick: function (data) {
-                    console.log("dbl click");
                 }
             });
 

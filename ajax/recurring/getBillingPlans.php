@@ -42,8 +42,6 @@ QUI::$Ajax->registerFunction(
 
         $Grid = new Grid($searchParams);
 
-        \QUI\System\Log::writeRecursive($plans);
-
         return $Grid->parseResult($plans, $count);
     },
     ['searchParams'],

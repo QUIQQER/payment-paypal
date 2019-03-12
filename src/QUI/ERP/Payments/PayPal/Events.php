@@ -174,7 +174,7 @@ class Events
 
         try {
             $InvoiceInterval = ErpPlanUtils::parseIntervalFromDuration(
-                $planDetails[ErpPlanHandler::FIELD_INVOICE_INTERVAL]
+                $planDetails['invoice_interval']
             );
 
             $OneYearInterval = new \DateInterval('P1Y');
@@ -183,7 +183,7 @@ class Events
             return;
         }
 
-        if (ErpPlanUtils::compareDateIntervals($InvoiceInterval, $OneYearInterval) === -1) {
+        if (ErpPlanUtils::compareDateIntervals($InvoiceInterval, $OneYearInterval) === 1) {
             throw new PaymentCanNotBeUsed();
         }
     }

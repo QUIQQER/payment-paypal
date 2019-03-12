@@ -110,7 +110,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      *
      * @param QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway
      *
-     * @throws QUI\ERP\Accounting\Payments\Exception
+     * @throws QUI\ERP\Order\Basket\Exception
+     * @throws QUI\Exception
      */
     public function executeGatewayPayment(QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway)
     {
@@ -126,7 +127,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                 $goToBasket = true;
             } else {
                 try {
-                    $this->executeBillingAgreement($Order, $_REQUEST['token']);
+                    BillingAgreements::executeBillingAgreement($Order, $_REQUEST['token']);
 
                     $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Finish([
                         'Order' => $Gateway->getOrder()
@@ -139,6 +140,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             $GoToStep = new OrderProcessStepPayments([
                 'Order' => $Gateway->getOrder()
             ]);
+        } else {
+            $goToBasket = true;
         }
 
         if ($goToBasket) {

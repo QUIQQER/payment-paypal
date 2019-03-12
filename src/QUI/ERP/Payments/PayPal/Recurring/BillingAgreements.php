@@ -398,7 +398,7 @@ class BillingAgreements
      * @return void
      * @throws PayPalException
      */
-    protected static function executeBillingAgreement(AbstractOrder $Order, string $agreementToken)
+    public static function executeBillingAgreement(AbstractOrder $Order, string $agreementToken)
     {
         try {
             $response = self::payPalApiRequest(
