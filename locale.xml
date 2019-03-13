@@ -345,6 +345,18 @@
             <de><![CDATA[PayPal Billing Agreement (Zustimmung zu Abrechnungsplan) durch Kunden zugestimmt. Zustimmungs-Token: [agreementToken]. Zustimmungs-ID: [agreementId].]]></de>
             <en><![CDATA[PayPal Billing Agreement accepted by customer. Approval token: [agreementToken]. Approval ID: [agreementId].]]></en>
         </locale>
+        <locale name="history.invoice.error.agreement_id_not_found">
+            <de><![CDATA[Es wurde versucht, die Rechnung über wiederkehrende Zahlungen mit PayPal zu begleichen, jedoch enthielten die Rechnungsdaten keine zugeordnete Abrechnungsvereinbarung.]]></de>
+            <en><![CDATA[An attempt was made to settle the recurring payment invoice using PayPal, but the invoice data did not contain an associated billing agreement.]]></en>
+        </locale>
+        <locale name="history.invoice.error.agreement_not_found">
+            <de><![CDATA[Es wurde versucht, die Rechnung über wiederkehrende Zahlungen mit PayPal zu begleichen, jedoch wurde die zugeordnete Abrechnungsvereinbarung [billingAgreementId] nicht im System gefunden.]]></de>
+            <en><![CDATA[An attempt was made to settle the recurring payment invoice using PayPal, but the associated billing agreement [billingAgreementId] was not found in the system.]]></en>
+        </locale>
+        <locale name="history.invoice.error.general">
+            <de><![CDATA[Beim Versuch, die Zahlung der Rechnung über PayPal durchzuführen, ist ein QUIQQER-Fehler aufgetreten. Bitte Fehler-Logs prüfen.]]></de>
+            <en><![CDATA[A QUIQQER error occurred when attempting to pay the invoice via PayPal. Please check error logs.]]></en>
+        </locale>
 
         <!-- Permissions -->
         <locale name="permission.quiqqer.payments.paypal._header">

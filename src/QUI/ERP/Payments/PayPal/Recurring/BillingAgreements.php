@@ -12,6 +12,9 @@ use QUI\ERP\Payments\PayPal\Utils;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\Utils\Security\Orthos;
+use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
+use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
+use QUI\ERP\Accounting\Payments\Payments;
 
 /**
  * Class BillingAgreements
@@ -20,7 +23,8 @@ use QUI\Utils\Security\Orthos;
  */
 class BillingAgreements
 {
-    const TBL_BILLING_AGREEMENTS = 'paypal_billing_agreements';
+    const TBL_BILLING_AGREEMENTS             = 'paypal_billing_agreements';
+    const TBL_BILLING_AGREEMENT_TRANSACTIONS = 'paypal_billing_agreement_transactions';
 
     /**
      * @var QUI\ERP\Payments\PayPal\Payment
@@ -158,12 +162,17 @@ class BillingAgreements
      * @param Invoice $Invoice
      * @return void
      * @throws PayPalException
+     * @throws \QUI\Exception
      */
     public static function billBillingAgreementBalance(Invoice $Invoice)
     {
         $billingAgreementId = $Invoice->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
 
         if (empty($billingAgreementId)) {
+            $Invoice->addHistory(
+                Utils::getHistoryText('invoice.error.agreement_id_not_found')
+            );
+
             throw new PayPalException(
                 QUI::getLocale()->get(
                     'quiqqer/payment-paypal',
@@ -179,6 +188,12 @@ class BillingAgreements
         $data = self::getBillingAgreementData($billingAgreementId);
 
         if ($data === false) {
+            $Invoice->addHistory(
+                Utils::getHistoryText('invoice.error.agreement_not_found', [
+                    'billingAgreementId' => $billingAgreementId
+                ])
+            );
+
             throw new PayPalException(
                 QUI::getLocale()->get(
                     'quiqqer/payment-paypal',
@@ -191,30 +206,69 @@ class BillingAgreements
             );
         }
 
-        try {
-            /** @var QUI\Locale $Locale */
-            $Locale = $Invoice->getCustomer()->getLocale();
-        } catch (\Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
-            return;
-        }
+//        try {
+//            /** @var QUI\Locale $Locale */
+//            $Locale      = $Invoice->getCustomer()->getLocale();
+//            $InvoiceDate = new \DateTime($Invoice->getAttribute('date'));
+//        } catch (\Exception $Exception) {
+//            $Invoice->addHistory(
+//                Utils::getHistoryText('invoice.error.general')
+//            );
+//
+//            QUI\System\Log::writeException($Exception);
+//            return;
+//        }
 
-        self::payPalApiRequest(
-            RecurringPayment::PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT,
-            [
-                'note' => $Locale->get(
-                    'quiqqer/payment-paypal',
-                    'recurring.billing_agreement.bill_balance.note',
+        // Check if a Billing Agreement transaction matches the Invoice
+        $unprocessedTransactions = self::getUnprocessedTransactions($billingAgreementId);
+        $Invoice->calculatePayments();
+
+        $invoiceAmount   = (float)$Invoice->getAttribute('toPay');
+        $invoiceCurrency = $Invoice->getCurrency()->getCode();
+
+        foreach ($unprocessedTransactions as $transaction) {
+            $amount   = (float)$transaction['amount']['value'];
+            $currency = $transaction['amount']['curency'];
+
+            if ($currency !== $invoiceCurrency) {
+                continue;
+            }
+
+            if ($amount < $invoiceAmount) {
+                continue;
+            }
+
+            // Transaction amount equals Invoice amount
+            try {
+                $InvoiceTransaction = TransactionFactory::createPaymentTransaction(
+                    $amount,
+                    $Invoice->getCurrency(),
+                    $Invoice->getHash(),
+                    $Invoice->getPayment()->getPaymentType(),
+                    [],
+                    null,
+                    false,
+                    $Invoice->getGlobalProcessId()
+                );
+
+                $Invoice->addTransaction($InvoiceTransaction);
+
+                QUI::getDataBase()->update(
+                    self::getBillingAgreementTransactionsTable(),
                     [
-                        'invoiceReference' => $Invoice->getId(),
-                        'url'              => Utils::getProjectUrl()
+                        'quiqqer_transaction_id'        => $InvoiceTransaction->getTxId(),
+                        'quiqqer_transaction_completed' => 1
+                    ],
+                    [
+                        'paypal_transaction_id' => $transaction['transaction_id']
                     ]
-                )
-            ],
-            [
-                RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
-            ]
-        );
+                );
+            } catch (\Exception $Exception) {
+                QUI\System\Log::writeException($Exception);
+            }
+
+            break;
+        }
     }
 
     /**
@@ -323,6 +377,45 @@ class BillingAgreements
                 RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
             ]
         );
+    }
+
+    /**
+     * Get transaction list for a Billing Agreement
+     *
+     * @param string $billingAgreementId
+     * @param \DateTime $Start (optional)
+     * @param \DateTime $End (optional)
+     * @return array
+     * @throws PayPalException
+     */
+    public static function getBillingAgreementTransactions(
+        $billingAgreementId,
+        \DateTime $Start = null,
+        \DateTime $End = null
+    ) {
+        $data = [
+            RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
+        ];
+
+        if (is_null($Start)) {
+            $Start = new \DateTime('2019-03-10'); // @todo wieder abändern auf TODAY
+        }
+
+        if (is_null($End)) {
+            $End = clone $Start;
+            $End->add(new \DateInterval('P1M'));
+        }
+
+        $data['start_date'] = $Start->format('Y-m-d');
+        $data['end_date']   = $End->format('Y-m-d');
+
+        $result = self::payPalApiRequest(
+            RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT_TRANSACTIONS,
+            [],
+            $data
+        );
+
+        return $result['agreement_transaction_list'];
     }
 
     /**
@@ -456,6 +549,204 @@ class BillingAgreements
     }
 
     /**
+     * Process all unpaid Invoices of Billing Agreements
+     *
+     * @return void
+     */
+    public static function processUnpaidInvoices()
+    {
+        $Invoices = InvoiceHandler::getInstance();
+
+        // Determine payment type IDs
+        $payments = Payments::getInstance()->getPayments([
+            'select' => ['id'],
+            'where'  => [
+                'payment_type' => RecurringPayment::class
+            ]
+        ]);
+
+        $paymentTypeIds = [];
+
+        /** @var QUI\ERP\Accounting\Payments\Types\Payment $Payment */
+        foreach ($payments as $Payment) {
+            $paymentTypeIds[] = $Payment->getId();
+        }
+
+        if (empty($paymentTypeIds)) {
+            return;
+        }
+
+        // Get all unpaid Invoices
+        $result = $Invoices->search([
+            'select' => ['id', 'global_process_id'],
+            'where'  => [
+                'paid_status'    => 0,
+                'payment_method' => [
+                    'type'  => 'IN',
+                    'value' => $paymentTypeIds
+                ]
+            ]
+        ]);
+
+        $invoiceIds = [];
+
+        foreach ($result as $row) {
+            $globalProcessId = $row['global_process_id'];
+
+            if (!isset($invoiceIds[$globalProcessId])) {
+                $invoiceIds[$globalProcessId] = [];
+            }
+
+            $invoiceIds[$globalProcessId][] = $row['id'];
+        }
+
+        if (empty($invoiceIds)) {
+            return;
+        }
+
+        // Determine relevant Billing Agreement
+        $result = QUI::getDataBase()->fetch([
+            'select' => ['global_process_id', 'paypal_agreement_id'],
+            'from'   => self::getBillingAgreementsTable(),
+            'where'  => [
+                'global_process_id' => [
+                    'type'  => 'IN',
+                    'value' => array_keys($invoiceIds)
+                ]
+            ]
+        ]);
+
+        // Refresh Billing Agreement transactions
+        foreach ($result as $row) {
+            $billingAgreementId = $row['paypal_agreement_id'];
+
+            self::refreshTransactionList($billingAgreementId);
+
+            // Handle invoices
+            foreach ($invoiceIds as $globalProcessId => $invoices) {
+                if ($row['global_process_id'] !== $globalProcessId) {
+                    continue;
+                }
+
+                foreach ($invoices as $invoiceId) {
+                    $Invoice = $Invoices->get($invoiceId);
+                    self::billBillingAgreementBalance($Invoice);
+                }
+
+            }
+        }
+    }
+
+    /**
+     * Refreshes transactions for a Billing Agreement
+     *
+     * @param string $billingAgreementId
+     * @throws PayPalException
+     * @throws QUI\Database\Exception
+     * @throws \Exception
+     */
+    protected static function refreshTransactionList($billingAgreementId)
+    {
+        // Get global process id
+        $data            = self::getBillingAgreementData($billingAgreementId);
+        $globalProcessId = $data['globalProcessId'];
+
+        // Determine start date
+        $result = QUI::getDataBase()->fetch([
+            'select' => ['paypal_transaction_date'],
+            'from'   => self::getBillingAgreementTransactionsTable(),
+            'where'  => [
+                'paypal_agreement_id' => $billingAgreementId
+            ],
+            'order'  => [
+                'field' => 'paypal_transaction_date',
+                'sort'  => 'DESC'
+            ],
+            'limit'  => 1
+        ]);
+
+        if (empty($result)) {
+            $Start = new \DateTime(date('Y').'-01-01 00:00:00'); // Beginning of current year
+        } else {
+            $Start = new \DateTime($result[0]['paypal_transaction_date']);
+        }
+
+        // Determine existing transactions
+        $result = QUI::getDataBase()->fetch([
+            'select' => ['paypal_transaction_id'],
+            'from'   => self::getBillingAgreementTransactionsTable(),
+            'where'  => [
+                'paypal_agreement_id' => $billingAgreementId
+            ]
+        ]);
+
+        $existing = [];
+
+        foreach ($result as $row) {
+            $existing[$row['paypal_transaction_id']] = true;
+        }
+
+        // Parse NEW transactions
+        $transactions = self::getBillingAgreementTransactions($billingAgreementId, $Start);
+
+        foreach ($transactions as $transaction) {
+            if (isset($existing[$transaction['transaction_id']])) {
+                continue;
+            }
+
+            if (!isset($transaction['amount'])) {
+                continue;
+            }
+
+            $TransactionTime = new \DateTime($transaction['time_stamp']);
+
+            QUI::getDataBase()->insert(
+                self::getBillingAgreementTransactionsTable(),
+                [
+                    'paypal_transaction_id'   => $transaction['transaction_id'],
+                    'paypal_agreement_id'     => $billingAgreementId,
+                    'paypal_transaction_data' => json_encode($transaction),
+                    'paypal_transaction_date' => $TransactionTime->format('Y-m-d H:i:s'),
+                    'global_process_id'       => $globalProcessId
+                ]
+            );
+        }
+    }
+
+    /**
+     * Get all completed Billing Agreement transactions that are unprocessed by QUIQQER ERP
+     *
+     * @param string $billingAgreementId
+     * @return array
+     * @throws QUI\Database\Exception
+     */
+    protected static function getUnprocessedTransactions($billingAgreementId)
+    {
+        $result = QUI::getDataBase()->fetch([
+            'select' => ['paypal_transaction_data'],
+            'from'   => self::getBillingAgreementTransactionsTable(),
+            'where'  => [
+                'paypal_agreement_id'    => $billingAgreementId,
+                'quiqqer_transaction_id' => null
+            ]
+        ]);
+
+        $transactions = [];
+
+        foreach ($result as $row) {
+            $t = json_decode($row['paypal_transaction_data'], true);
+
+            if ($t['status'] !== 'Completed') {
+                continue;
+            }
+
+            $transactions[] = $t;
+        }
+
+        return $transactions;
+    }
+
+    /**
      * Make a PayPal REST API request
      *
      * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
@@ -513,5 +804,13 @@ class BillingAgreements
     protected static function getBillingAgreementsTable()
     {
         return QUI::getDBTableName(self::TBL_BILLING_AGREEMENTS);
+    }
+
+    /**
+     * @return string
+     */
+    protected static function getBillingAgreementTransactionsTable()
+    {
+        return QUI::getDBTableName(self::TBL_BILLING_AGREEMENT_TRANSACTIONS);
     }
 }

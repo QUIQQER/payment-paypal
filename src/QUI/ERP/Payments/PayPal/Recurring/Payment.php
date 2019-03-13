@@ -35,12 +35,13 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     const PAYPAL_REQUEST_TYPE_GET_BILLING_PLAN    = 'paypal-api-get_billing_plan';
     const PAYPAL_REQUEST_TYPE_LIST_BILLING_PLANS  = 'paypal-api-list_billing_plans';
 
-    const PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT  = 'paypal-api-create_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_AGREEMENT  = 'paypal-api-update_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT = 'paypal-api-execute_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT    = 'paypal-api-bill_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT  = 'paypal-api-cancel_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT     = 'paypal-api-get_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT           = 'paypal-api-create_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_AGREEMENT           = 'paypal-api-update_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT          = 'paypal-api-execute_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT             = 'paypal-api-bill_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT           = 'paypal-api-cancel_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT              = 'paypal-api-get_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT_TRANSACTIONS = 'paypal-api-get_billing_agreement_transactions';
 
     /**
      * @return string
@@ -88,7 +89,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @throws QUI\Exception
      * @throws \Exception
      */
-    public function createBillingAgreement(AbstractOrder $Order)
+    public function createSubscription(AbstractOrder $Order)
     {
         return BillingAgreements::createBillingAgreement($Order);
     }
@@ -100,7 +101,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @return void
      * @throws PayPalException
      */
-    public function billBillingAgreementBalance(Invoice $Invoice)
+    public function captureSubscription(Invoice $Invoice)
     {
         BillingAgreements::billBillingAgreementBalance($Invoice);
     }
@@ -194,7 +195,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      *
      * @return bool
      */
-    public function isBillingAgreementEditable()
+    public function isSubscriptionEditable()
     {
         return false;
     }
@@ -206,7 +207,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param AbstractOrder $Order
      * @return int|string|false - ID or false of no ID associated
      */
-    public function getBillingAgreementIdByOrder(AbstractOrder $Order)
+    public function getSubscriptionIdByOrder(AbstractOrder $Order)
     {
         return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
     }
@@ -214,13 +215,13 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * Cancel a Billing Agreement
      *
-     * @param int|string $billingAgreementId
+     * @param int|string $subscriptionId
      * @param string $reason (optional) - The reason why the billing agreement is being cancelled
      * @return void
      * @throws PayPalException
      */
-    public function cancelBillingAgreement($billingAgreementId, $reason = '')
+    public function cancelSubscription($subscriptionId, $reason = '')
     {
-        BillingAgreements::cancelBillingAgreement($billingAgreementId, $reason);
+        BillingAgreements::cancelBillingAgreement($subscriptionId, $reason);
     }
 }

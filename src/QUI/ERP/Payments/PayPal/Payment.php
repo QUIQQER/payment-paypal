@@ -11,6 +11,7 @@ use PayPal\v1\BillingAgreements\AgreementCancelRequest;
 use PayPal\v1\BillingAgreements\AgreementCreateRequest;
 use PayPal\v1\BillingAgreements\AgreementExecuteRequest;
 use PayPal\v1\BillingAgreements\AgreementGetRequest;
+use PayPal\v1\BillingAgreements\AgreementTransactionsRequest;
 use PayPal\v1\BillingPlans\PlanCreateRequest;
 use PayPal\v1\BillingPlans\PlanGetRequest;
 use PayPal\v1\BillingPlans\PlanListRequest;
@@ -1000,6 +1001,23 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $Request = new AgreementGetRequest(
                     $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
                 );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT_TRANSACTIONS:
+                $Request = new AgreementTransactionsRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+
+                $startDate = $getData('start_date');
+                $endDate   = $getData('end_date');
+
+                if (!empty($startDate)) {
+                    $Request->startDate($startDate);
+                }
+
+                if (!empty($endDate)) {
+                    $Request->endDate($endDate);
+                }
                 break;
 
             default:

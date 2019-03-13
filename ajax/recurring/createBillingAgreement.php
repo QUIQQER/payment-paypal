@@ -20,7 +20,7 @@ QUI::$Ajax->registerFunction(
             $Order     = Handler::getInstance()->getOrderByHash($orderHash);
 
             $Payment     = new RecurringPayment();
-            $approvalUrl = $Payment->createBillingAgreement($Order);
+            $approvalUrl = $Payment->createSubscription($Order);
         } catch (PayPalException $Exception) {
             throw $Exception;
         } catch (\Exception $Exception) {
