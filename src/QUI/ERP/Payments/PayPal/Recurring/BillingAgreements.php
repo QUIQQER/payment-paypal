@@ -632,7 +632,6 @@ class BillingAgreements
                     $Invoice = $Invoices->get($invoiceId);
                     self::billBillingAgreementBalance($Invoice);
                 }
-
             }
         }
     }
