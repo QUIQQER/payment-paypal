@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<crons>
+
+    <cron exec="\QUI\ERP\Payments\PayPal\Recurring\BillingAgreements::processUnpaidInvoices">
+        <title>
+            <locale group="quiqqer/payment-paypal" var="cron.processUnpaidInvoices.title"/>
+        </title>
+        <description>
+            <locale group="quiqqer/payment-paypal" var="cron.processUnpaidInvoices.description"/>
+        </description>
+    </cron>
+
+</crons>

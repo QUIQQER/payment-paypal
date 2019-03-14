@@ -70,6 +70,16 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
                 search = false;
             }
 
+            switch (this.$Grid.options.sortOn) {
+                case 'active_status':
+                    this.$Grid.options.sortOn = 'active';
+                    break;
+
+                case 'customer_text':
+                    this.$Grid.options.sortOn = 'customer';
+                    break;
+            }
+
             return PayPal.getBillingAgreementList({
                 perPage: this.$Grid.options.perPage,
                 page   : this.$Grid.options.page,
@@ -85,6 +95,10 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
                     var Customer = JSON.decode(Row.customer);
 
                     Row.customer_text = Customer.firstname + " " + Customer.lastname + " (" + Customer.id + ")";
+
+                    Row.active_status = new Element('span', {
+                        'class': parseInt(Row.active) ? 'fa fa-check' : 'fa fa-close'
+                    });
                 }
 
                 this.$Grid.setData(result);
@@ -163,6 +177,11 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
                     }
                 }],
                 columnModel: [{
+                    header   : QUILocale.get(lg, 'controls.backend.BillingAgreements.tbl.active_status'),
+                    dataIndex: 'active_status',
+                    dataType : 'node',
+                    width    : 45
+                }, {
                     header   : QUILocale.get(lg, 'controls.backend.BillingAgreements.tbl.paypal_agreement_id'),
                     dataIndex: 'paypal_agreement_id',
                     dataType : 'string',
@@ -176,7 +195,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
                     header   : QUILocale.get(lg, 'controls.backend.BillingAgreements.tbl.customer_text'),
                     dataIndex: 'customer_text',
                     dataType : 'string',
-                    width    : 250
+                    width    : 200
                 }, {
                     header   : QUILocale.get(lg, 'controls.backend.BillingAgreements.tbl.global_process_id'),
                     dataIndex: 'global_process_id',
@@ -207,10 +226,6 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
             });
 
             this.$onResize();
-            //
-            //new BillingAgreementWindow({
-            //    billingAgreementId: 'I-58NBPN3G4S8J'
-            //}).open();
         },
 
         /**
@@ -232,8 +247,15 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
          * Delete Billing Plan dialog
          */
         $clickDetails: function () {
+            var self = this;
+
             new BillingAgreementWindow({
-                billingAgreementId: this.$Grid.getSelectedData()[0].paypal_agreement_id
+                billingAgreementId: this.$Grid.getSelectedData()[0].paypal_agreement_id,
+                events            : {
+                    onCancelBillingAgreement: function () {
+                        self.refresh();
+                    }
+                }
             }).open();
         }
     });

@@ -19,13 +19,6 @@ QUI::$Ajax->registerFunction(
 
         $Grid = new Grid($searchParams);
 
-
-        /**
-         * @TODO ENTFERNEN!
-         */
-        BillingAgreements::processUnpaidInvoices();
-
-
         return $Grid->parseResult(
             BillingAgreements::getBillingAgreementList($searchParams),
             BillingAgreements::getBillingAgreementList($searchParams, true)

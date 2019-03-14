@@ -350,7 +350,8 @@
             <en><![CDATA[An attempt was made to settle the recurring payment invoice using PayPal, but the invoice data did not contain an associated billing agreement.]]></en>
         </locale>
         <locale name="history.invoice.error.agreement_not_found">
-            <de><![CDATA[Es wurde versucht, die Rechnung über wiederkehrende Zahlungen mit PayPal zu begleichen, jedoch wurde die zugeordnete Abrechnungsvereinbarung [billingAgreementId] nicht im System gefunden.]]></de>
+            <de>
+                <![CDATA[Es wurde versucht, die Rechnung über wiederkehrende Zahlungen mit PayPal zu begleichen, jedoch wurde die zugeordnete Abrechnungsvereinbarung [billingAgreementId] nicht im System gefunden.]]></de>
             <en><![CDATA[An attempt was made to settle the recurring payment invoice using PayPal, but the associated billing agreement [billingAgreementId] was not found in the system.]]></en>
         </locale>
         <locale name="history.invoice.error.general">
@@ -388,6 +389,16 @@
             <en><![CDATA[Can cancel Billing Agreements]]></en>
         </locale>
 
+        <!-- Cron -->
+        <locale name="cron.processUnpaidInvoices.title">
+            <de><![CDATA[PayPal: Rechnungen für wiederkehrende Zahlungen abarbeiten]]></de>
+            <en><![CDATA[PayPal: Process invoices for recurring payments]]></en>
+        </locale>
+        <locale name="cron.processUnpaidInvoices.description">
+            <de><![CDATA[Für alle offenen Rechnungen mit wiederkehrenden Zahlungen die passenden PayPal-Transaktionen finden und intern buchen]]></de>
+            <en><![CDATA[For all open invoices with recurring payments, find the matching PayPal transactions and book them internally]]></en>
+        </locale>
+        
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
@@ -541,8 +552,8 @@
 
         <!-- Control: recurring/PaymentDisplay -->
         <locale name="controls.recurring.PaymentDisplay.PaymentDisplay.info">
-            <de><![CDATA[Bitte klicken Sie auf die PayPal-Schaltfläche, um die regelmäßige Zahlung ihres Abonnements bei PayPal zu bestätigen.]]></de>
-            <en><![CDATA[Please click on the PayPal button to confirm the regular payment of your subscription at PayPal.]]></en>
+            <de><![CDATA[Bitte klicken Sie auf die PayPal-Schaltfläche, um die regelmäßige Zahlung ihres Abonnements bei PayPal zu bestätigen. Sie werden dazu auf die PayPal-Website geleitet.]]></de>
+            <en><![CDATA[Please click on the PayPal button to confirm the regular payment of your subscription at PayPal. You will be redirected to the PayPal website.]]></en>
         </locale>
         <locale name="controls.recurring.PaymentDisplay.btn.text">
             <de><![CDATA[Jetzt Zahlung über PayPal einrichten]]></de>
@@ -553,8 +564,8 @@
             <en><![CDATA[Sending payment information to PayPal...]]></en>
         </locale>
         <locale name="controls.recurring.PaymentDisplay.Loader.create_billing_agreement">
-            <de><![CDATA[Sende Abonnement-Informationen an PayPal...]]></de>
-            <en><![CDATA[Sending subscription plan information to PayPal...]]></en>
+            <de><![CDATA[Lade PayPal...]]></de>
+            <en><![CDATA[Loading PayPal...]]></en>
         </locale>
         <locale name="controls.recurring.PaymentDisplay.error">
             <de>
@@ -630,6 +641,10 @@
         <locale name="controls.backend.BillingAgreements.tbl.global_process_id">
             <de><![CDATA[Vorgangs-Nr.]]></de>
             <en><![CDATA[Global process ID]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.active_status">
+            <de><![CDATA[Aktiv]]></de>
+            <en><![CDATA[Active]]></en>
         </locale>
         <locale name="controls.backend.BillingAgreements.search.placeholder">
             <de><![CDATA[Vorgangs-Nr.]]></de>

@@ -3,6 +3,8 @@
  *
  * @module package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWindow
  * @author www.pcsg.de (Patrick Müller)
+ *
+ * @event onCancelBillingAgreement [this]
  */
 define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWindow', [
 
@@ -63,7 +65,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
             var self = this,
                 CancelBtn;
 
-            this.getElm().addClass('hklused-newsletter-mail');
+            this.getElm().addClass('quiqqer-payment-paypal-backend-billingagreementwindow');
 
             this.Loader.show();
 
@@ -88,6 +90,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
 
                         PayPal.cancelBillingAgreement(self.getAttribute('billingAgreementId')).then(function () {
                             self.close();
+                            self.fireEvent('cancelBillingAgreement', [self]);
                         }, function () {
                             self.Loader.hide();
                         })
