@@ -15,6 +15,7 @@ use QUI\Utils\Security\Orthos;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
 use QUI\ERP\Accounting\Payments\Payments;
+use QUI\ERP\Accounting\Payments\Transactions\Handler as TransactionHandler;
 
 /**
  * Class BillingAgreements
@@ -263,6 +264,13 @@ class BillingAgreements
                     [
                         'paypal_transaction_id' => $transaction['transaction_id']
                     ]
+                );
+
+                $Invoice->addHistory(
+                    Utils::getHistoryText('invoice.add_paypal_transaction', [
+                        'quiqqerTransactionId' => $InvoiceTransaction->getTxId(),
+                        'paypalTransactionId'  => $transaction['transaction_id']
+                    ])
                 );
             } catch (\Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
@@ -639,11 +647,108 @@ class BillingAgreements
                 foreach ($invoices as $invoiceId) {
                     try {
                         $Invoice = $Invoices->get($invoiceId);
+
+                        // First: Process all failed transactions for Invoice
+                        self::processDeniedTransactions($Invoice);
+
+                        // Second: Process all completed transactions for Invoice
                         self::billBillingAgreementBalance($Invoice);
                     } catch (\Exception $Exception) {
                         QUI\System\Log::writeException($Exception);
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Processes all denied PayPal transactions for an Invoice and creates a corresponding ERP Transaction
+     *
+     * @param Invoice $Invoice
+     * @return void
+     */
+    public static function processDeniedTransactions(Invoice $Invoice)
+    {
+        $billingAgreementId = $Invoice->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
+
+        if (empty($billingAgreementId)) {
+            return;
+        }
+
+        $data = self::getBillingAgreementData($billingAgreementId);
+
+        if (empty($data)) {
+            return;
+        }
+
+        // Get all "Denied" PayPal transactions
+        try {
+            $unprocessedTransactions = self::getUnprocessedTransactions($billingAgreementId, 'Denied');
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return;
+        }
+
+        try {
+            $Invoice->calculatePayments();
+
+            $invoiceAmount   = (float)$Invoice->getAttribute('toPay');
+            $invoiceCurrency = $Invoice->getCurrency()->getCode();
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return;
+        }
+
+        $Payment = new RecurringPayment();
+
+        foreach ($unprocessedTransactions as $transaction) {
+            $amount   = (float)$transaction['amount']['value'];
+            $currency = $transaction['amount']['currency'];
+
+            if ($currency !== $invoiceCurrency) {
+                continue;
+            }
+
+            if ($amount < $invoiceAmount) {
+                continue;
+            }
+
+            // Transaction amount equals Invoice amount
+            try {
+                $InvoiceTransaction = TransactionFactory::createPaymentTransaction(
+                    $amount,
+                    $Invoice->getCurrency(),
+                    $Invoice->getHash(),
+                    $Payment->getName(),
+                    [],
+                    null,
+                    false,
+                    $Invoice->getGlobalProcessId()
+                );
+
+                $InvoiceTransaction->changeStatus(TransactionHandler::STATUS_ERROR);
+
+                $Invoice->addTransaction($InvoiceTransaction);
+
+                QUI::getDataBase()->update(
+                    self::getBillingAgreementTransactionsTable(),
+                    [
+                        'quiqqer_transaction_id'        => $InvoiceTransaction->getTxId(),
+                        'quiqqer_transaction_completed' => 1
+                    ],
+                    [
+                        'paypal_transaction_id' => $transaction['transaction_id']
+                    ]
+                );
+
+                $Invoice->addHistory(
+                    Utils::getHistoryText('invoice.add_paypal_transaction', [
+                        'quiqqerTransactionId' => $InvoiceTransaction->getTxId(),
+                        'paypalTransactionId'  => $transaction['id']
+                    ])
+                );
+            } catch (\Exception $Exception) {
+                QUI\System\Log::writeException($Exception);
             }
         }
     }
@@ -687,7 +792,7 @@ class BillingAgreements
 
         // Determine existing transactions
         $result = QUI::getDataBase()->fetch([
-            'select' => ['paypal_transaction_id'],
+            'select' => ['paypal_transaction_id', 'paypal_transaction_date'],
             'from'   => self::getBillingAgreementTransactionsTable(),
             'where'  => [
                 'paypal_agreement_id' => $billingAgreementId
@@ -697,22 +802,31 @@ class BillingAgreements
         $existing = [];
 
         foreach ($result as $row) {
-            $existing[$row['paypal_transaction_id']] = true;
+            $idHash            = md5($row['paypal_transaction_id'].$row['paypal_transaction_date']);
+            $existing[$idHash] = true;
         }
 
         // Parse NEW transactions
         $transactions = self::getBillingAgreementTransactions($billingAgreementId, $Start, $End);
 
         foreach ($transactions as $transaction) {
-            if (isset($existing[$transaction['transaction_id']])) {
-                continue;
-            }
-
             if (!isset($transaction['amount'])) {
                 continue;
             }
 
+            // Only collect transactions with status "Completed" or "Denied"
+            if ($transaction['status'] !== 'Completed' && $transaction['status'] !== 'Denied') {
+                continue;
+            }
+
             $TransactionTime = new \DateTime($transaction['time_stamp']);
+            $transactionTime = $TransactionTime->format('Y-m-d H:i:s');
+
+            $idHash = md5($transaction['transaction_id'].$transactionTime);
+
+            if (isset($existing[$idHash])) {
+                continue;
+            }
 
             QUI::getDataBase()->insert(
                 self::getBillingAgreementTransactionsTable(),
@@ -720,7 +834,7 @@ class BillingAgreements
                     'paypal_transaction_id'   => $transaction['transaction_id'],
                     'paypal_agreement_id'     => $billingAgreementId,
                     'paypal_transaction_data' => json_encode($transaction),
-                    'paypal_transaction_date' => $TransactionTime->format('Y-m-d H:i:s'),
+                    'paypal_transaction_date' => $transactionTime,
                     'global_process_id'       => $globalProcessId
                 ]
             );
@@ -731,12 +845,13 @@ class BillingAgreements
      * Get all completed Billing Agreement transactions that are unprocessed by QUIQQER ERP
      *
      * @param string $billingAgreementId
+     * @param string $status (optional) - Get transactions with this status [default: "Completed"]
      * @return array
      * @throws QUI\Database\Exception
      * @throws PayPalException
      * @throws \Exception
      */
-    protected static function getUnprocessedTransactions($billingAgreementId)
+    protected static function getUnprocessedTransactions($billingAgreementId, $status = 'Completed')
     {
         $result = QUI::getDataBase()->fetch([
             'select' => ['paypal_transaction_data'],
@@ -766,7 +881,7 @@ class BillingAgreements
         foreach ($result as $row) {
             $t = json_decode($row['paypal_transaction_data'], true);
 
-            if ($t['status'] !== 'Completed') {
+            if ($t['status'] !== $status) {
                 continue;
             }
 

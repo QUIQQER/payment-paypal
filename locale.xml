@@ -358,6 +358,10 @@
             <de><![CDATA[Beim Versuch, die Zahlung der Rechnung über PayPal durchzuführen, ist ein QUIQQER-Fehler aufgetreten. Bitte Fehler-Logs prüfen.]]></de>
             <en><![CDATA[A QUIQQER error occurred when attempting to pay the invoice via PayPal. Please check error logs.]]></en>
         </locale>
+        <locale name="history.invoice.add_paypal_transaction">
+            <de><![CDATA[Rechnungs-Transaktion [quiqqerTransactionId] aus PayPal Transaktion [paypalTransactionId] erzeugt.]]></de>
+            <en><![CDATA[Created invoice transaction [quiqqerTransactionId] out of PayPal transaction [paypalTransactionId].]]></en>
+        </locale>
 
         <!-- Permissions -->
         <locale name="permission.quiqqer.payments.paypal._header">
@@ -619,6 +623,22 @@
         <locale name="controls.backend.BillingAgreementWindow.btn.cancel">
             <de><![CDATA[Vereinbarung kündigen]]></de>
             <en><![CDATA[Cancel agreement]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.title">
+            <de><![CDATA[Abrechnungsvereinbarung kündigen]]></de>
+            <en><![CDATA[Cancel Billing Agreement]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.information">
+            <de><![CDATA[Durch diesen Vorgang werden <b>keine zukünftigen Zahlungen</b> mehr von PayPal in Bezug auf diese Abrechnungsvereinbarung durchgeführt. Dies lässt sich <b>nicht rückgängig machen!</b>]]></de>
+            <en><![CDATA[Through this process, <b>no future payments</b> will be made by PayPal with respect to this billing agreement. This can <b>not be undone!</b>]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.text">
+            <de><![CDATA[Soll die Abrechnungsvereinbarung wirklich gekündigt werden?]]></de>
+            <en><![CDATA[Shall the Billing Agreement be cancelled?]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.confirm">
+            <de><![CDATA[Jetzt kündigen]]></de>
+            <en><![CDATA[Cancel now]]></en>
         </locale>
 
         <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements -->

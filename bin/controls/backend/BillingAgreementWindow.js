@@ -9,6 +9,7 @@
 define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWindow', [
 
     'qui/controls/windows/Popup',
+    'qui/controls/windows/Confirm',
     'qui/controls/loader/Loader',
     'qui/controls/buttons/Button',
 
@@ -19,7 +20,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
 
     'css!package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWindow.css'
 
-], function (QUIPopup, QUILoader, QUIButton, QUILocale, QUIAjax, PayPal) {
+], function (QUIPopup, QUIConfirm, QUILoader, QUIButton, QUILocale, QUIAjax, PayPal) {
     "use strict";
 
     var lg = 'quiqqer/payment-paypal';
@@ -30,7 +31,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
 
         Binds: [
             '$onOpen',
-            '$onSubmit'
+            '$confirmCancel'
         ],
 
         options: {
@@ -85,20 +86,52 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
                 textimage: 'fa fa-ban',
                 disabled : true,
                 events   : {
-                    onClick: function () {
-                        self.Loader.show();
+                    onClick: this.$confirmCancel
+                }
+            });
+
+            this.addButton(CancelBtn);
+        },
+
+        /**
+         * Confirm Billing Agreement cancellation
+         */
+        $confirmCancel: function () {
+            var self = this;
+
+            new QUIConfirm({
+                maxHeight: 300,
+                maxWidth : 600,
+                autoclose: false,
+
+                information: QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.cancel.information'),
+                title      : QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.cancel.title'),
+                texticon   : 'fa fa-ban',
+                text       : QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.cancel.text'),
+                icon       : 'fa fa-ban',
+
+                cancel_button: {
+                    text     : false,
+                    textimage: 'icon-remove fa fa-remove'
+                },
+                ok_button    : {
+                    text     : QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.cancel.confirm'),
+                    textimage: 'icon-ok fa fa-check'
+                },
+
+                events: {
+                    onSubmit: function () {
+                        Popup.Loader.show();
 
                         PayPal.cancelBillingAgreement(self.getAttribute('billingAgreementId')).then(function () {
                             self.close();
                             self.fireEvent('cancelBillingAgreement', [self]);
                         }, function () {
-                            self.Loader.hide();
+                            Popup.Loader.hide();
                         })
                     }
                 }
-            });
-
-            this.addButton(CancelBtn);
+            }).open();
         }
     });
 });

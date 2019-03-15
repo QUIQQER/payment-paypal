@@ -19,6 +19,7 @@
             <field type="TINYINT(1) NOT NULL DEFAULT 1">active</field>
 
             <primary>paypal_agreement_id</primary>
+            <index>global_process_id</index>
         </table>
 
         <table name="paypal_billing_agreement_transactions">
@@ -30,7 +31,7 @@
             <field type="TINYINT(1) NOT NULL DEFAULT 0">quiqqer_transaction_completed</field>
             <field type="VARCHAR(250) NOT NULL">global_process_id</field>
 
-            <primary>paypal_transaction_id</primary>
+            <primary>paypal_transaction_id,paypal_transaction_date</primary>
         </table>
     </global>
 

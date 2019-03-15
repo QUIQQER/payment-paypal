@@ -279,7 +279,7 @@ class BillingPlans
     protected static function parsePaymentDefinitionsFromOrder(AbstractOrder $Order, Product $PlanProduct)
     {
         $paymentDefinitions   = [];
-        $planDetails          = ErpPlansUtils::getPlanDetailsFromOrder($Order);
+        $planDetails          = ErpPlansUtils::getPlanDetailsFromProduct($PlanProduct);
         $invoiceIntervalParts = explode('-', $planDetails['invoice_interval']);
 
         $paymentDefinition = [
@@ -297,7 +297,7 @@ class BillingPlans
         ];
 
         // Calculate cycles
-        $autoExtend = !empty($planFields['auto_extend']);
+        $autoExtend = !empty($planDetails['auto_extend']);
 
         if ($autoExtend) {
             $paymentDefinition['cycles'] = 0;
