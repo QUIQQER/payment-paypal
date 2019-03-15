@@ -1,0 +1,5 @@
+.quiqqer-payment-paypal-billingplans {
+    float: left;
+    height: 100%;
+    width: calc(100% - 190px);
+}

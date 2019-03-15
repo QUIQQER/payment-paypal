@@ -6,6 +6,16 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use PayPal\v1\BillingAgreements\AgreementBillBalanceRequest;
+use PayPal\v1\BillingAgreements\AgreementCancelRequest;
+use PayPal\v1\BillingAgreements\AgreementCreateRequest;
+use PayPal\v1\BillingAgreements\AgreementExecuteRequest;
+use PayPal\v1\BillingAgreements\AgreementGetRequest;
+use PayPal\v1\BillingAgreements\AgreementTransactionsRequest;
+use PayPal\v1\BillingPlans\PlanCreateRequest;
+use PayPal\v1\BillingPlans\PlanGetRequest;
+use PayPal\v1\BillingPlans\PlanListRequest;
+use PayPal\v1\BillingPlans\PlanUpdateRequest;
 use PayPal\v1\Payments\OrderAuthorizeRequest;
 use PayPal\v1\Payments\OrderCaptureRequest;
 use PayPal\v1\Payments\OrderGetRequest;
@@ -24,6 +34,7 @@ use QUI\ERP\Order\Handler as OrderHandler;
 use QUI\ERP\Utils\User as ERPUserUtils;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
+use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 
 /**
  * Class Payment
@@ -264,7 +275,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             'amount'       => $amount,
             'description'  => $this->getLocale()->get(
                 'quiqqer/payment-paypal',
-                'Payment.order.create.description', [
+                'Payment.order.create.description',
+                [
                     'orderId' => $Order->getPrefixedId()
                 ]
             )
@@ -452,7 +464,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $PriceCalculation = $Order->getPriceCalculation();
-        $amountTotal      = $this->formatPrice($PriceCalculation->getSum()->get());
+        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
 
         try {
             $response = $this->payPalApiRequest(
@@ -517,7 +529,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $PriceCalculation = $Order->getPriceCalculation();
-        $amountTotal      = $this->formatPrice($PriceCalculation->getSum()->get());
+        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
         $captureId        = false;
 
         try {
@@ -676,7 +688,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $Currency       = $Transaction->getCurrency();
         $AmountCalc     = new CalculationValue($amount, $Currency, 2);
-        $amountRefunded = $this->formatPrice($AmountCalc->get());
+        $amountRefunded = Utils::formatPrice($AmountCalc->get());
 
         try {
             $response = $this->payPalApiRequest(
@@ -866,13 +878,13 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
      * @param array $body - Request data
-     * @param AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
+     * @param AbstractOrder|Transaction|array $TransactionObj - Object that contains necessary request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
      * @return array|false - Response body or false on error
      *
      * @throws PayPalException
      */
-    protected function payPalApiRequest($request, $body, $TransactionObj)
+    public function payPalApiRequest($request, $body, $TransactionObj)
     {
         $getData = function ($key) use ($TransactionObj) {
             if ($TransactionObj instanceof AbstractOrder) {
@@ -881,6 +893,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             if ($TransactionObj instanceof Transaction) {
                 return $TransactionObj->getData($key);
+            }
+
+            if (is_array($TransactionObj) && array_key_exists($key, $TransactionObj)) {
+                return $TransactionObj[$key];
             }
 
             return false;
@@ -927,11 +943,90 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
                 break;
 
+            // Billing
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN:
+                $Request = new PlanCreateRequest();
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN:
+                $Request = new PlanUpdateRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_PLAN:
+                $Request = new PlanGetRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT:
+                $Request = new AgreementCreateRequest();
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_AGREEMENT:
+                $Request = new PlanUpdateRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT:
+                $Request = new AgreementExecuteRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT:
+                $Request = new AgreementBillBalanceRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT:
+                $Request = new AgreementCancelRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_LIST_BILLING_PLANS:
+                $Request = new PlanListRequest();
+
+                $Request->page($getData('page'));
+                $Request->pageSize($getData('page_size'));
+                $Request->status($getData('status'));
+                $Request->totalRequired($getData('total_required'));
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT:
+                $Request = new AgreementGetRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT_TRANSACTIONS:
+                $Request = new AgreementTransactionsRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+
+                $startDate = $getData('start_date');
+                $endDate   = $getData('end_date');
+
+                if (!empty($startDate)) {
+                    $Request->startDate($startDate);
+                }
+
+                if (!empty($endDate)) {
+                    $Request->endDate($endDate);
+                }
+                break;
+
             default:
                 $this->throwPayPalException();
         }
 
-        $Request->body = $body;
+        if (!empty($body)) {
+            $Request->body = $body;
+        }
 
         try {
             $Response = $this->getPayPalClient()->execute($Request);
@@ -967,24 +1062,5 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $this->PayPalClient = new PayPalClient($Environment);
 
         return $this->PayPalClient;
-    }
-
-    /**
-     * Format a price for PayPal API use
-     *
-     * @param float $amount
-     * @return string - Amount with trailing zeroes
-     */
-    protected function formatPrice($amount)
-    {
-        $AmountValue     = new CalculationValue($amount, null, 2);
-        $amount          = $AmountValue->get();
-        $formattedAmount = sprintf("%.2f", $amount);
-
-        if (mb_strpos($formattedAmount, '.00') !== false) {
-            return (string)(float)$formattedAmount;
-        }
-
-        return $formattedAmount;
     }
 }

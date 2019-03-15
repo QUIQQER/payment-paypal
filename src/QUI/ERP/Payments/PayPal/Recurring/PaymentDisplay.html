@@ -1,0 +1,12 @@
+<noscript>
+    <p>{locale group="quiqqer/payment-paypal" var="PaymentDisplay.no_javascript"}</p>
+</noscript>
+
+{if !$apiSetUp}
+<p class="message-error">
+    {locale group="quiqqer/payment-paypal" var="PaymentDisplay.configuration_error"}
+</p>
+{else}
+<div class="quiqqer-payment-paypal-message"></div>
+<div class="quiqqer-payment-paypal-content"></div>
+{/if}

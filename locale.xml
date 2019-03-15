@@ -26,6 +26,14 @@
             <de><![CDATA[Schnelle Bezahlung einer Bestellung oder eines Einzel-Artikels per PayPal Express.]]></de>
             <en><![CDATA[Quick payment of an order or a single article via PayPal Express checkout.]]></en>
         </locale>
+        <locale name="payment.recurring.title">
+            <de><![CDATA[PayPal - Wiederkehrende Zahlungen]]></de>
+            <en><![CDATA[PayPal - Recurring payments]]></en>
+        </locale>
+        <locale name="payment.recurring.description">
+            <de><![CDATA[Komfortable regelmäßige Bezahlung per PayPal-Konto.]]></de>
+            <en><![CDATA[Comfortable recurring payments via PayPal account.]]></en>
+        </locale>
 
         <!-- PaymentDisplay -->
         <locale name="PaymentDisplay.configuration_error">
@@ -41,6 +49,11 @@
             <en><![CDATA[
             An error occurred while paying with PayPal. The payment could not be processed. Your PayPal account has not been charged. Please try again or contact the merchant.
             ]]></en>
+        </locale>
+        <locale name="PaymentDisplay.user_cancel">
+            <de>
+                <![CDATA[Sie haben die Zahlung mit PayPal abgebrochen. Bitte wählen Sie eine andere Zahlungsmethode oder starten Sie den Zahlungsvorgang mit PayPal erneut, indem Sie auf die PayPal-Schaltfläche klicken.]]></de>
+            <en><![CDATA[You have cancelled the payment with PayPal. Please select another payment method or restart the PayPal payment process by clicking on the PayPal button.]]></en>
         </locale>
 
         <!-- Settings -->
@@ -258,6 +271,14 @@
             <de><![CDATA[Automatisch (abhängig von der Größe des Browser-Fenster)]]></de>
             <en><![CDATA[Auto (depending on browser window size)]]></en>
         </locale>
+        <locale name="settings.category.billing_plans.title">
+            <de><![CDATA[Abrechnungspläne (Billing Plans)]]></de>
+            <en><![CDATA[Billing Plans]]></en>
+        </locale>
+        <locale name="settings.category.billing_agreements.title">
+            <de><![CDATA[Abrechnungsvereinbarungen (Billing Agreements)]]></de>
+            <en><![CDATA[Billing Agreements]]></en>
+        </locale>
 
         <!-- Payment -->
         <locale name="payment.error_msg.general_error">
@@ -289,12 +310,16 @@
             <en><![CDATA[The refund process with PayPal could not be completed.]]></en>
         </locale>
         <locale name="payment.error_msg.order_not_refunded_order_not_captured">
-            <de><![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
-            <en><![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
+            <de>
+                <![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
+            <en>
+                <![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
         <locale name="payment.error_msg.no_payer_address">
-            <de><![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
-            <en><![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
+            <de>
+                <![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
+            <en>
+                <![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
         <locale name="payment.error_msg.address_not_verified">
             <de>
@@ -303,9 +328,94 @@
                 <![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
         </locale>
 
+        <!-- History -->
+        <locale name="history.order.billing_plan_created">
+            <de><![CDATA[PayPal Billing Plan (Abrechnungsplan) erstell. ID: [billingPlanId]]]></de>
+            <en><![CDATA[PayPal Billing Plan created. ID: [billingPlanId]]]></en>
+        </locale>
+        <locale name="history.order.read_billing_plan.error">
+            <de><![CDATA[Fehler bei Erstellung des PayPal Billing Plans -> Es konnten keine Abonnement-Informationen aus der Bestellung gelesen werden]]></de>
+            <en><![CDATA[Error while creating the PayPal Billing Plan -> No plan (subscription) information could be read from the order]]></en>
+        </locale>
+        <locale name="history.order.billing_agreement_created">
+            <de><![CDATA[PayPal Billing Agreement (Zustimmung zu Abrechnungsplan) erstellt. Link zur Zustimmung: [approvalUrl]]]></de>
+            <en><![CDATA[PayPal Billing Agreement created. Link for approval: [approvalUrl]]]></en>
+        </locale>
+        <locale name="history.order.billing_agreement_accepted">
+            <de><![CDATA[PayPal Billing Agreement (Zustimmung zu Abrechnungsplan) durch Kunden zugestimmt. Zustimmungs-Token: [agreementToken]. Zustimmungs-ID: [agreementId].]]></de>
+            <en><![CDATA[PayPal Billing Agreement accepted by customer. Approval token: [agreementToken]. Approval ID: [agreementId].]]></en>
+        </locale>
+        <locale name="history.invoice.error.agreement_id_not_found">
+            <de><![CDATA[Es wurde versucht, die Rechnung über wiederkehrende Zahlungen mit PayPal zu begleichen, jedoch enthielten die Rechnungsdaten keine zugeordnete Abrechnungsvereinbarung.]]></de>
+            <en><![CDATA[An attempt was made to settle the recurring payment invoice using PayPal, but the invoice data did not contain an associated billing agreement.]]></en>
+        </locale>
+        <locale name="history.invoice.error.agreement_not_found">
+            <de>
+                <![CDATA[Es wurde versucht, die Rechnung über wiederkehrende Zahlungen mit PayPal zu begleichen, jedoch wurde die zugeordnete Abrechnungsvereinbarung [billingAgreementId] nicht im System gefunden.]]></de>
+            <en><![CDATA[An attempt was made to settle the recurring payment invoice using PayPal, but the associated billing agreement [billingAgreementId] was not found in the system.]]></en>
+        </locale>
+        <locale name="history.invoice.error.general">
+            <de><![CDATA[Beim Versuch, die Zahlung der Rechnung über PayPal durchzuführen, ist ein QUIQQER-Fehler aufgetreten. Bitte Fehler-Logs prüfen.]]></de>
+            <en><![CDATA[A QUIQQER error occurred when attempting to pay the invoice via PayPal. Please check error logs.]]></en>
+        </locale>
+        <locale name="history.invoice.add_paypal_transaction">
+            <de><![CDATA[Rechnungs-Transaktion [quiqqerTransactionId] aus PayPal Transaktion [paypalTransactionId] erzeugt.]]></de>
+            <en><![CDATA[Created invoice transaction [quiqqerTransactionId] out of PayPal transaction [paypalTransactionId].]]></en>
+        </locale>
+
+        <!-- Permissions -->
+        <locale name="permission.quiqqer.payments.paypal._header">
+            <de><![CDATA[PayPal]]></de>
+            <en><![CDATA[PayPal]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_plans._header">
+            <de><![CDATA[PayPal - Abrechnungspläne (Billing Plans)]]></de>
+            <en><![CDATA[PayPal - Billing Plans]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_agreements._header">
+            <de><![CDATA[PayPal - Abrechnungsvereinbarungen (Billing Agreements)]]></de>
+            <en><![CDATA[PayPal - Billing Agreements]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_plans.view">
+            <de><![CDATA[Darf Abrechnungspläne ansehen]]></de>
+            <en><![CDATA[Can view Billing Plans]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_plans.delete">
+            <de><![CDATA[Darf Abrechnungspläne löschen]]></de>
+            <en><![CDATA[Can delete Billing Plans]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_agreements.view">
+            <de><![CDATA[Darf Abrechnungsvereinbarungen ansehen]]></de>
+            <en><![CDATA[Can view Billing Agreements]]></en>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_agreements.cancel">
+            <de><![CDATA[Darf Abrechnungsvereinbarungen kündigen]]></de>
+            <en><![CDATA[Can cancel Billing Agreements]]></en>
+        </locale>
+
+        <!-- Cron -->
+        <locale name="cron.processUnpaidInvoices.title">
+            <de><![CDATA[PayPal: Rechnungen für wiederkehrende Zahlungen abarbeiten]]></de>
+            <en><![CDATA[PayPal: Process invoices for recurring payments]]></en>
+        </locale>
+        <locale name="cron.processUnpaidInvoices.description">
+            <de><![CDATA[Für alle offenen Rechnungen mit wiederkehrenden Zahlungen die passenden PayPal-Transaktionen finden und intern buchen]]></de>
+            <en><![CDATA[For all open invoices with recurring payments, find the matching PayPal transactions and book them internally]]></en>
+        </locale>
+        
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
+
+        <!-- Ajax -->
+        <locale name="message.ajax.recurring.deleteBillingPlan.success">
+            <de><![CDATA[Der Abrechnungsplan [billingPlanId] wurde erfolgreich gelöscht.]]></de>
+            <en><![CDATA[The Billing Plan [billingPlanId] was deleted successfully.]]></en>
+        </locale>
+        <locale name="message.ajax.recurring.cancelBillingAgreement.success">
+            <de><![CDATA[Die Abrechnungsvereinbarung [billingAgreementId] wurde erfolgreich gekündigt.]]></de>
+            <en><![CDATA[The Billing Agreement [billingAgreementId] has been cancelled successfully.]]></en>
+        </locale>
 
         <!-- Payment -->
         <locale name="payment.step.title">
@@ -353,6 +463,53 @@
             Please contact the shop owner and / or choose another payment method.
             ]]></en>
         </locale>
+
+        <!-- Class: QUI\ERP\Payments\PayPal\Recurring\Payment -->
+        <locale name="exception.Recurring.order.error">
+            <de><![CDATA[Bei der Bearbeitung Ihrer Bestellung mit PayPal ist ein Fehler aufgetreten. Bitte wählen Sie eine andere Zahlungsart.]]></de>
+            <en><![CDATA[An error occurred while processing your order with PayPal. Please choose another payment method.]]></en>
+        </locale>
+        <locale name="recurring.payment_definition.name">
+            <de><![CDATA[Ihre Rechnung für [planTitle] auf [url]]]></de>
+            <en><![CDATA[Your invoice for [planTitle] at [url]]]></en>
+        </locale>
+        <locale name="recurring.billing_agreement.name">
+            <de><![CDATA[Ihre Zustimmung zu Abrechnungsplan für Bestellung [orderReference]]]></de>
+            <en><![CDATA[Your agreement to Billing Plan for order [orderReference]]]></en>
+        </locale>
+        <locale name="recurring.billing_agreement.description">
+            <de><![CDATA[Bestellung [orderReference] bei [url]]]></de>
+            <en><![CDATA[Order [orderReference] at [url]]]></en>
+        </locale>
+        <locale name="exception.Recurring.agreement_not_found">
+            <de><![CDATA[PayPal Billing Agreement [billingAgreementId] wurde nicht gefunden.]]></de>
+            <en><![CDATA[PayPal Billing Agreement [billingAgreementId] was not found.]]></en>
+        </locale>
+        <locale name="recurring.billing_agreement.bill_balance.note">
+            <de><![CDATA[Bezahlung Ihres Abonnements auf [url]. Beleg-Nummer: [invoiceReference]]]></de>
+            <en><![CDATA[Payment of your subscription at [url]. Document number: [invoiceReference]]]></en>
+        </locale>
+        <locale name="exception.Recurring.agreement_id_not_found">
+            <de><![CDATA[PayPal Billing Agreement ID konnte in Rechnung #[invoiceId] nicht gefunden werden.]]></de>
+            <en><![CDATA[PayPal Billing Agreement ID was not found in Invoice #[invoiceId].]]></en>
+        </locale>
+        <locale name="recurring.billing_agreement.cancel.note">
+            <de><![CDATA[Kündigung Ihres Abonnements aus Bestellung [globalProcessId] auf [url]]]></de>
+            <en><![CDATA[Cancellation of your subscription from order [globalProcessId] at [url]]]></en>
+        </locale>
+        <locale name="exception.Recurring.cancel.error">
+            <de><![CDATA[Der Kündigungsvorgang der Abrechnungsvereinbarung konnte nicht durchgeführt werden. Bitte wiederholen Sie den Vorgang oder kontaktieren Sie einen Administrator.]]></de>
+            <en><![CDATA[The cancellation of the Billing Agreement could not be executed. Please repeat the process or contact an administrator.]]></en>
+        </locale>
+
+        <!-- Events -->
+        <locale name="exception.onPaymentsCreateBegin.erp_plans_missing" html="true">
+            <de>
+                <![CDATA[Die Zahlungsart kann nicht angelegt werden, da das Paket <b>quiqqer/erp-plans</b> nicht installiert ist. Bitte installieren Sie das Paket, um Zahlungsarten für wiederkehrende Zahlungen anzulegen.]]></de>
+            <en>
+                <![CDATA[The payment method can not be created because the module <b>quiqqer/erp-plans</b> is not installed. Please install the module to create payment methods for recurring payments.]]></en>
+        </locale>
+
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="js">
@@ -395,6 +552,123 @@
                 <![CDATA[Bei der Durchführung der Zahlung mit PayPal ist leider ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsweise. Sie werden in wenigen Sekunden zum Schritt "Zahlungsweise" weitergeleitet.]]></de>
             <en>
                 <![CDATA[Unfortunately, there was an error while paying with PayPal. Your PayPal account has not been charged. Please choose a different method of payment.]]></en>
+        </locale>
+
+        <!-- Control: recurring/PaymentDisplay -->
+        <locale name="controls.recurring.PaymentDisplay.PaymentDisplay.info">
+            <de><![CDATA[Bitte klicken Sie auf die PayPal-Schaltfläche, um die regelmäßige Zahlung ihres Abonnements bei PayPal zu bestätigen. Sie werden dazu auf die PayPal-Website geleitet.]]></de>
+            <en><![CDATA[Please click on the PayPal button to confirm the regular payment of your subscription at PayPal. You will be redirected to the PayPal website.]]></en>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.btn.text">
+            <de><![CDATA[Jetzt Zahlung über PayPal einrichten]]></de>
+            <en><![CDATA[Set up payment via PayPal now]]></en>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.btn.text_create">
+            <de><![CDATA[Sende Zahlungsinformationen an PayPal...]]></de>
+            <en><![CDATA[Sending payment information to PayPal...]]></en>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.Loader.create_billing_agreement">
+            <de><![CDATA[Lade PayPal...]]></de>
+            <en><![CDATA[Loading PayPal...]]></en>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.error">
+            <de>
+                <![CDATA[Leider ist bei der Kommunikation mit PayPal ist ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsmethode oder probieren es zu einem späteren Zeitpunkt nochmal.]]></de>
+            <en><![CDATA[Unfortunately an error occurred during the communication with PayPal. Your PayPal account was not debited. Please choose another payment method or try again later.]]></en>
+        </locale>
+
+        <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans -->
+        <locale name="controls.backend.BillingPlans.tbl.btn.delete">
+            <de><![CDATA[Löschen]]></de>
+            <en><![CDATA[Delete]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.id">
+            <de><![CDATA[ID]]></de>
+            <en><![CDATA[ID]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.name">
+            <de><![CDATA[Name]]></de>
+            <en><![CDATA[Name]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.description">
+            <de><![CDATA[Beschreibung]]></de>
+            <en><![CDATA[Description]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.create_time">
+            <de><![CDATA[erstellt am]]></de>
+            <en><![CDATA[created at]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.information" html="true">
+            <de><![CDATA[Der Abrechnungsplan <b>[billingPlanId]</b> wird bei PayPal auf den Status <b>DELETED</b> gesetzt.]]></de>
+            <en><![CDATA[The Billinng Plan <b>[billingPlanId]</b> will be set to status <b>DELETED</b> at PayPal.]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.title">
+            <de><![CDATA[PayPal Abrechnungsplan löschen]]></de>
+            <en><![CDATA[Delete PayPal Billing Plan]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.text">
+            <de><![CDATA[Soll der Abrechnungsplan gelöscht werden?]]></de>
+            <en><![CDATA[Shall the Billing Plan be deleted?]]></en>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.ok">
+            <de><![CDATA[Abrechnungsplan löschen]]></de>
+            <en><![CDATA[Delete Billing Plan]]></en>
+        </locale>
+
+        <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWindow -->
+        <locale name="controls.backend.BillingAgreementWindow.title">
+            <de><![CDATA[PayPal Abrechnungsvereinbarung (Billing Agreement)]]></de>
+            <en><![CDATA[PayPal Billing Agreement]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.btn.cancel">
+            <de><![CDATA[Vereinbarung kündigen]]></de>
+            <en><![CDATA[Cancel agreement]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.title">
+            <de><![CDATA[Abrechnungsvereinbarung kündigen]]></de>
+            <en><![CDATA[Cancel Billing Agreement]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.information">
+            <de><![CDATA[Durch diesen Vorgang werden <b>keine zukünftigen Zahlungen</b> mehr von PayPal in Bezug auf diese Abrechnungsvereinbarung durchgeführt. Dies lässt sich <b>nicht rückgängig machen!</b>]]></de>
+            <en><![CDATA[Through this process, <b>no future payments</b> will be made by PayPal with respect to this billing agreement. This can <b>not be undone!</b>]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.text">
+            <de><![CDATA[Soll die Abrechnungsvereinbarung wirklich gekündigt werden?]]></de>
+            <en><![CDATA[Shall the Billing Agreement be cancelled?]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.confirm">
+            <de><![CDATA[Jetzt kündigen]]></de>
+            <en><![CDATA[Cancel now]]></en>
+        </locale>
+
+        <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements -->
+        <locale name="controls.backend.BillingAgreements.tbl.btn.details">
+            <de><![CDATA[Details anzeigen]]></de>
+            <en><![CDATA[Show details]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.paypal_agreement_id">
+            <de><![CDATA[Billing Agreement ID]]></de>
+            <en><![CDATA[Billing Agreement ID]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.paypal_plan_id">
+            <de><![CDATA[Billing Plan ID]]></de>
+            <en><![CDATA[Billing Plan ID]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.customer_text">
+            <de><![CDATA[Kunde]]></de>
+            <en><![CDATA[Customer]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.global_process_id">
+            <de><![CDATA[Vorgangs-Nr.]]></de>
+            <en><![CDATA[Global process ID]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.active_status">
+            <de><![CDATA[Aktiv]]></de>
+            <en><![CDATA[Active]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.search.placeholder">
+            <de><![CDATA[Vorgangs-Nr.]]></de>
+            <en><![CDATA[Global process ID]]></en>
         </locale>
 
     </groups>

@@ -238,7 +238,7 @@ class PaymentExpress extends Payment
      */
     public function getGatewayDisplay(AbstractOrder $Order, $Step = null)
     {
-        $Control = new ExpressPaymentDisplay();
+        $Control = new PaymentDisplay();
         $Control->setAttribute('Order', $Order);
 
         $Step->setTitle(

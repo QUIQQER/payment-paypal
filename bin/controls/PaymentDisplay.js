@@ -177,6 +177,16 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     });
                 },
 
+                onCancel: function () {
+                    self.$showErrorMsg(
+                        QUILocale.get(pkg, 'PaymentDisplay.user_cancel')
+                    );
+
+                    self.$showPayPalBtn();
+
+                    self.fireEvent('processingError', [self]);
+                },
+
                 onError: function () {
                     self.$showErrorMsg(
                         QUILocale.get(pkg, 'PaymentDisplay.processing_error')

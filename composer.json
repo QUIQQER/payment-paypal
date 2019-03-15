@@ -23,6 +23,9 @@
     "quiqqer/payments": ">=1.0|dev-master|dev-dev",
     "paypal/rest-api-sdk-php": "dev-2.0-beta"
   },
+  "suggest": {
+    "quiqqer/erp-plans": "Allows handling of orders that require automated recurring payments"
+  },
   "autoload": {
     "psr-4": {
       "QUI\\ERP\\Payments\\PayPal\\": "src/QUI/ERP/Payments/PayPal"
