@@ -11,6 +11,12 @@
                 <conf name="client_secret">
                     <type><![CDATA[string]]></type>
                 </conf>
+                <conf name="sandbox_client_id">
+                    <type><![CDATA[string]]></type>
+                </conf>
+                <conf name="sandbox_client_secret">
+                    <type><![CDATA[string]]></type>
+                </conf>
                 <conf name="sandbox">
                     <type><![CDATA[boolean]]></type>
                     <defaultvalue>1</defaultvalue>
@@ -104,6 +110,24 @@
                             </text>
                             <description>
                                 <locale group="quiqqer/payment-paypal" var="settings.api.client_secret.description"/>
+                            </description>
+                        </input>
+
+                        <input conf="api.sandbox_client_id" type="text">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.sandbox_client_id.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.sandbox_client_id.description"/>
+                            </description>
+                        </input>
+
+                        <input conf="api.sandbox_client_secret" type="text">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.sandbox_client_secret.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.sandbox_client_secret.description"/>
                             </description>
                         </input>
 
