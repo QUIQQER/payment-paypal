@@ -119,23 +119,27 @@ class Provider extends AbstractPaymentProvider
             return false;
         }
 
-        foreach ($apiSettings as $k => $v) {
-            switch ($k) {
-                case 'sandbox':
-                    continue 2;
-                    break;
-            }
+        $isSetup = true;
 
-            if (empty($v)) {
-                QUI\System\Log::addError(
-                    'Your PayPal API credentials seem to be (partially) missing.'
-                    .' PayPal CAN NOT be used at the moment. Please enter all your'
-                    .' API credentials. See https://dev.quiqqer.com/quiqqer/payment-paypal/wikis/api-configuration'
-                    .' for further instructions.'
-                );
-
-                return false;
+        if ($apiSettings['sandbox']) {
+            if (empty($apiSettings['sandbox_client_id']) || empty($apiSettings['sandbox_client_secret'])) {
+                $isSetup = false;
             }
+        } else {
+            if (empty($apiSettings['client_id']) || empty($apiSettings['client_secret'])) {
+                $isSetup = false;
+            }
+        }
+
+        if (!$isSetup) {
+            QUI\System\Log::addError(
+                'Your PayPal API credentials seem to be (partially) missing.'
+                .' PayPal CAN NOT be used at the moment. Please enter all your'
+                .' API credentials. See https://dev.quiqqer.com/quiqqer/payment-paypal/wikis/api-configuration'
+                .' for further instructions.'
+            );
+
+            return false;
         }
 
         return true;

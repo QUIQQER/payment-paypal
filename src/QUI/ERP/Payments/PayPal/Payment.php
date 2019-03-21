@@ -1050,13 +1050,16 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             return $this->PayPalClient;
         }
 
-        $clientId     = Provider::getApiSetting('client_id');
-        $clientSecret = Provider::getApiSetting('client_secret');
-
         if (Provider::getApiSetting('sandbox')) {
-            $Environment = new SandboxEnvironment($clientId, $clientSecret);
+            $Environment = new SandboxEnvironment(
+                Provider::getApiSetting('sandbox_client_id'),
+                Provider::getApiSetting('sandbox_client_secret')
+            );
         } else {
-            $Environment = new ProductionEnvironment($clientId, $clientSecret);
+            $Environment = new ProductionEnvironment(
+                Provider::getApiSetting('client_id'),
+                Provider::getApiSetting('client_secret')
+            );
         }
 
         $this->PayPalClient = new PayPalClient($Environment);

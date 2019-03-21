@@ -74,30 +74,40 @@
             <en><![CDATA[Client ID]]></en>
         </locale>
         <locale name="settings.api.client_id.description" html="true">
-            <de>
-                <![CDATA[Die "Client ID" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></de>
-            <en>
-                <![CDATA[You can find the "Client ID" of your PayPal application at <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></en>
+            <de><![CDATA[Die "Client ID" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></de>
+            <en><![CDATA[You can find the "Client ID" of your PayPal application at <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></en>
         </locale>
         <locale name="settings.api.client_secret.title">
             <de><![CDATA[Secret]]></de>
             <en><![CDATA[Secret]]></en>
         </locale>
         <locale name="settings.api.client_secret.description" html="true">
-            <de>
-                <![CDATA[Das "Secret" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></de>
-            <en>
-                <![CDATA[You can find the "Secret" of your PayPal application at <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></en>
+            <de><![CDATA[Das "Secret" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></de>
+            <en><![CDATA[You can find the "Secret" of your PayPal application at <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></en>
+        </locale>
+        <locale name="settings.api.sandbox_client_id.title">
+            <de><![CDATA[Client ID (Sandbox)]]></de>
+            <en><![CDATA[Client ID (Sandbox)]]></en>
+        </locale>
+        <locale name="settings.api.sandbox_client_id.description" html="true">
+            <de><![CDATA[Die Sandbox "Client ID" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></de>
+            <en><![CDATA[You can find the sandbox "Client ID" of your PayPal application at <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></en>
+        </locale>
+        <locale name="settings.api.sandbox_client_secret.title">
+            <de><![CDATA[Secret (Sandbox)]]></de>
+            <en><![CDATA[Secret (Sandbox)]]></en>
+        </locale>
+        <locale name="settings.api.sandbox_client_secret.description" html="true">
+            <de><![CDATA[Das Sandbox "Secret" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></de>
+            <en><![CDATA[You can find the sandbox "Secret" of your PayPal application at <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></en>
         </locale>
         <locale name="settings.api.sandbox.title">
             <de><![CDATA[Sanbox-Modus]]></de>
             <en><![CDATA[Sandbox mode]]></en>
         </locale>
-        <locale name="settings.api.sandbox.description">
-            <de>
-                <![CDATA[Sandbox-Modus aktivieren (Zahlungen werden nicht tatsächlich durchgeführt sondern nur über eine Testumgebung; nur aktivieren, wenn der Zahlungsprozess mit PayPal getestet werden soll!)]]></de>
-            <en>
-                <![CDATA[Enable sandbox mode (payments are not actually made but only through a test environment, only enable to test the payment process with PayPal!)]]></en>
+        <locale name="settings.api.sandbox.description" html="true">
+            <de><![CDATA[Sandbox-Modus aktivieren (Zahlungen werden nicht tatsächlich durchgeführt sondern nur über eine Testumgebung; nur aktivieren, wenn der Zahlungsprozess mit PayPal getestet werden soll!). <b>Setzt voraus</b>, dass Client ID und Secret für die Sandbox konfiguriert sind.]]></de>
+            <en><![CDATA[Enable sandbox mode (payments are not actually made but only through a test environment, only enable to test the payment process with PayPal!). <b>Requires</b> that sandbox Client ID and Secret are configured.]]></en>
         </locale>
         <locale name="settings.category.payment.title">
             <de><![CDATA[Zahlungsprozess]]></de>
@@ -280,6 +290,7 @@
             <en><![CDATA[Billing Agreements]]></en>
         </locale>
 
+
         <!-- Payment -->
         <locale name="payment.error_msg.general_error">
             <de>
@@ -350,8 +361,7 @@
             <en><![CDATA[An attempt was made to settle the recurring payment invoice using PayPal, but the invoice data did not contain an associated billing agreement.]]></en>
         </locale>
         <locale name="history.invoice.error.agreement_not_found">
-            <de>
-                <![CDATA[Es wurde versucht, die Rechnung über wiederkehrende Zahlungen mit PayPal zu begleichen, jedoch wurde die zugeordnete Abrechnungsvereinbarung [billingAgreementId] nicht im System gefunden.]]></de>
+            <de><![CDATA[Es wurde versucht, die Rechnung über wiederkehrende Zahlungen mit PayPal zu begleichen, jedoch wurde die zugeordnete Abrechnungsvereinbarung [billingAgreementId] nicht im System gefunden.]]></de>
             <en><![CDATA[An attempt was made to settle the recurring payment invoice using PayPal, but the associated billing agreement [billingAgreementId] was not found in the system.]]></en>
         </locale>
         <locale name="history.invoice.error.general">
@@ -501,7 +511,7 @@
             <de><![CDATA[Der Kündigungsvorgang der Abrechnungsvereinbarung konnte nicht durchgeführt werden. Bitte wiederholen Sie den Vorgang oder kontaktieren Sie einen Administrator.]]></de>
             <en><![CDATA[The cancellation of the Billing Agreement could not be executed. Please repeat the process or contact an administrator.]]></en>
         </locale>
-
+        
         <!-- Events -->
         <locale name="exception.onPaymentsCreateBegin.erp_plans_missing" html="true">
             <de>

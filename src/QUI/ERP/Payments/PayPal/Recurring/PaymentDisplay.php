@@ -31,12 +31,12 @@ class PaymentDisplay extends QUI\Control
 
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay');
 
-        if (Provider::isApiSetUp() === false) {
-            throw new QUI\ERP\Order\ProcessingException([
-                'quiqqer/payment-paypal',
-                'exception.message.missing.setup'
-            ]);
-        }
+//        if (Provider::isApiSetUp() === false) {
+//            throw new QUI\ERP\Order\ProcessingException([
+//                'quiqqer/payment-paypal',
+//                'exception.message.missing.setup'
+//            ]);
+//        }
     }
 
     /**
