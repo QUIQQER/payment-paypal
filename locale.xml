@@ -650,6 +650,10 @@
             <de><![CDATA[Jetzt kündigen]]></de>
             <en><![CDATA[Cancel now]]></en>
         </locale>
+        <locale name="controls.backend.BillingAgreementWindow.load_error">
+            <de><![CDATA[Die Details der Abrechnungsvereinbarung konnten von PayPal nicht abgerufen werden. Dies kann z.B. daran liegen, dass die Abrechnungsvereinbarung mit einem anderen als dem aktuell verwendeten API-Schlüssel erstellt wurde (z.B. Sandbox).]]></de>
+            <en><![CDATA[The Billing Agreement details could not be retrieved from PayPal. This could be because the Billing Agreement was created with a different API key than the current one (e.g. sandbox).]]></en>
+        </locale>
 
         <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements -->
         <locale name="controls.backend.BillingAgreements.tbl.btn.details">

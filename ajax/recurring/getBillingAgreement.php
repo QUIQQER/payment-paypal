@@ -7,13 +7,18 @@ use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
  * Get details of a PayPal Billing Agreement
  *
  * @param string $billingAgreementId - PayPal Billing Agreement ID
- * @return array - Billing Agreement data
+ * @return array|false- Billing Agreement data
  * @throws PayPalException
  */
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_getBillingAgreement',
     function ($billingAgreementId) {
-        return BillingAgreements::getBillingAgreementDetails($billingAgreementId);
+        try {
+            return BillingAgreements::getBillingAgreementDetails($billingAgreementId);
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeDebugException($Exception);
+            return false;
+        }
     },
     ['billingAgreementId'],
     ['Permission::checkAdminUser', 'quiqqer.payments.paypal.billing_agreements.view']
