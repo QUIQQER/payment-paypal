@@ -129,7 +129,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
                 },
 
                 events: {
-                    onSubmit: function () {
+                    onSubmit: function (Popup) {
                         Popup.Loader.show();
 
                         PayPal.cancelBillingAgreement(self.getAttribute('billingAgreementId')).then(function () {
