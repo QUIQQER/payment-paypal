@@ -72,6 +72,15 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
 
             PayPal.getBillingAgreement(this.getAttribute('billingAgreementId')).then(function (BillingAgreement) {
                 self.Loader.hide();
+
+                if (!BillingAgreement) {
+                    self.setContent(
+                        QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.load_error')
+                    );
+
+                    return;
+                }
+
                 self.setContent('<pre>' + JSON.stringify(BillingAgreement, null, 2) + '</pre>');
 
                 if (BillingAgreement.state === 'Active') {
