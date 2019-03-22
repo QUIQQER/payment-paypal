@@ -134,6 +134,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
 
                         PayPal.cancelBillingAgreement(self.getAttribute('billingAgreementId')).then(function () {
                             self.close();
+                            Popup.close();
                             self.fireEvent('cancelBillingAgreement', [self]);
                         }, function () {
                             Popup.Loader.hide();
