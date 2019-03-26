@@ -60,16 +60,6 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     }
 
     /**
-     * Does the payment support recurring payments (e.g. for subscriptions)?
-     *
-     * @return bool
-     */
-    public function supportsRecurringPayments()
-    {
-        return true;
-    }
-
-    /**
      * Does the payment ONLY support recurring payments (e.g. for subscriptions)?
      *
      * @return bool
