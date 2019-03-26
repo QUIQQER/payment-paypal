@@ -133,6 +133,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                     $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Finish([
                         'Order' => $Gateway->getOrder()
                     ]);
+
+                    $Gateway->getOrder()->setSuccessfulStatus();
                 } catch (\Exception $Exception) {
                     $goToBasket = true;
                 }
