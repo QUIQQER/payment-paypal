@@ -511,6 +511,10 @@
             <de><![CDATA[Der Kündigungsvorgang der Abrechnungsvereinbarung konnte nicht durchgeführt werden. Bitte wiederholen Sie den Vorgang oder kontaktieren Sie einen Administrator.]]></de>
             <en><![CDATA[The cancellation of the Billing Agreement could not be executed. Please repeat the process or contact an administrator.]]></en>
         </locale>
+        <locale name="recurring.additional_invoice_text">
+            <de><![CDATA[Der Betrag wird automatisch über Ihr PayPal-Konto eingezogen.]]></de>
+            <en><![CDATA[The amount will be automatically collected from your PayPal account.]]></en>
+        </locale>
         
         <!-- Events -->
         <locale name="exception.onPaymentsCreateBegin.erp_plans_missing" html="true">
