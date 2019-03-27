@@ -28,6 +28,16 @@ class BillingAgreements
     const TBL_BILLING_AGREEMENT_TRANSACTIONS = 'paypal_billing_agreement_transactions';
 
     /**
+     * Runtime cache that knows then a transaction history
+     * for a Billing Agreement has been freshly fetched from PayPal.
+     *
+     * Prevents multiple unnecessary API calls.
+     *
+     * @var array
+     */
+    protected static $transactionsRefreshed = [];
+
+    /**
      * @var QUI\ERP\Payments\PayPal\Payment
      */
     protected static $Payment = null;
@@ -757,12 +767,17 @@ class BillingAgreements
      * Refreshes transactions for a Billing Agreement
      *
      * @param string $billingAgreementId
+     * @return void
      * @throws PayPalException
      * @throws QUI\Database\Exception
      * @throws \Exception
      */
     protected static function refreshTransactionList($billingAgreementId)
     {
+        if (isset(self::$transactionsRefreshed[$billingAgreementId])) {
+            return;
+        }
+
         // Get global process id
         $data            = self::getBillingAgreementData($billingAgreementId);
         $globalProcessId = $data['globalProcessId'];
@@ -814,6 +829,18 @@ class BillingAgreements
                 continue;
             }
 
+            // Add warning if a transaction is unclaimed
+            if ($transaction['status'] === 'Unclaimed') {
+                QUI\System\Log::addWarning(
+                    'PayPal Recurring Payments -> Some transactions for Billing Agreement '.$billingAgreementId
+                    .' are marked as "Unclaimed" and cannot be processed for QUIQQER ERP Invoices. This most likely'
+                    .' means that your PayPal merchant account does not support transactions'
+                    .' in the transaction currency ('.$transaction['amount']['currency'].')!'
+                );
+
+                continue;
+            }
+
             // Only collect transactions with status "Completed" or "Denied"
             if ($transaction['status'] !== 'Completed' && $transaction['status'] !== 'Denied') {
                 continue;
@@ -839,6 +866,8 @@ class BillingAgreements
                 ]
             );
         }
+
+        self::$transactionsRefreshed[$billingAgreementId] = true;
     }
 
     /**
