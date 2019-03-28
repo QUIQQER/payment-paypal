@@ -946,7 +946,7 @@ class BillingAgreements
      * @param string $billingAgreementId - PayPal Billing Agreement ID
      * @return array|false
      */
-    protected static function getBillingAgreementData($billingAgreementId)
+    public static function getBillingAgreementData($billingAgreementId)
     {
         try {
             $result = QUI::getDataBase()->fetch([
@@ -967,6 +967,7 @@ class BillingAgreements
         $data = current($result);
 
         return [
+            'active'          => !empty($data['active']) ? true : false,
             'globalProcessId' => $data['global_process_id'],
             'customer'        => json_decode($data['customer'], true),
         ];

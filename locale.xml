@@ -658,6 +658,10 @@
             <de><![CDATA[Die Details der Abrechnungsvereinbarung konnten von PayPal nicht abgerufen werden. Dies kann z.B. daran liegen, dass die Abrechnungsvereinbarung mit einem anderen als dem aktuell verwendeten API-Schlüssel erstellt wurde (z.B. Sandbox).]]></de>
             <en><![CDATA[The Billing Agreement details could not be retrieved from PayPal. This could be because the Billing Agreement was created with a different API key than the current one (e.g. sandbox).]]></en>
         </locale>
+        <locale name="controls.backend.BillingAgreementWindow.inactive_warning" html="true">
+            <de><![CDATA[<b>Achtung!</b> Diese Abrechnungsvereinbarung ist auf Seiten von PayPal gekündigt, in diesem QUIQQER-System jedoch noch als aktiv gekennzeichnet. Dies kann bedeuten, dass der Kunde in seinem PayPal-Konto die Abrechnungsvereinbarung gekündigt hat ohne seinen laufenden Vertrag/Mitgliedschaft in diesem QUIQQER-System zu kündigen. Dies hat zur Folge, dass <b>keine Zahlungen</b> mehr von PayPal für die zugeordneten Rechnungen eingezogen werden. Bitte kontaktieren Sie den Kunden, um die Angelegenheit individuell zu klären.]]></de>
+            <en><![CDATA[<b>Caution!</b> This Billing Agreement has been terminated on the side of PayPal, but is still marked as active in this QUIQQER system. This may mean that the customer has cancelled the Billing Agreement in his PayPal account without cancelling his current contract/membership in this QUIQQER system. As a result, <b>no payments</b> will be collected by PayPal for the associated invoices. Please contact the customer to clarify the matter individually.]]></en>
+        </locale>
 
         <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements -->
         <locale name="controls.backend.BillingAgreements.tbl.btn.details">

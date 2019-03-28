@@ -14,7 +14,10 @@ QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_getBillingAgreement',
     function ($billingAgreementId) {
         try {
-            return BillingAgreements::getBillingAgreementDetails($billingAgreementId);
+            $billingAgreement                 = BillingAgreements::getBillingAgreementDetails($billingAgreementId);
+            $billingAgreement['quiqqer_data'] = BillingAgreements::getBillingAgreementData($billingAgreementId);
+
+            return $billingAgreement;
         } catch (\Exception $Exception) {
             QUI\System\Log::writeDebugException($Exception);
             return false;
