@@ -85,6 +85,11 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
 
                 if (BillingAgreement.state === 'Active') {
                     CancelBtn.enable();
+                } else if (BillingAgreement.quiqqer_data.active) {
+                    new Element('div', {
+                        'class': 'messages-message message-error box',
+                        html   : QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.inactive_warning')
+                    }).inject(self.getContent(), 'top');
                 }
             }, function () {
                 self.close();
