@@ -86,7 +86,7 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
             var self = this;
 
             var PayPalButton = new QUIButton({
-                'class'  : 'btn-primary button',
+                'class'  : 'btn-primary button quiqqer-payment-paypal-recurring-paymentdisplay-btn',
                 disabled : true,
                 text     : QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text_create'),
                 textimage: 'fa fa-spinner fa-spin',
@@ -108,7 +108,7 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
                     QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text')
                 );
 
-                PayPalButton.setAttribute('textimage', 'fa fab fa-paypal');
+                PayPalButton.setAttribute('textimage', 'fa fa-paypal');
                 PayPalButton.setAttribute('approvalUrl', Data.approvalUrl);
                 PayPalButton.enable();
             }, function () {
