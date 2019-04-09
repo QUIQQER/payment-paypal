@@ -172,6 +172,10 @@ class Events
 
         $planDetails = ErpPlanUtils::getPlanDetailsFromOrder($Order);
 
+        if (empty($planDetails['invoice_interval'])) {
+            return;
+        }
+
         try {
             $InvoiceInterval = ErpPlanUtils::parseIntervalFromDuration(
                 $planDetails['invoice_interval']
