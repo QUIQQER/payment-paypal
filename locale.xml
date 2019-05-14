@@ -321,10 +321,12 @@
             <en><![CDATA[The refund process with PayPal could not be completed.]]></en>
         </locale>
         <locale name="payment.error_msg.order_not_refunded_order_not_captured">
-            <de>
-                <![CDATA[Der Bezahlungsvorgang mit PayPal Express ist fehlgeschlagen, da PayPal ihre Adresse nicht bestätigen konnte. Bitte wiederholen Sie den Vorgang, indem Sie erneut auf die PayPal-Schaltfläche klicken oder wählen Sie eine andere Zahlungsweise.]]></de>
-            <en>
-                <![CDATA[The payment process with PayPal Express could not be completed because PayPalcould not confirm your address. Please repeat the process by clicking the PayPal button again or choose a different payment method.]]></en>
+            <de><![CDATA[Die Gutschrift konnte über PayPal nicht durchgeführt werden, da nicht die Rechnungsdaten nicht die benötigten PayPal-Informationen enthielten. Manuelle Prüfung durch einen Administrator erforderlich.]]></de>
+            <en><![CDATA[The credit could not be carried out via PayPal, because the invoice data did not contain the required PayPal information. Manual check by an administrator required.]]></en>
+        </locale>
+        <locale name="payment.error_msg.no_billing_agreement_transaction">
+            <de><![CDATA[Die Gutschrift für die Vertragsrechnung konnte nicht durchgeführt werden, da die Rechnungsdaten nicht die benötigten PayPal-Informationen enthielten. Manuelle Prüfung durch einen Administrator erforderlich.]]></de>
+            <en><![CDATA[The invoice credit could not be carried out via PayPal, because the invoice data did not contain the required PayPal information. Manual check by an administrator required.]]></en>
         </locale>
         <locale name="payment.error_msg.no_payer_address">
             <de>

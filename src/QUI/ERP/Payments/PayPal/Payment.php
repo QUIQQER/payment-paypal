@@ -12,6 +12,7 @@ use PayPal\v1\BillingAgreements\AgreementCreateRequest;
 use PayPal\v1\BillingAgreements\AgreementExecuteRequest;
 use PayPal\v1\BillingAgreements\AgreementGetRequest;
 use PayPal\v1\BillingAgreements\AgreementTransactionsRequest;
+use PayPal\v1\Payments\SaleRefundRequest;
 use PayPal\v1\BillingPlans\PlanCreateRequest;
 use PayPal\v1\BillingPlans\PlanGetRequest;
 use PayPal\v1\BillingPlans\PlanListRequest;
@@ -443,15 +444,15 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * Authorize a PayPal Order
      *
-     * @internal This method is currently not called in the order process, since PayPal Orders are captured
-     * immediately after they are executed
-     *
      * @param AbstractOrder $Order
      * @return void
      *
      * @throws PayPalException
      * @throws QUI\ERP\Exception
      * @throws QUI\Exception
+     * @internal This method is currently not called in the order process, since PayPal Orders are captured
+     * immediately after they are executed
+     *
      */
     public function authorizePayPalOrder(AbstractOrder $Order)
     {
@@ -1018,6 +1019,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 if (!empty($endDate)) {
                     $Request->endDate($endDate);
                 }
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_SALE_REFUND:
+                $Request = new SaleRefundRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID)
+                );
                 break;
 
             default:
