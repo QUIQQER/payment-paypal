@@ -2,6 +2,10 @@
 
 namespace QUI\ERP\Payments\PayPal\Recurring;
 
+use QUI\ERP\Accounting\CalculationValue;
+use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
+use QUI\ERP\Accounting\Payments\Transactions\Transaction;
+use QUI\ERP\Payments\PayPal\Utils;
 use Symfony\Component\HttpFoundation\Response;
 use QUI;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
@@ -22,10 +26,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * PayPal Order attribute for recurring payments
      */
-    const ATTR_PAYPAL_BILLING_PLAN_ID                = 'paypal-BillingPlanId';
-    const ATTR_PAYPAL_BILLING_AGREEMENT_ID           = 'paypal-BillingAgreementId';
-    const ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN        = 'paypal-BillingAgreementToken';
-    const ATTR_PAYPAL_BILLING_AGREEMENT_APPROVAL_URL = 'paypal-BillingAgreementApprovalUrl';
+    const ATTR_PAYPAL_BILLING_PLAN_ID                  = 'paypal-BillingPlanId';
+    const ATTR_PAYPAL_BILLING_AGREEMENT_ID             = 'paypal-BillingAgreementId';
+    const ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN          = 'paypal-BillingAgreementToken';
+    const ATTR_PAYPAL_BILLING_AGREEMENT_APPROVAL_URL   = 'paypal-BillingAgreementApprovalUrl';
+    const ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID = 'paypal-BillingAgreementTransactionId';
 
     /**
      * PayPal REST API request types for Billing
@@ -42,6 +47,13 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     const PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT           = 'paypal-api-cancel_billing_agreement';
     const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT              = 'paypal-api-get_billing_agreement';
     const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT_TRANSACTIONS = 'paypal-api-get_billing_agreement_transactions';
+
+    const PAYPAL_REQUEST_TYPE_SALE_REFUND = 'paypal-api-sale_refund';
+
+    /**
+     * PayPal error codes
+     */
+    const PAYPAL_ERROR_NO_BILLING_AGREEMENT_TRANSACTION = 'no_billing_agreement_transaction';
 
     /**
      * @return string
@@ -233,6 +245,113 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return '';
+        }
+    }
+
+    /**
+     * Refund partial or full payment of an Order
+     *
+     * @param QUI\ERP\Accounting\Payments\Transactions\Transaction $Transaction
+     * @param string $refundHash - Hash of the refund Transaction
+     * @param float $amount - The amount to be refunden
+     * @param string $reason (optional) - The reason for the refund [default: none; max. 255 characters]
+     * @return void
+     *
+     * @throws PayPalException
+     * @throws QUI\Exception
+     */
+    public function refundPayment(Transaction $Transaction, $refundHash, $amount, $reason = '')
+    {
+        $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
+        $Process->addHistory('PayPal :: Start Billing Agreement refund for transaction #'.$Transaction->getTxId());
+
+        if (!$Transaction->getData(self::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID)) {
+            $Process->addHistory('PayPal :: Transaction cannot be refunded because it is not a PayPal Billing Agreement transaction.');
+            $this->throwPayPalException(self::PAYPAL_ERROR_NO_BILLING_AGREEMENT_TRANSACTION);
+            return;
+        }
+
+        // create a refund transaction
+        $RefundTransaction = TransactionFactory::createPaymentRefundTransaction(
+            $amount,
+            $Transaction->getCurrency(),
+            $refundHash,
+            $Transaction->getPayment()->getName(),
+            [
+                'isRefund' => 1,
+                'message'  => $reason
+            ],
+            null,
+            false,
+            $Transaction->getGlobalProcessId()
+        );
+
+        $RefundTransaction->pending();
+
+        $Currency       = $Transaction->getCurrency();
+        $AmountCalc     = new CalculationValue($amount, $Currency, 2);
+        $amountRefunded = Utils::formatPrice($AmountCalc->get());
+
+        try {
+            $response = $this->payPalApiRequest(
+                self::PAYPAL_REQUEST_TYPE_SALE_REFUND,
+                [
+                    'amount' => [
+                        'total'    => $amountRefunded,
+                        'currency' => $Currency->getCode()
+                    ],
+                    'reason' => mb_substr($reason, 0, 30)
+                ],
+                $Transaction
+            );
+        } catch (PayPalException $Exception) {
+            $Process->addHistory(
+                'PayPal :: Refund operation failed.'
+                .' Reason: "'.$Exception->getMessage().'".'
+                .' ReasonCode: "'.$Exception->getCode().'".'
+                .' Transaction #'.$Transaction->getTxId()
+            );
+
+            $RefundTransaction->error();
+
+            throw $Exception;
+        }
+
+        switch ($response['state']) {
+            // SUCCESS
+            case self::PAYPAL_REFUND_STATE_COMPLETED:
+            case self::PAYPAL_REFUND_STATE_PENDING:
+                $RefundTransaction->setData(self::ATTR_PAYPAL_REFUND_ID, $response['id']);
+                $RefundTransaction->updateData();
+
+                $Process->addHistory(
+                    QUI::getLocale()->get(
+                        'quiqqer/payment-paypal',
+                        'history.refund',
+                        [
+                            'refundId' => $response['id'],
+                            'amount'   => $response['amount']['total'],
+                            'currency' => $response['amount']['currency']
+                        ]
+                    )
+                );
+
+                $RefundTransaction->complete();
+
+                QUI::getEvents()->fireEvent('transactionSuccessfullyRefunded', [
+                    $RefundTransaction,
+                    $this
+                ]);
+                break;
+
+            // FAILURE
+            default:
+                $Process->addHistory(
+                    'PayPal :: Billing Agreement transaction refund was not completed by PayPal because of an unknown error.'
+                    .' Refund state: '.$response['state']
+                );
+
+                $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED);
         }
     }
 }

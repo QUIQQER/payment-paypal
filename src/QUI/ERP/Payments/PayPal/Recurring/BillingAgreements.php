@@ -257,7 +257,9 @@ class BillingAgreements
                     $Invoice->getCurrency(),
                     $Invoice->getHash(),
                     $Payment->getName(),
-                    [],
+                    [
+                        RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID => $transaction['transaction_id']
+                    ],
                     null,
                     false,
                     $Invoice->getGlobalProcessId()
