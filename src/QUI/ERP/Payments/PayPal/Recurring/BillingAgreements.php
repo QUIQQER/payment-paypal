@@ -252,6 +252,8 @@ class BillingAgreements
 
             // Transaction amount equals Invoice amount
             try {
+                $PayPalTransactionDate = date_create($transaction['time_stamp']);
+
                 $InvoiceTransaction = TransactionFactory::createPaymentTransaction(
                     $amount,
                     $Invoice->getCurrency(),
@@ -261,7 +263,7 @@ class BillingAgreements
                         RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID => $transaction['transaction_id']
                     ],
                     null,
-                    false,
+                    $PayPalTransactionDate->getTimestamp(),
                     $Invoice->getGlobalProcessId()
                 );
 
