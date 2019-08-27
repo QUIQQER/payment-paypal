@@ -1,9 +1,5 @@
 <?php
 
-/**
- * This file contains QUI\ERP\Payments\PayPal\Payment
- */
-
 namespace QUI\ERP\Payments\PayPal;
 
 use PayPal\v1\BillingAgreements\AgreementBillBalanceRequest;
@@ -29,6 +25,7 @@ use PayPal\Core\ProductionEnvironment;
 use PayPal\Core\SandboxEnvironment;
 use PayPal\v1\Payments\PaymentCreateRequest;
 use QUI;
+use QUI\ERP\Accounting\Payments\Payments;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Order\Handler as OrderHandler;
@@ -123,7 +120,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     public function getIcon()
     {
-        return URL_OPT_DIR.'quiqqer/payment-paypal/bin/images/Payment.png';
+        return Payments::getInstance()->getHost().
+               URL_OPT_DIR.
+               'quiqqer/payment-paypal/bin/images/Payment.png';
     }
 
     /**
