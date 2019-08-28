@@ -9,7 +9,7 @@ namespace QUI\ERP\Payments\PayPal\Recurring;
 use QUI;
 use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Order\Controls\OrderProcess\Finish as FinishStep;
-use QUI\ERP\Accounting\Payments\Order\Payment as PaymentStep;
+use QUI\ERP\Accounting\Payments\Order\Shipping as PaymentStep;
 use QUI\ERP\Payments\PayPal\Provider;
 
 /**

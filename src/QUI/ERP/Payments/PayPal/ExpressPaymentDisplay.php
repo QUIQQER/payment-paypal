@@ -7,10 +7,6 @@
 namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
-use QUI\ERP\Order\Utils\Utils as OrderUtils;
-use QUI\ERP\Order\Controls\OrderProcess\Finish as FinishStep;
-use QUI\ERP\Accounting\Payments\Order\Payment as PaymentStep;
-
 
 /**
  * Class ExpressPaymentDisplay
@@ -49,6 +45,6 @@ class ExpressPaymentDisplay extends QUI\Control
             'apiSetUp' => Provider::isApiSetUp(),
         ]);
 
-        return $Engine->fetch(dirname(__FILE__) . '/ExpressPaymentDisplay.html');
+        return $Engine->fetch(dirname(__FILE__).'/ExpressPaymentDisplay.html');
     }
 }
