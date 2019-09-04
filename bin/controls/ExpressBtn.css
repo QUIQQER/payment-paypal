@@ -1,8 +1,9 @@
 .quiqqer-payment-paypal-express {
     float: left;
     height: 60px;
-    width: 250px;
     position: relative;
+    width: 250px;
+    z-index: 1;
 }
 
 .quiqqer-payment-paypal-express .qui-loader {
