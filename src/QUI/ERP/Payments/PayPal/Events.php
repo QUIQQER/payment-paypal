@@ -27,11 +27,12 @@ class Events
      *
      * @param Collector $Collector
      * @param BasketGuest $Basket
+     * @param QUI\ERP\Order\AbstractOrder $Order
      * @return void
      *
      * @throws QUI\Exception
      */
-    public static function templateOrderProcessBasketEnd(Collector $Collector, $Basket)
+    public static function templateOrderProcessBasketEnd(Collector $Collector, $Basket, $Order)
     {
         $PaymentExpress = Provider::getPayPalExpressPayment();
 
@@ -48,19 +49,19 @@ class Events
         $Project      = QUI::getProjectManager()->getStandard();
         $CheckoutStep = new CheckoutStep();
         $checkout     = 0;
+        $orderHash    = $Order->getHash();
 
-        if ($Basket->hasOrder()) {
-            $Order = $Basket->getOrder();
-
-            if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)) {
-                $checkout = 1;
-            }
+        if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)) {
+            $checkout = 1;
         }
+
+        \QUI\System\Log::writeRecursive($orderHash);
 
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="basket"
                   data-qui-options-basketid="'.$Basket->getId().'"
+                  data-qui-options-orderhash="'.$orderHash.'"
                   data-qui-options-checkout="'.$checkout.'"
                   data-qui-options-displaysize="'.Provider::getWidgetsSetting('btn_express_size').'"
                   data-qui-options-displaycolor="'.Provider::getWidgetsSetting('btn_express_color').'"

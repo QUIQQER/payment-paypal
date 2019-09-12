@@ -23,6 +23,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
         options: {
             context        : false,
             basketid       : false,
+            orderhash      : false,
             orderprocessurl: false,
             checkout       : false,
             display        : ''
@@ -47,6 +48,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
                 new ExpressBtn({
                     context        : context,
                     basketid       : this.getAttribute('basketid'),
+                    orderhash      : this.getAttribute('orderhash'),
                     orderprocessurl: this.getAttribute('orderprocessurl'),
                     checkout       : this.getAttribute('checkout'),
                     displaysize    : this.getAttribute('displaysize'),

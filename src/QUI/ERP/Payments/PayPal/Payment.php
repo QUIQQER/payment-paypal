@@ -29,6 +29,7 @@ use QUI\ERP\Accounting\Payments\Payments;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Order\Handler as OrderHandler;
+use QUI\ERP\Order\OrderProcess\OrderProcessMessage;
 use QUI\ERP\Utils\User as ERPUserUtils;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;

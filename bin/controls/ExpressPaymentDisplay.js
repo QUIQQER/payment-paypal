@@ -25,11 +25,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
 
         Binds: [
             '$onImport',
-            '$showPayPalBtn',
-            '$onPayPalLoginReady',
-            '$showPayPalWallet',
             '$showErrorMsg',
-            '$onPayBtnClick'
+            '$expressCheckout',
+            '$showMsg'
         ],
 
         options: {
@@ -39,8 +37,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
         initialize: function (options) {
             this.parent(options);
 
-            this.$MsgElm       = null;
-            this.$OrderProcess = null;
+            this.$MsgElm = null;
 
             this.addEvents({
                 onImport: this.$onImport
@@ -59,28 +56,27 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
             }
 
             this.$MsgElm = Elm.getElement('.quiqqer-payment-paypal-message');
+            this.$showMsg(QUILocale.get(pkg, 'ExpressPaymentDisplay.order.execute'));
 
             QUIControlUtils.getControlByElement(
                 Elm.getParent('[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]')
             ).then(function (OrderProcess) {
                 self.$OrderProcess = OrderProcess;
 
-                self.$showMsg(QUILocale.get(pkg, 'ExpressPaymentDisplay.order.execute'));
-
-                (function() {
+                (function () {
                     OrderProcess.Loader.show(
                         QUILocale.get(pkg, 'ExpressPaymentDisplay.order.execute')
                     );
                 }).delay(1000);
 
-                var onError = function() {
+                var onError = function () {
                     OrderProcess.Loader.hide();
 
                     self.$showErrorMsg(
                         QUILocale.get(pkg, 'ExpressPaymentDisplay.msg.error')
                     );
 
-                    (function() {
+                    (function () {
                         OrderProcess.previous();
                     }).delay(5000);
                 };

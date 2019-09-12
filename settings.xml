@@ -40,6 +40,10 @@
                     <type><![CDATA[boolean]]></type>
                     <defaultvalue>0</defaultvalue>
                 </conf>
+                <conf name="instant_purchase">
+                    <type><![CDATA[boolean]]></type>
+                    <defaultvalue>0</defaultvalue>
+                </conf>
             </section>
 
             <section name="widgets">
@@ -177,6 +181,15 @@
                             </text>
                             <description>
                                 <locale group="quiqqer/payment-paypal" var="settings.payment.display_express_smallbasket.description"/>
+                            </description>
+                        </input>
+
+                        <input conf="payment.instant_purchase" type="checkbox">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.payment.instant_purchase.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.payment.instant_purchase.description"/>
                             </description>
                         </input>
 
