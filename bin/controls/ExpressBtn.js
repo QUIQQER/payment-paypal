@@ -64,8 +64,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.PageLoader = new QUILoader();
 
             this.addEvents({
-                onImport: this.$onImport,
-                onInject: this.$onInject
+                onImport : this.$onImport,
+                onInject : this.$onInject,
+                onDestroy: this.$onDestroy
             });
         },
 
@@ -92,7 +93,15 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.$MsgElm       = Elm.getElement('.quiqqer-payment-paypal-express-msg');
             this.$PayPalBtnElm = Elm.getElement('.quiqqer-payment-paypal-express-btn');
 
-            this.PageLoader.inject(document.body);
+            var PageLoaderElm = document.body.getElement('.quiqqer-payment-paypal-express-pageloader');
+
+            if (PageLoaderElm) {
+                this.PageLoader = QUI.Controls.getById(PageLoaderElm.get('data-quiid'));
+            } else {
+                this.PageLoader.getElm().addClass('quiqqer-payment-paypal-express-pageloader');
+                this.PageLoader.inject(document.body);
+            }
+
             this.Loader.inject(Elm);
             this.Loader.show();
 
