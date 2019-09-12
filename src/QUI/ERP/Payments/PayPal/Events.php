@@ -3,7 +3,6 @@
 namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
-use QUI\ERP\Order\Handler;
 use QUI\ERP\Plans\Utils as ERPPlansUtils;
 use Quiqqer\Engine\Collector;
 use QUI\ERP\Order\Basket\Basket;
@@ -57,7 +56,8 @@ class Events
         $checkout     = 0;
         $orderHash    = $Order->getHash();
 
-        if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)) {
+        if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+            && $Order->getPayment()->getPaymentType() instanceof PaymentExpress) {
             $checkout = 1;
         }
 
@@ -128,7 +128,8 @@ class Events
         if ($Basket->hasOrder()) {
             $Order = $Basket->getOrder();
 
-            if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)) {
+            if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+                && $Order->getPayment()->getPaymentType() instanceof PaymentExpress) {
                 $checkout = 1;
             }
         }
