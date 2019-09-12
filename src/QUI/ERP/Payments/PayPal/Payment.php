@@ -294,13 +294,25 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $FactorPrice = new CalculationValue($calculated['price']); // unit price
 
                 $item = [
-                    'name'        => $OrderArticle->getTitle(),
-                    'description' => $OrderArticle->getDescription(),
-                    'quantity'    => $OrderArticle->getQuantity(),
-                    'price'       => $FactorPrice->precision(2)->get(),
-                    'sku'         => $OrderArticle->getArticleNo(),
-                    'currency'    => $currencyCode
+                    'name'     => $OrderArticle->getTitle(),
+                    'quantity' => $OrderArticle->getQuantity(),
+                    'price'    => $FactorPrice->precision(2)->get(),
+                    'currency' => $currencyCode
                 ];
+
+                // Optional: product description
+                $description = $OrderArticle->getDescription();
+
+                if (!empty($description)) {
+                    $item['description'] = $description;
+                }
+
+                // Optional: product article no.
+                $articleNo = $OrderArticle->getArticleNo();
+
+                if (!empty($articleNo)) {
+                    $item['sku'] = $articleNo;
+                }
 
                 $items[] = $item;
             }

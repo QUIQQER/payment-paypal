@@ -3,6 +3,8 @@
 namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
+use QUI\ERP\Order\Handler;
+use QUI\ERP\Plans\Utils as ERPPlansUtils;
 use Quiqqer\Engine\Collector;
 use QUI\ERP\Order\Basket\Basket;
 use QUI\ERP\Order\Basket\BasketGuest;
@@ -13,7 +15,6 @@ use QUI\ERP\Order\OrderInterface;
 use QUI\ERP\Accounting\Payments\Types\Payment;
 use QUI\ERP\Payments\PayPal\Payment as PayPalPayment;
 use QUI\ERP\Plans\Utils as ErpPlanUtils;
-use QUI\ERP\Plans\Handler as ErpPlanHandler;
 
 /**
  * Class Events
@@ -34,6 +35,11 @@ class Events
      */
     public static function templateOrderProcessBasketEnd(Collector $Collector, $Basket, $Order)
     {
+        // Check if order is a plan order
+        if (\class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
+            return;
+        }
+
         $PaymentExpress = Provider::getPayPalExpressPayment();
 
         if (!$PaymentExpress || !$PaymentExpress->isActive()) {
@@ -55,8 +61,6 @@ class Events
             $checkout = 1;
         }
 
-        \QUI\System\Log::writeRecursive($orderHash);
-
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="basket"
@@ -75,20 +79,40 @@ class Events
      * Template event quiqqer/order: onQuiqqer::order::basketSmall::end
      *
      * @param Collector $Collector
-     * @param BasketGuest $Basket
+     * @param Basket $Basket
      * @return void
      *
      * @throws QUI\Exception
      */
     public static function templateOrderBasketSmallEnd(Collector $Collector, $Basket)
     {
-        $PaymentExpress = Provider::getPayPalExpressPayment();
-
-        if (!$PaymentExpress || !$PaymentExpress->isActive()) {
+        if (!($Basket instanceof Basket)) {
             return;
         }
 
-        if (!($Basket instanceof Basket)) {
+        // Do not show PayPal Express button in mini basket for guest users until
+        // guest orders are implemented.
+        if (QUI::getUsers()->isNobodyUser(QUI::getUserBySession())) {
+            return;
+        }
+
+        if (\class_exists('\\QUI\\ERP\\Plans\\Utils')) {
+            try {
+                $Basket->updateOrder();
+                $Order = $Basket->getOrder();
+            } catch (\Exception $Exception) {
+                QUI\System\Log::writeException($Exception);
+                return;
+            }
+
+            if (ErpPlanUtils::isPlanOrder($Order)) {
+                return;
+            }
+        }
+
+        $PaymentExpress = Provider::getPayPalExpressPayment();
+
+        if (!$PaymentExpress || !$PaymentExpress->isActive()) {
             return;
         }
 
