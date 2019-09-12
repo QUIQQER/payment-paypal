@@ -43,6 +43,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             basketid       : false,
             productid      : false,
             context        : false,
+            orderhash      : false,
             orderprocessurl: false,
             checkout       : false,
             displaysize    : '',
@@ -63,8 +64,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.PageLoader = new QUILoader();
 
             this.addEvents({
-                onImport: this.$onImport,
-                onInject: this.$onInject
+                onImport : this.$onImport,
+                onInject : this.$onInject,
+                onDestroy: this.$onDestroy
             });
         },
 
@@ -72,6 +74,10 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
          * Event: onImport
          */
         $onImport: function () {
+            if (this.getAttribute('checkout')) {
+                this.$toCheckout();
+            }
+
             var self = this;
             var Elm  = this.getElm();
 
@@ -83,11 +89,19 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 '<div class="quiqqer-payment-paypal-express-btn"></div>'
             );
 
-            this.$hash         = this.getAttribute('baskethash');
+            this.$hash         = this.getAttribute('orderhash');
             this.$MsgElm       = Elm.getElement('.quiqqer-payment-paypal-express-msg');
             this.$PayPalBtnElm = Elm.getElement('.quiqqer-payment-paypal-express-btn');
 
-            this.PageLoader.inject(document.body);
+            var PageLoaderElm = document.body.getElement('.quiqqer-payment-paypal-express-pageloader');
+
+            if (PageLoaderElm) {
+                this.PageLoader = QUI.Controls.getById(PageLoaderElm.get('data-quiid'));
+            } else {
+                this.PageLoader.getElm().addClass('quiqqer-payment-paypal-express-pageloader');
+                this.PageLoader.inject(document.body);
+            }
+
             this.Loader.inject(Elm);
             this.Loader.show();
 

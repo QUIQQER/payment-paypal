@@ -3,6 +3,8 @@
 namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
+use QUI\ERP\Order\Handler;
+use QUI\ERP\Plans\Utils as ERPPlansUtils;
 use Quiqqer\Engine\Collector;
 use QUI\ERP\Order\Basket\Basket;
 use QUI\ERP\Order\Basket\BasketGuest;
@@ -13,7 +15,6 @@ use QUI\ERP\Order\OrderInterface;
 use QUI\ERP\Accounting\Payments\Types\Payment;
 use QUI\ERP\Payments\PayPal\Payment as PayPalPayment;
 use QUI\ERP\Plans\Utils as ErpPlanUtils;
-use QUI\ERP\Plans\Handler as ErpPlanHandler;
 
 /**
  * Class Events
@@ -27,12 +28,18 @@ class Events
      *
      * @param Collector $Collector
      * @param BasketGuest $Basket
+     * @param QUI\ERP\Order\AbstractOrder $Order
      * @return void
      *
      * @throws QUI\Exception
      */
-    public static function templateOrderProcessBasketEnd(Collector $Collector, $Basket)
+    public static function templateOrderProcessBasketEnd(Collector $Collector, $Basket, $Order)
     {
+        // Check if order is a plan order
+        if (\class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
+            return;
+        }
+
         $PaymentExpress = Provider::getPayPalExpressPayment();
 
         if (!$PaymentExpress || !$PaymentExpress->isActive()) {
@@ -48,19 +55,17 @@ class Events
         $Project      = QUI::getProjectManager()->getStandard();
         $CheckoutStep = new CheckoutStep();
         $checkout     = 0;
+        $orderHash    = $Order->getHash();
 
-        if ($Basket->hasOrder()) {
-            $Order = $Basket->getOrder();
-
-            if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)) {
-                $checkout = 1;
-            }
+        if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)) {
+            $checkout = 1;
         }
 
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="basket"
                   data-qui-options-basketid="'.$Basket->getId().'"
+                  data-qui-options-orderhash="'.$orderHash.'"
                   data-qui-options-checkout="'.$checkout.'"
                   data-qui-options-displaysize="'.Provider::getWidgetsSetting('btn_express_size').'"
                   data-qui-options-displaycolor="'.Provider::getWidgetsSetting('btn_express_color').'"
@@ -74,20 +79,40 @@ class Events
      * Template event quiqqer/order: onQuiqqer::order::basketSmall::end
      *
      * @param Collector $Collector
-     * @param BasketGuest $Basket
+     * @param Basket $Basket
      * @return void
      *
      * @throws QUI\Exception
      */
     public static function templateOrderBasketSmallEnd(Collector $Collector, $Basket)
     {
-        $PaymentExpress = Provider::getPayPalExpressPayment();
-
-        if (!$PaymentExpress || !$PaymentExpress->isActive()) {
+        if (!($Basket instanceof Basket)) {
             return;
         }
 
-        if (!($Basket instanceof Basket)) {
+        // Do not show PayPal Express button in mini basket for guest users until
+        // guest orders are implemented.
+        if (QUI::getUsers()->isNobodyUser(QUI::getUserBySession())) {
+            return;
+        }
+
+        if (\class_exists('\\QUI\\ERP\\Plans\\Utils')) {
+            try {
+                $Basket->updateOrder();
+                $Order = $Basket->getOrder();
+            } catch (\Exception $Exception) {
+                QUI\System\Log::writeException($Exception);
+                return;
+            }
+
+            if (ErpPlanUtils::isPlanOrder($Order)) {
+                return;
+            }
+        }
+
+        $PaymentExpress = Provider::getPayPalExpressPayment();
+
+        if (!$PaymentExpress || !$PaymentExpress->isActive()) {
             return;
         }
 

@@ -14,10 +14,22 @@ use QUI\Utils\Security\Orthos;
  */
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_createOrder',
-    function ($orderHash) {
+    function ($orderHash, $basketId) {
         try {
-            $orderHash = Orthos::clear($orderHash);
-            $Order     = Handler::getInstance()->getOrderByHash($orderHash);
+            if (!empty($orderHash)) {
+                $orderHash = Orthos::clear($orderHash);
+                $Order     = Handler::getInstance()->getOrderByHash($orderHash);
+            } elseif (!empty($basketId)) {
+                $Basket = new QUI\ERP\Order\Basket\Basket((int)$basketId);
+
+                $Order = Handler::getInstance()->getLastOrderInProcessFromUser(
+                    QUI::getUserBySession()
+                );
+
+                $Basket->toOrder($Order);
+            } else {
+                return false;
+            }
 
             $Payment = new Payment();
             $Payment->createPayPalOrder($Order);
@@ -33,5 +45,5 @@ QUI::$Ajax->registerFunction(
             'hash'            => $Order->getHash()
         ];
     },
-    ['orderHash']
+    ['orderHash', 'basketId']
 );

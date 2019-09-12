@@ -80,7 +80,7 @@ class PaymentExpress extends Payment
         if (!$Payment) {
             $Order->addHistory(
                 'PayPal Express :: Could not set Order Payment because a PayPal Express'
-                . ' payment method does not exist'
+                .' payment method does not exist'
             );
 
             $this->voidPayPalOrder($Order);
@@ -89,7 +89,7 @@ class PaymentExpress extends Payment
 
         $Order->setPayment($Payment->getId());
         $Order->addHistory(
-            'PayPal Express :: Order Payment successfully set (Payment ID: #' . $Payment->getId() . ')'
+            'PayPal Express :: Order Payment successfully set (Payment ID: #'.$Payment->getId().')'
         );
 
         /**
@@ -164,7 +164,7 @@ class PaymentExpress extends Payment
 
         $Order->setInvoiceAddress($InvoiceAddress);
         $Order->addHistory(
-            'PayPal Express :: Order invoice address set (QUIQQER address ID: #' . $InvoiceAddress->getId() . ')'
+            'PayPal Express :: Order invoice address set (QUIQQER address ID: #'.$InvoiceAddress->getId().')'
         );
 
         $this->saveOrder($Order);
@@ -238,7 +238,7 @@ class PaymentExpress extends Payment
      */
     public function getGatewayDisplay(AbstractOrder $Order, $Step = null)
     {
-        $Control = new PaymentDisplay();
+        $Control = new ExpressPaymentDisplay();
         $Control->setAttribute('Order', $Order);
 
         $Step->setTitle(
@@ -249,7 +249,7 @@ class PaymentExpress extends Payment
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
+        $Step->setContent($Engine->fetch(dirname(__FILE__).'/PaymentDisplay.Header.html'));
 
         return $Control->create();
     }

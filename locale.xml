@@ -557,6 +557,10 @@
             <de><![CDATA[Leider ist ein Fehler aufgetreten]]></de>
             <en><![CDATA[Unfortunately, an error occurred]]></en>
         </locale>
+        <locale name="ExpressBtn.processing_error">
+            <de><![CDATA[Der Bezahlvorgang mit PayPal Express kann zur Zeit leider nicht durchgeführt werden. Ihr PayPal-Konto wurde nicht belastet. Bitte wiederholen Sie den Vorgang oder probieren Sie es später noch einmal.]]></de>
+            <en><![CDATA[Unfortunately, the payment process with PayPal Express cannot be carried out at the moment. Your PayPal account was not debited. Please repeat the process or try again later.]]></en>
+        </locale>
 
         <!-- Control: ExpressPaymentDisplay -->
         <locale name="ExpressPaymentDisplay.order.execute">
