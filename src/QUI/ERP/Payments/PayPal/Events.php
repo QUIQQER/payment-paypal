@@ -57,6 +57,7 @@ class Events
         $orderHash    = $Order->getHash();
 
         if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+            && $Order->getPayment()
             && $Order->getPayment()->getPaymentType() instanceof PaymentExpress) {
             $checkout = 1;
         }
@@ -102,6 +103,7 @@ class Events
                 $Order = $Basket->getOrder();
             } catch (\Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
+
                 return;
             }
 
@@ -189,6 +191,7 @@ class Events
             $PaymentType = $Payment->getPaymentType();
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
+
             return;
         }
 
@@ -210,6 +213,7 @@ class Events
             $OneYearInterval = new \DateInterval('P1Y');
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
+
             return;
         }
 
