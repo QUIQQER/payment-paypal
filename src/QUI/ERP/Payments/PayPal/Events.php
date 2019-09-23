@@ -55,10 +55,11 @@ class Events
         $CheckoutStep = new CheckoutStep();
         $checkout     = 0;
         $orderHash    = $Order->getHash();
+        $Payment      = $Order->getPayment();
 
         if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
-            && $Order->getPayment()
-            && $Order->getPayment()->getPaymentType() instanceof PaymentExpress) {
+            && $Payment
+            && $Payment->getPaymentType() instanceof PaymentExpress) {
             $checkout = 1;
         }
 
@@ -128,10 +129,12 @@ class Events
         $checkout     = 0;
 
         if ($Basket->hasOrder()) {
-            $Order = $Basket->getOrder();
+            $Order   = $Basket->getOrder();
+            $Payment = $Order->getPayment();
 
             if ($Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
-                && $Order->getPayment()->getPaymentType() instanceof PaymentExpress) {
+                && $Payment
+                && $Payment->getPaymentType() instanceof PaymentExpress) {
                 $checkout = 1;
             }
         }
