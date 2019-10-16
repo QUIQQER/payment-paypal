@@ -27,6 +27,10 @@ class BillingAgreements
     const TBL_BILLING_AGREEMENTS             = 'paypal_billing_agreements';
     const TBL_BILLING_AGREEMENT_TRANSACTIONS = 'paypal_billing_agreement_transactions';
 
+    const BILLING_AGREEMENT_STATE_ACTIVE = 'Active';
+    const TRANSACTION_STATE_COMPLETED    = 'Completed';
+    const TRANSACTION_STATE_DENIED       = 'Denied';
+
     /**
      * Runtime cache that knows then a transaction history
      * for a Billing Agreement has been freshly fetched from PayPal.
@@ -385,7 +389,7 @@ class BillingAgreements
     }
 
     /**
-     * Get details of a Billing Agreement
+     * Get details of a Billing Agreement (PayPal data)
      *
      * @param string $billingAgreementId
      * @return array
@@ -499,16 +503,30 @@ class BillingAgreements
             );
         }
 
-        // Set status in QUIQQER database to "not active"
-        QUI::getDataBase()->update(
-            self::getBillingAgreementsTable(),
-            [
-                'active' => 0
-            ],
-            [
-                'paypal_agreement_id' => $billingAgreementId
-            ]
-        );
+        self::setBillingAgreementAsInactive($billingAgreementId);
+    }
+
+    /**
+     * Set status of a BillingAgreement as inactive
+     *
+     * @param string $billingAgreementId
+     * @return void
+     */
+    public static function setBillingAgreementAsInactive($billingAgreementId)
+    {
+        try {
+            QUI::getDataBase()->update(
+                self::getBillingAgreementsTable(),
+                [
+                    'active' => 0
+                ],
+                [
+                    'paypal_agreement_id' => $billingAgreementId
+                ]
+            );
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+        }
     }
 
     /**
@@ -698,7 +716,10 @@ class BillingAgreements
 
         // Get all "Denied" PayPal transactions
         try {
-            $unprocessedTransactions = self::getUnprocessedTransactions($billingAgreementId, 'Denied');
+            $unprocessedTransactions = self::getUnprocessedTransactions(
+                $billingAgreementId,
+                self::TRANSACTION_STATE_DENIED
+            );
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return;
@@ -847,7 +868,8 @@ class BillingAgreements
             }
 
             // Only collect transactions with status "Completed" or "Denied"
-            if ($transaction['status'] !== 'Completed' && $transaction['status'] !== 'Denied') {
+            if ($transaction['status'] !== self::TRANSACTION_STATE_COMPLETED
+                && $transaction['status'] !== self::TRANSACTION_STATE_DENIED) {
                 continue;
             }
 
@@ -885,8 +907,10 @@ class BillingAgreements
      * @throws PayPalException
      * @throws \Exception
      */
-    protected static function getUnprocessedTransactions($billingAgreementId, $status = 'Completed')
-    {
+    protected static function getUnprocessedTransactions(
+        $billingAgreementId,
+        $status = self::TRANSACTION_STATE_COMPLETED
+    ) {
         $result = QUI::getDataBase()->fetch([
             'select' => ['paypal_transaction_data'],
             'from'   => self::getBillingAgreementTransactionsTable(),
@@ -946,7 +970,7 @@ class BillingAgreements
     }
 
     /**
-     * Get available data by Billing Agreement ID
+     * Get available data by Billing Agreement ID (QUIQQER data)
      *
      * @param string $billingAgreementId - PayPal Billing Agreement ID
      * @return array|false
@@ -981,7 +1005,7 @@ class BillingAgreements
     /**
      * @return string
      */
-    protected static function getBillingAgreementsTable()
+    public static function getBillingAgreementsTable()
     {
         return QUI::getDBTableName(self::TBL_BILLING_AGREEMENTS);
     }
@@ -989,7 +1013,7 @@ class BillingAgreements
     /**
      * @return string
      */
-    protected static function getBillingAgreementTransactionsTable()
+    public static function getBillingAgreementTransactionsTable()
     {
         return QUI::getDBTableName(self::TBL_BILLING_AGREEMENT_TRANSACTIONS);
     }
