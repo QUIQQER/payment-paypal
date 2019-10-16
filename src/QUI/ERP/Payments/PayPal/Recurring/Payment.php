@@ -381,7 +381,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             $billingAgreement = BillingAgreements::getBillingAgreementDetails($subscriptionId);
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
-            return false;
+            return true;
         }
 
         return !empty($billingAgreement['state'])
