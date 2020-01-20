@@ -632,9 +632,9 @@ class BillingAgreements
                 'payment_method' => [
                     'type'  => 'IN',
                     'value' => $paymentTypeIds
-                ],
-                'order'          => 'date ASC'
-            ]
+                ]
+            ],
+            'order'  => 'date ASC'
         ]);
 
         $invoiceIds = [];
