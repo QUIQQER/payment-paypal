@@ -26,7 +26,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
             orderhash      : false,
             orderprocessurl: false,
             checkout       : false,
-            display        : ''
+            display        : '',
+            sandbox        : true
         },
 
         initialize: function (options) {
@@ -53,7 +54,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
                     checkout       : this.getAttribute('checkout'),
                     displaysize    : this.getAttribute('displaysize'),
                     displaycolor   : this.getAttribute('displaycolor'),
-                    displayshape   : this.getAttribute('displayshape')
+                    displayshape   : this.getAttribute('displayshape'),
+                    sandbox        : this.getAttribute('sandbox')
                 }).inject(Elm, 'after');
             }
 
