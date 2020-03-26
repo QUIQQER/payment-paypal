@@ -63,10 +63,13 @@ class Events
             $checkout = 1;
         }
 
+        $sandbox = Provider::getApiSetting('sandbox') ? 1 : 0;
+
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="basket"
                   data-qui-options-basketid="'.$Basket->getId().'"
+                  data-qui-options-sandbox="'.$sandbox.'"
                   data-qui-options-orderhash="'.$orderHash.'"
                   data-qui-options-checkout="'.$checkout.'"
                   data-qui-options-displaysize="'.Provider::getWidgetsSetting('btn_express_size').'"
