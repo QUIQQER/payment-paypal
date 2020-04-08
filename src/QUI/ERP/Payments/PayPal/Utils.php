@@ -5,6 +5,7 @@ namespace QUI\ERP\Payments\PayPal;
 use QUI;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Order\AbstractOrder;
+use QUI\ERP\Shipping\Shipping;
 
 /**
  * Class Utils
@@ -69,5 +70,81 @@ class Utils
     public static function getHistoryText(string $context, $data = [])
     {
         return QUI::getLocale()->get('quiqqer/payment-paypal', 'history.'.$context, $data);
+    }
+
+    /**
+     * Get shipping address data by order that is used in the PayPal API workflow.
+     *
+     * @param AbstractOrder $Order
+     * @return array|false - Shipping address data as array or false if shipping address cannot be determined
+     */
+    public static function getPayPalShippingAddressDataByOrder(AbstractOrder $Order)
+    {
+        if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
+            return false;
+        }
+
+        $Shipping = Shipping::getInstance()->getShippingByObject($Order);
+
+        if (!$Shipping || $Shipping->getAddress()) {
+            return false;
+        }
+
+        $ShippingAddress = $Shipping->getAddress();
+
+        $shippingAddress = [
+            'recipient_name' => $ShippingAddress->getName()
+        ];
+
+        if ($ShippingAddress->getAttribute('street_no')) {
+            $shippingAddress['line1'] = $ShippingAddress->getAttribute('street_no');
+        }
+
+        if ($ShippingAddress->getAttribute('city')) {
+            $shippingAddress['city'] = $ShippingAddress->getAttribute('city');
+        }
+
+        if ($ShippingAddress->getAttribute('zip')) {
+            $shippingAddress['postal_code'] = $ShippingAddress->getAttribute('zip');
+        }
+
+        if ($ShippingAddress->getPhone()) {
+            $shippingAddress['phone'] = $ShippingAddress->getPhone();
+        }
+
+        try {
+            $shippingAddress['country_code'] = \mb_strtoupper(
+                $ShippingAddress->getCountry()->getCode()
+            );
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeDebugException($Exception);
+        }
+
+        return $shippingAddress;
+    }
+
+    /**
+     * Get shipping costs by order
+     *
+     * @param AbstractOrder $Order
+     * @return float|false - Shipping cost (2 digit precision) or false if costs cannot be determined
+     */
+    public static function getShippingCostsByOrder(AbstractOrder $Order)
+    {
+        if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
+            return false;
+        }
+
+        $Shipping = Shipping::getInstance()->getShippingByObject($Order);
+
+        if (!$Shipping) {
+            return false;
+        }
+
+        $Shipping = Shipping::getInstance()->getShippingByObject($Order);
+
+        return false; // @todo fix shipping cost bug first
+
+        return \number_format($Shipping->getPrice(), 2);
     }
 }

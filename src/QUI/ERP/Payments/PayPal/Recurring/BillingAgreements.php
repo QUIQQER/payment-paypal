@@ -109,6 +109,13 @@ class BillingAgreements
             ]
         ];
 
+        // Shipping address
+        $shippingAddress = Utils::getPayPalShippingAddressDataByOrder($Order);
+
+        if ($shippingAddress) {
+            $body['shipping_address'] = $shippingAddress;
+        }
+
         // Determine start date
         $Now = new \DateTime();
 //        $Now->add(new \DateInterval('PT24H'));
