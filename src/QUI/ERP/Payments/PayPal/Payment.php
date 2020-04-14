@@ -29,11 +29,11 @@ use QUI\ERP\Accounting\Payments\Payments;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Order\Handler as OrderHandler;
-use QUI\ERP\Order\OrderProcess\OrderProcessMessage;
 use QUI\ERP\Utils\User as ERPUserUtils;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
+use QUI\ERP\Shipping\Shipping;
 
 /**
  * Class Payment
@@ -258,22 +258,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $isNetto = ERPUserUtils::isNettoUser($Order->getCustomer());
 
         // Basic payment data
-        $amount = [
-            'currency' => $currencyCode,
-            'total'    => $PriceCalculation->getSum()->precision(2)->get()
-        ];
-
-        // @todo always add subtotal if shipping costs are avaiable / included
-        if ($isNetto) {
-            $amount['details'] = [
-                'subtotal' => $PriceCalculation->getNettoSum()->precision(2)->get(),
-                'tax'      => $PriceCalculation->getVatSum()->precision(2)->get()
-            ];
-        }
-
         $transactionData = [
             'reference_id' => $Order->getHash(),
-            'amount'       => $amount,
             'description'  => $this->getLocale()->get(
                 'quiqqer/payment-paypal',
                 'Payment.order.create.description',
@@ -282,6 +268,30 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 ]
             )
         ];
+
+        $amount = [
+            'currency' => $currencyCode,
+            'total'    => $PriceCalculation->getSum()->precision(2)->get()
+        ];
+
+        // Shipping data
+        $shippingCost    = Utils::getShippingCostsByOrder($Order);
+        $shippingAddress = Utils::getPayPalShippingAddressDataByOrder($Order);
+
+        if ($isNetto || $shippingCost) {
+            $amountDetails = [
+                'subtotal' => $PriceCalculation->getNettoSum()->precision(2)->get(),
+                'tax'      => $PriceCalculation->getVatSum()->precision(2)->get()
+            ];
+
+            if ($shippingCost !== false) {
+                $amountDetails['shipping'] = $shippingCost;
+            }
+
+            $amount['details'] = $amountDetails;
+        }
+
+        $transactionData['amount'] = $amount;
 
         // Article List
         if (Provider::getPaymentSetting('display_paypal_basket')) {
@@ -339,6 +349,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             }
 
             $transactionData['item_list']['items'] = $items;
+
+            if ($shippingAddress !== false) {
+                $transactionData['item_list']['shipping_address'] = $shippingAddress;
+            }
         }
 
         // Return URLs

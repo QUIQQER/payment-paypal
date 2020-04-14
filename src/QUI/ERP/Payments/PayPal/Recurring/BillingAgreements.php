@@ -109,6 +109,13 @@ class BillingAgreements
             ]
         ];
 
+        // Shipping address
+        $shippingAddress = Utils::getPayPalShippingAddressDataByOrder($Order);
+
+        if ($shippingAddress) {
+            $body['shipping_address'] = $shippingAddress;
+        }
+
         // Determine start date
         $Now = new \DateTime();
 //        $Now->add(new \DateInterval('PT24H'));
@@ -825,12 +832,11 @@ class BillingAgreements
 
         if (empty($result)) {
             $Start = new \DateTime(date('Y').'-01-01 00:00:00'); // Beginning of current year
-            $End   = new \DateTime();
-            $End->add(new \DateInterval('P1M')); // add 1 month
         } else {
             $Start = new \DateTime($result[0]['paypal_transaction_date']);
-            $End   = null;
         }
+
+        $End = new \DateTime(); // today
 
         // Determine existing transactions
         $result = QUI::getDataBase()->fetch([
