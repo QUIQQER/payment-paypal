@@ -442,11 +442,9 @@ class BillingAgreements
         }
 
         $data['start_date'] = $Start->format('Y-m-d');
-        $data['end_date']   = $End->format('Y-m-d');
 
-        // No end_date needed if equal to start_date
-        if ($data['start_date'] === $data['end_date']) {
-            unset($data['end_date']);
+        if ($End > $Start && $Start->format('Y-m-d') !== $End->format('Y-m-d')) {
+            $data['end_date'] = $End->format('Y-m-d');
         }
 
         $result = self::payPalApiRequest(
