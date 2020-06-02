@@ -26,9 +26,9 @@ class Utils
         $amount          = $AmountValue->get();
         $formattedAmount = sprintf("%.2f", $amount);
 
-        if (mb_strpos($formattedAmount, '.00') !== false) {
-            return (string)(float)$formattedAmount;
-        }
+//        if (mb_strpos($formattedAmount, '.00') !== false) {
+//            return (string)(float)$formattedAmount;
+//        }
 
         return $formattedAmount;
     }
@@ -127,24 +127,46 @@ class Utils
      * Get shipping costs by order
      *
      * @param AbstractOrder $Order
+     * @param bool $express (optional) - Is PayPal Express order
      * @return float|false - Shipping cost (2 digit precision) or false if costs cannot be determined
      */
-    public static function getShippingCostsByOrder(AbstractOrder $Order)
+    public static function getShippingCostsByOrder(AbstractOrder $Order, $express = false)
     {
         if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
             return false;
         }
 
-        $Shipping = Shipping::getInstance()->getShippingByObject($Order);
+        $ShippingHandler = Shipping::getInstance();
+        $Shipping        = $ShippingHandler->getShippingByObject($Order);
 
-        if (!$Shipping) {
+        // If shipping not already set in order -> automatically use first available shipping method
+        if (empty($Shipping) && $express) {
+            $Shipping = self::getDefaultExpressShipping($Order);
+        }
+
+        if (empty($Shipping)) {
             return false;
         }
 
-        $Shipping = Shipping::getInstance()->getShippingByObject($Order);
+        $PriceFactor = $Shipping->toPriceFactor(null, $Order);
 
-        return false; // @todo fix shipping cost bug first
+        return \number_format($PriceFactor->getSum(), 2); // @todo experimental
+    }
 
-        return \number_format($Shipping->getPrice(), 2);
+    /**
+     * Get shipping method that is used in express orders
+     *
+     * @param AbstractOrder $Order
+     * @return QUI\ERP\Shipping\Types\ShippingEntry|false
+     */
+    public static function getDefaultExpressShipping(AbstractOrder $Order)
+    {
+        $shippingEntries = Shipping::getInstance()->getValidShippingEntriesByOrder($Order);
+
+        if (empty($shippingEntries)) {
+            return false;
+        }
+
+        return $shippingEntries[0];
     }
 }

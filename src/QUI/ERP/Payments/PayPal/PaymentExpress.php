@@ -52,6 +52,34 @@ class PaymentExpress extends Payment
     }
 
     /**
+     * Set default shipping for express order
+     *
+     * @param AbstractOrder $Order
+     * @return void
+     *
+     * @throws PayPalException
+     * @throws QUI\Exception
+     */
+    public function setDefaultShipping(AbstractOrder $Order)
+    {
+        // Shipping address not required of shipping module not installed
+        if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
+            return;
+        }
+
+        $DefaultExpressShipping = Utils::getDefaultExpressShipping($Order);
+
+        if (!$DefaultExpressShipping) {
+            // @todo throw and handle exception if no shipping found/applicable for address
+            return;
+        }
+
+        $Order->setShipping($DefaultExpressShipping);
+        $this->saveOrder($Order);
+        $this->updatePayPalOrder($Order);
+    }
+
+    /**
      * Execute a PayPal Order
      *
      * @param string $paymentId - The paymentID from the user authorization of the Order
@@ -168,6 +196,7 @@ class PaymentExpress extends Payment
         );
 
         $this->saveOrder($Order);
+        $this->setDefaultShipping($Order);
     }
 
     /**

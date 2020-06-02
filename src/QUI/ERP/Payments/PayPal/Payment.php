@@ -19,6 +19,9 @@ use PayPal\v1\Payments\OrderGetRequest;
 use PayPal\v1\Payments\OrderVoidRequest;
 use PayPal\v1\Payments\PaymentExecuteRequest;
 use PayPal\v1\Payments\CaptureRefundRequest;
+use PayPalCheckoutSdk\Core\PayPalHttpClient as PayPalClientV2;
+use PayPalCheckoutSdk\Core\SandboxEnvironment as PayPalSandboxEnvironmentV2;
+use PayPalCheckoutSdk\Core\ProductionEnvironment as PayPalProductionEnvironmentV2;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use PayPal\Core\PayPalHttpClient as PayPalClient;
 use PayPal\Core\ProductionEnvironment;
@@ -33,7 +36,9 @@ use QUI\ERP\Utils\User as ERPUserUtils;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
-use QUI\ERP\Shipping\Shipping;
+use PayPalCheckoutSdk\Orders\OrdersPatchRequest as PayPalOrdersPatchRequestV2;
+use PayPalCheckoutSdk\Orders\OrdersCreateRequest as PayPalOrdersCreateRequestV2;
+use PayPalCheckoutSdk\Orders\OrdersCaptureRequest as PayPalOrderCaptureRequestV2;
 
 /**
  * Class Payment
@@ -74,6 +79,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     const PAYPAL_REQUEST_TYPE_GET_ORDER       = 'paypal-api-get_order';
     const PAYPAL_REQUEST_TYPE_CREATE_ORDER    = 'paypal-api-create_order';
+    const PAYPAL_REQUEST_TYPE_UPDATE_ORDER    = 'paypal-api-update_order';
     const PAYPAL_REQUEST_TYPE_EXECUTE_ORDER   = 'paypal-api-execute_order';
     const PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER = 'paypal-api-authorize_order';
     const PAYPAL_REQUEST_TYPE_CAPTURE_ORDER   = 'paypal-api-capture_order';
@@ -91,11 +97,18 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const PAYPAL_ERROR_ORDER_NOT_REFUNDED_ORDER_NOT_CAPTURED = 'order_not_refunded_order_not_captured';
 
     /**
-     * PayPal PHP REST Client (v2)
+     * PayPal PHP REST Client (v1)
      *
      * @var PayPalClient
      */
     protected $PayPalClient = null;
+
+    /**
+     * PayPal PHP REST Client (v2)
+     *
+     * @var PayPalClientV2
+     */
+    protected $PayPalClientV2 = null;
 
     /**
      * @return string
@@ -247,128 +260,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     {
         $Order->addHistory('PayPal :: Create Order');
 
-        $PriceCalculation = $Order->getPriceCalculation();
-        $currencyCode     = $Order->getCurrency()->getCode();
-
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)) {
             $Order->addHistory('PayPal :: Order already created. Voiding and re-creating...');
             $this->voidPayPalOrder($Order);
         }
 
-        $isNetto = ERPUserUtils::isNettoUser($Order->getCustomer());
+        $body = $this->getPayPalDataForOrder($Order);
 
-        // Basic payment data
-        $transactionData = [
-            'reference_id' => $Order->getHash(),
-            'description'  => $this->getLocale()->get(
-                'quiqqer/payment-paypal',
-                'Payment.order.create.description',
-                [
-                    'orderId' => $Order->getPrefixedId()
-                ]
-            )
-        ];
-
-        $amount = [
-            'currency' => $currencyCode,
-            'total'    => $PriceCalculation->getSum()->precision(2)->get()
-        ];
-
-        // Shipping data
-        $shippingCost    = Utils::getShippingCostsByOrder($Order);
-        $shippingAddress = Utils::getPayPalShippingAddressDataByOrder($Order);
-
-        if ($isNetto || $shippingCost) {
-            $amountDetails = [
-                'subtotal' => $PriceCalculation->getNettoSum()->precision(2)->get(),
-                'tax'      => $PriceCalculation->getVatSum()->precision(2)->get()
-            ];
-
-            if ($shippingCost !== false) {
-                $amountDetails['shipping'] = $shippingCost;
-            }
-
-            $amount['details'] = $amountDetails;
-        }
-
-        $transactionData['amount'] = $amount;
-
-        // Article List
-        if (Provider::getPaymentSetting('display_paypal_basket')) {
-            $items = [];
-
-            /** @var QUI\ERP\Accounting\Article $OrderArticle */
-            foreach ($PriceCalculation->getArticles() as $OrderArticle) {
-                $articleData = $OrderArticle->toArray();
-                $calculated  = $articleData['calculated'];
-                $FactorPrice = new CalculationValue($calculated['price']); // unit price
-
-                $item = [
-                    'name'     => $OrderArticle->getTitle(),
-                    'quantity' => $OrderArticle->getQuantity(),
-                    'price'    => $FactorPrice->precision(2)->get(),
-                    'currency' => $currencyCode
-                ];
-
-                // Optional: product description
-                $description = $OrderArticle->getDescription();
-
-                if (!empty($description)) {
-                    $item['description'] = $description;
-                }
-
-                // Optional: product article no.
-                $articleNo = $OrderArticle->getArticleNo();
-
-                if (!empty($articleNo)) {
-                    $item['sku'] = $articleNo;
-                }
-
-                $items[] = $item;
-            }
-
-            // add price factors
-            $PriceFactors = $Order->getArticles()->getPriceFactors();
-
-            /** @var QUI\ERP\Accounting\PriceFactors\Factor $PriceFactor */
-            foreach ($PriceFactors as $PriceFactor) {
-                $FactorPriceCalc = new CalculationValue($PriceFactor->getSum());
-                $factorExtraText = ''; // @todo
-                $name            = $PriceFactor->getTitle();
-
-                if (!empty($factorExtraText)) {
-                    $name .= ' ('.$factorExtraText.')';
-                }
-
-                $items[] = [
-                    'name'     => $name,
-                    'quantity' => 1,
-                    'price'    => $FactorPriceCalc->precision(2)->get(),
-                    'currency' => $currencyCode
-                ];
-            }
-
-            $transactionData['item_list']['items'] = $items;
-
-            if ($shippingAddress !== false) {
-                $transactionData['item_list']['shipping_address'] = $shippingAddress;
-            }
-        }
-
-        // Return URLs
-        $Gateway = new Gateway();
-
-        $body = [
-            'intent'        => 'order',
-            'payer'         => [
-                'payment_method' => 'paypal'
-            ],
-            'transactions'  => [$transactionData],
-            'redirect_urls' => [
-                'return_url' => $Gateway->getGatewayUrl(),
-                'cancel_url' => $Gateway->getGatewayUrl()
-            ]
-        ];
+        \QUI\System\Log::writeRecursive($body);
 
         try {
             $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_ORDER, $body, $Order);
@@ -379,6 +278,50 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $Order->addHistory('PayPal :: Order successfully created');
+        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, $response['id']);
+        $this->saveOrder($Order);
+    }
+
+    /**
+     * Update a PayPal Order
+     *
+     * @param AbstractOrder $Order
+     * @return void
+     *
+     * @throws PayPalException
+     * @throws QUI\Exception
+     */
+    public function updatePayPalOrder(AbstractOrder $Order)
+    {
+        $Order->addHistory('PayPal :: Update Order');
+
+        if (!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
+            $Order->addHistory('PayPal :: Order cannot be updated since it has not been created yet');
+            return;
+        }
+
+        $payPalDataForOrder = $this->getPayPalDataForOrder($Order);
+        $transaction        = $payPalDataForOrder['transactions'][0];
+
+        $body = [
+            [
+                'op'    => 'replace',
+                'path'  => '/purchase_units/@reference_id==\''.$Order->getHash().'\'/amount',
+                'value' => $transaction['amount']
+            ]
+        ];
+
+        \QUI\System\Log::writeRecursive($body);
+
+        try {
+            $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_UPDATE_ORDER, $body, $Order);
+        } catch (PayPalException $Exception) {
+            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $this->saveOrder($Order);
+            throw $Exception;
+        }
+
+        $Order->addHistory('PayPal :: Order successfully updated');
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, $response['id']);
         $this->saveOrder($Order);
     }
@@ -781,6 +724,145 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     }
 
     /**
+     * Prepare order data to be sent to PayPal API (create/update)
+     *
+     * @param AbstractOrder $Order
+     * @return array
+     */
+    protected function getPayPalDataForOrder(AbstractOrder $Order)
+    {
+        $isNetto = ERPUserUtils::isNettoUser($Order->getCustomer());
+
+        // Basic payment data
+        $transactionData = [
+            'reference_id' => $Order->getHash(),
+            'description'  => $this->getLocale()->get(
+                'quiqqer/payment-paypal',
+                'Payment.order.create.description',
+                [
+                    'orderId' => $Order->getPrefixedId()
+                ]
+            )
+        ];
+
+        $PriceCalculation = $Order->getPriceCalculation();
+        $currencyCode     = $Order->getCurrency()->getCode();
+        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
+
+        $amount = [
+            'currency_code' => $currencyCode,
+            'value'         => Utils::formatPrice($PriceCalculation->getSum()->get())
+        ];
+
+        // Shipping data
+        $shippingCost    = Utils::getShippingCostsByOrder($Order);
+        $shippingAddress = Utils::getPayPalShippingAddressDataByOrder($Order);
+
+        if ($isNetto || $shippingCost) {
+            $amountDetails = [
+                'subtotal' => Utils::formatPrice($PriceCalculation->getNettoSum()->get()),
+                'tax'      => Utils::formatPrice($PriceCalculation->getVatSum()->get())
+            ];
+
+            if ($shippingCost !== false) {
+                $amountDetails['shipping'] = $shippingCost;
+            }
+
+            $amount['details'] = $amountDetails;
+        }
+
+        // Article List
+        if (Provider::getPaymentSetting('display_paypal_basket')) {
+            $items = [];
+
+            /** @var QUI\ERP\Accounting\Article $OrderArticle */
+            foreach ($PriceCalculation->getArticles() as $OrderArticle) {
+                $articleData = $OrderArticle->toArray();
+                $calculated  = $articleData['calculated'];
+                $FactorPrice = new CalculationValue($calculated['price']); // unit price
+
+                $item = [
+                    'name'        => $OrderArticle->getTitle(),
+                    'quantity'    => $OrderArticle->getQuantity(),
+                    'unit_amount' => [
+                        'value'         => Utils::formatPrice($FactorPrice->get()),
+                        'currency_code' => $currencyCode
+                    ]
+                ];
+
+                // Optional: product description
+                $description = $OrderArticle->getDescription();
+
+                if (!empty($description)) {
+                    $item['description'] = $description;
+                }
+
+                // Optional: product article no.
+                $articleNo = $OrderArticle->getArticleNo();
+
+                if (!empty($articleNo)) {
+                    $item['sku'] = $articleNo;
+                }
+
+                $items[] = $item;
+            }
+
+            // add price factors
+            $PriceFactors = $Order->getArticles()->getPriceFactors();
+
+            /** @var QUI\ERP\Accounting\PriceFactors\Factor $PriceFactor */
+            foreach ($PriceFactors as $PriceFactor) {
+                $FactorPriceCalc = new CalculationValue($PriceFactor->getSum());
+                $factorExtraText = ''; // @todo
+                $name            = $PriceFactor->getTitle();
+
+                if (!empty($factorExtraText)) {
+                    $name .= ' ('.$factorExtraText.')';
+                }
+
+                $items[] = [
+                    'name'        => $name,
+                    'quantity'    => 1,
+                    'unit_amount' => [
+                        'value'         => Utils::formatPrice($FactorPriceCalc->get()),
+                        'currency_code' => $currencyCode
+                    ]
+                ];
+            }
+
+            $transactionData['items'] = $items;
+
+            if ($shippingAddress !== false) {
+                $transactionData['shipping']['address'] = $shippingAddress;
+            }
+
+            $amount['breakdown'] = [
+                'item_total' => [
+                    'value'         => $amountTotal,
+                    'currency_code' => $currencyCode
+                ]
+            ];
+        }
+
+        $transactionData['amount'] = $amount;
+
+        // Return URLs
+        $Gateway = new Gateway();
+
+        return [
+            'intent'         => 'CAPTURE',
+            'payer'          => [
+                'payment_method' => 'paypal'
+            ],
+            'purchase_units' => [$transactionData],
+            'redirect_urls'  => [
+                'return_url' => $Gateway->getGatewayUrl(),
+                'cancel_url' => $Gateway->getGatewayUrl()
+            ]
+        ];
+    }
+
+    /**
      * Get details of a PayPal Order
      *
      * @param AbstractOrder $Order
@@ -929,6 +1011,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             return false;
         };
 
+        $apiV2 = false;
+
         switch ($request) {
             case self::PAYPAL_REQUEST_TYPE_GET_ORDER:
                 $Request = new OrderGetRequest(
@@ -937,7 +1021,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 break;
 
             case self::PAYPAL_REQUEST_TYPE_CREATE_ORDER:
-                $Request = new PaymentCreateRequest();
+//                $Request = new PaymentCreateRequest();
+                $Request = new PayPalOrdersCreateRequestV2();
+                $Request->prefer('return=representation');    // return full order representation
+
+                $apiV2 = true;
                 break;
 
             case self::PAYPAL_REQUEST_TYPE_EXECUTE_ORDER:
@@ -953,9 +1041,19 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 break;
 
             case self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER:
-                $Request = new OrderCaptureRequest(
+                $Request = new PayPalOrderCaptureRequestV2(
                     $getData(self::ATTR_PAYPAL_ORDER_ID)
                 );
+
+                $apiV2 = true;
+                break;
+
+            case self::PAYPAL_REQUEST_TYPE_UPDATE_ORDER:
+                $Request = new PayPalOrdersPatchRequestV2(
+                    $getData(self::ATTR_PAYPAL_ORDER_ID)
+                );
+
+                $apiV2 = true;
                 break;
 
             case self::PAYPAL_REQUEST_TYPE_VOID_ORDER:
@@ -1062,7 +1160,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         try {
-            $Response = $this->getPayPalClient()->execute($Request);
+            if ($apiV2) {
+                $Response = $this->getPayPalClientV2()->execute($Request);
+            } else {
+                $Response = $this->getPayPalClient()->execute($Request);
+            }
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             $this->throwPayPalException();
@@ -1098,5 +1200,33 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $this->PayPalClient = new PayPalClient($Environment);
 
         return $this->PayPalClient;
+    }
+
+    /**
+     * Get PayPal Client for current payment process
+     *
+     * @return PayPalClientV2
+     */
+    protected function getPayPalClientV2()
+    {
+        if (!is_null($this->PayPalClientV2)) {
+            return $this->PayPalClientV2;
+        }
+
+        if (Provider::getApiSetting('sandbox')) {
+            $Environment = new PayPalSandboxEnvironmentV2(
+                Provider::getApiSetting('sandbox_client_id'),
+                Provider::getApiSetting('sandbox_client_secret')
+            );
+        } else {
+            $Environment = new PayPalProductionEnvironmentV2(
+                Provider::getApiSetting('client_id'),
+                Provider::getApiSetting('client_secret')
+            );
+        }
+
+        $this->PayPalClientV2 = new PayPalClientV2($Environment);
+
+        return $this->PayPalClientV2;
     }
 }

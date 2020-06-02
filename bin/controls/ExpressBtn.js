@@ -59,6 +59,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.$ContextParent = null; // this can be either an OrderProcess or a SmallBasket
             this.$hash          = false;
             this.$widgetsLoaded = false;
+            this.$ErrorPopup    = null;
 
             this.Loader     = new QUILoader();
             this.PageLoader = new QUILoader();
@@ -201,7 +202,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
                     return PayPalApi.createOrder(
                         self.$hash,
-                        self.getAttribute('basketid')
+                        self.getAttribute('basketid'),
+                        true
                     ).then(function (Order) {
                         self.$hash = Order.hash;
                         return Order.payPalPaymentId;
@@ -314,7 +316,11 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
          * @param {String} msg
          */
         $showErrorMsg: function (msg) {
-            new QUIConfirm({
+            if (this.$ErrorPopup) {
+                this.$ErrorPopup.close();
+            }
+
+            this.$ErrorPopup = new QUIConfirm({
                 maxHeight: 300,
                 autoclose: false,
 

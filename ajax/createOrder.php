@@ -8,13 +8,15 @@ use QUI\Utils\Security\Orthos;
 /**
  * Create PayPal payment for an Order
  *
+ * @param string $orderHash
  * @param int $basketId - Basket ID
+ * @param bool $express (optional) - PayPal Express flag
  * @return array - PayPal Order/Payment ID and Order hash
  * @throws PayPalException
  */
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_createOrder',
-    function ($orderHash, $basketId) {
+    function ($orderHash, $basketId, $express = false) {
         try {
             if (!empty($orderHash)) {
                 $orderHash = Orthos::clear($orderHash);
