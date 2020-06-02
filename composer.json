@@ -1,33 +1,34 @@
 {
-    "name": "quiqqer\/payment-paypal",
-    "type": "quiqqer-module",
-    "description": "PayPal - Payment method for QUIQQER ERP stack",
-    "license": [
-        "GPL-3.0+",
-        "PCSG QL-1.0"
-    ],
-    "authors": [
-        {
-            "name": "Patrick M\u00fcller",
-            "email": "p.mueller@pcsg.de",
-            "homepage": "http:\/\/www.pcsg.de",
-            "role": "Developer"
-        }
-    ],
-    "support": {
-        "email": "support@pcsg.de",
-        "url": "http:\/\/www.pcsg.de"
-    },
-    "require": {
-        "quiqqer\/payments": ">=1.0|dev-master|dev-dev",
-        "paypal\/rest-api-sdk-php": "dev-2.0-beta"
-    },
-    "suggest": {
-        "quiqqer\/erp-plans": "Allows handling of orders that require automated recurring payments"
-    },
-    "autoload": {
-        "psr-4": {
-            "QUI\\ERP\\Payments\\PayPal\\": "src\/QUI\/ERP\/Payments\/PayPal"
-        }
+  "name": "quiqqer\/payment-paypal",
+  "type": "quiqqer-module",
+  "description": "PayPal - Payment method for QUIQQER ERP stack",
+  "license": [
+    "GPL-3.0+",
+    "PCSG QL-1.0"
+  ],
+  "authors": [
+    {
+      "name": "Patrick M\u00fcller",
+      "email": "p.mueller@pcsg.de",
+      "homepage": "http:\/\/www.pcsg.de",
+      "role": "Developer"
     }
+  ],
+  "support": {
+    "email": "support@pcsg.de",
+    "url": "http:\/\/www.pcsg.de"
+  },
+  "require": {
+    "quiqqer\/payments": ">=1.0|dev-master|dev-dev",
+    "paypal\/rest-api-sdk-php": "dev-2.0-beta",
+    "paypal\/paypal-checkout-sdk": "^1.0.1"
+  },
+  "suggest": {
+    "quiqqer\/erp-plans": "Allows handling of orders that require automated recurring payments"
+  },
+  "autoload": {
+    "psr-4": {
+      "QUI\\ERP\\Payments\\PayPal\\": "src\/QUI\/ERP\/Payments\/PayPal"
+    }
+  }
 }
