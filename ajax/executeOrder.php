@@ -9,7 +9,7 @@ use QUI\Utils\Security\Orthos;
 /**
  * Execute PayPal payment for an Order
  *
- * @param string $paymentId - PayPal paymentID
+ * @param string $orderId - PayPal orderID
  * @param string $payerId - PayPal payerID
  * @param string $orderHash - Unique order hash to identify Order
  * @param bool $express (optional) - PayPal Express flag
@@ -18,7 +18,7 @@ use QUI\Utils\Security\Orthos;
  */
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_executeOrder',
-    function ($orderHash, $paymentId, $payerId, $express = false) {
+    function ($orderHash, $orderId, $payerId, $express = false) {
         $orderHash = Orthos::clear($orderHash);
         $express   = boolval($express);
 
@@ -31,7 +31,7 @@ QUI::$Ajax->registerFunction(
                 $Payment = new Payment();
             }
 
-            $Payment->executePayPalOrder($Order, $paymentId, $payerId);
+            $Payment->executePayPalOrder($Order, null, $payerId);
 
             /*
              * Authorization and capturing are only executed
@@ -56,5 +56,5 @@ QUI::$Ajax->registerFunction(
 
         return true;
     },
-    ['orderHash', 'paymentId', 'payerId', 'express']
+    ['orderHash', 'orderId', 'payerId', 'express']
 );

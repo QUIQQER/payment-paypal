@@ -127,10 +127,9 @@ class Utils
      * Get shipping costs by order
      *
      * @param AbstractOrder $Order
-     * @param bool $express (optional) - Is PayPal Express order
      * @return float|false - Shipping cost (2 digit precision) or false if costs cannot be determined
      */
-    public static function getShippingCostsByOrder(AbstractOrder $Order, $express = false)
+    public static function getShippingCostsByOrder(AbstractOrder $Order)
     {
         if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
             return false;
@@ -140,9 +139,9 @@ class Utils
         $Shipping        = $ShippingHandler->getShippingByObject($Order);
 
         // If shipping not already set in order -> automatically use first available shipping method
-        if (empty($Shipping) && $express) {
-            $Shipping = self::getDefaultExpressShipping($Order);
-        }
+//        if (empty($Shipping) && $express) {
+//            $Shipping = self::getDefaultExpressShipping($Order);
+//        }
 
         if (empty($Shipping)) {
             return false;
@@ -150,7 +149,7 @@ class Utils
 
         $PriceFactor = $Shipping->toPriceFactor(null, $Order);
 
-        return \number_format($PriceFactor->getSum(), 2); // @todo experimental
+        return \number_format($PriceFactor->getValue(), 2); // @todo experimental
     }
 
     /**

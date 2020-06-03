@@ -9,13 +9,14 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
     'qui/controls/buttons/Button',
 
     'utils/Controls',
+    'package/quiqqer/payment-paypal/bin/PayPal',
 
     'Ajax',
     'Locale',
 
     'css!package/quiqqer/payment-paypal/bin/controls/PaymentDisplay.css'
 
-], function (QUIControl, QUIButton, QUIControlUtils, QUIAjax, QUILocale) {
+], function (QUIControl, QUIButton, QUIControlUtils, PayPalApi, QUIAjax, QUILocale) {
     "use strict";
 
     var pkg = 'quiqqer/payment-paypal';
@@ -27,7 +28,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
         Binds: [
             '$onImport',
-            '$showPayPalBtn',
+            '$renderPayPalBtn',
             '$onPayPalLoginReady',
             '$showPayPalWallet',
             '$showErrorMsg',
@@ -86,36 +87,53 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
          * Load PayPal Pay widgets
          */
         $loadPayPalWidgets: function () {
-            var self      = this;
-            var widgetUrl = "https://www.paypalobjects.com/api/checkout.js";
+            var self = this;
 
             if (typeof paypal !== 'undefined') {
-                this.$showPayPalBtn();
+                this.$renderPayPalBtn();
                 return;
             }
 
-            this.$OrderProcess.Loader.show();
+            Promise.all([
+                PayPalApi.getClientId(),
+                PayPalApi.getOrderDetails()
+            ]).then(function (result) {
+                var OrderDetails = result[1];
 
-            new Element('script', {
-                async: "async",
-                src  : widgetUrl
-            }).inject(document.body);
+                var widgetUrl = "https://www.paypal.com/sdk/js?client-id=" + result[0];
 
-            var checkPayPayLoaded = setInterval(function () {
-                if (typeof paypal === 'undefined') {
-                    return;
-                }
+                widgetUrl += '&currency=' + OrderDetails.currency;
+                widgetUrl += '&intent=capture';
+                widgetUrl += '&commit=true';
 
-                clearInterval(checkPayPayLoaded);
-                self.$showPayPalBtn();
-            }, 200);
+                widgetUrl += '&disable-funding=card,credit,venmo,sepa,bancontact,eps,giropay,ideal,mybank';
+                widgetUrl += ',p24,sofort';
+
+                //widgetUrl += '&disable-card=card,credit,venmo,sepa,bancontact,eps,giropay,ideal,mybank';
+                //widgetUrl += ',p24,sofort';
+
+                new Element('script', {
+                    async: "async",
+                    src  : widgetUrl,
+                    id   : 'paypal-checkout-api'
+                }).inject(document.body);
+
+                self.$renderPayPalBtn();
+            });
         },
 
         /**
          * Show PayPal Pay Button widget (btn)
          */
-        $showPayPalBtn: function () {
+        $renderPayPalBtn: function () {
             var self = this;
+
+            if (typeof paypal === 'undefined') {
+                (function () {
+                    this.$renderPayPalBtn();
+                }).delay(200, this);
+                return;
+            }
 
             this.$OrderProcess.Loader.show();
 
@@ -123,10 +141,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
             this.$PayPalBtnElm.set('html', '');
 
-            window.paypal.Button.render({
-                env   : !this.getAttribute('sandbox') ? 'production' : 'sandbox',
-                commit: true,
-
+            paypal.Buttons({
                 style: {
                     label: 'pay',
                     size : this.$PayPalBtnElm.get('data-size'),
@@ -134,15 +149,19 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     color: this.$PayPalBtnElm.get('data-color')
                 },
 
-                // payment() is called when the button is clicked
-                payment: function () {
+                // createOrder() is called when the button is clicked
+                createOrder: function () {
                     self.$OrderProcess.Loader.show(
                         QUILocale.get(pkg, 'PaymentDisplay.confirm_payment')
                     );
 
-                    return self.$createOrder().then(function (Order) {
-                        self.$OrderProcess.Loader.hide();
-                        return Order.payPalPaymentId;
+                    return PayPalApi.createOrder(
+                        self.getAttribute('orderhash'),
+                        self.getAttribute('basketid'),
+                        false
+                    ).then(function (Order) {
+                        self.$hash = Order.hash;
+                        return Order.payPalOrderId;
                     }, function (Error) {
                         self.$OrderProcess.Loader.hide();
                         self.$showErrorMsg(Error.getMessage());
@@ -152,13 +171,18 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     });
                 },
 
-                // onAuthorize() is called when the buyer approves the payment
-                onAuthorize: function (data) {
+                // onApprove() is called when the buyer approves the payment
+                onApprove: function (data) {
                     self.$OrderProcess.Loader.show(
                         QUILocale.get(pkg, 'PaymentDisplay.execute_payment')
                     );
 
-                    self.$executeOrder(data.paymentID, data.payerID).then(function (success) {
+                    PayPalApi.executeOrder(
+                        self.$hash,
+                        data.orderID,
+                        data.payerID,
+                        false
+                    ).then(function (success) {
                         if (success) {
                             self.$OrderProcess.next();
                             return;
@@ -182,7 +206,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         QUILocale.get(pkg, 'PaymentDisplay.user_cancel')
                     );
 
-                    self.$showPayPalBtn();
+                    self.$renderPayPalBtn();
 
                     self.fireEvent('processingError', [self]);
                 },
@@ -192,51 +216,13 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         QUILocale.get(pkg, 'PaymentDisplay.processing_error')
                     );
 
-                    self.$showPayPalBtn();
+                    self.$renderPayPalBtn();
 
                     self.fireEvent('processingError', [self]);
                 }
-            }, self.$PayPalBtnElm).then(function () {
+            }).render(self.$PayPalBtnElm).then(function () {
                 self.$OrderProcess.resize();
                 self.$OrderProcess.Loader.hide();
-            });
-        },
-
-        /**
-         * Create PayPal Order
-         *
-         * @return {Promise}
-         */
-        $createOrder: function () {
-            var self = this;
-
-            return new Promise(function (resolve, reject) {
-                QUIAjax.post('package_quiqqer_payment-paypal_ajax_createOrder', resolve, {
-                    'package': pkg,
-                    orderHash: self.getAttribute('orderhash'),
-                    onError  : reject
-                });
-            });
-        },
-
-        /**
-         * Execute PayPal Order
-         *
-         * @param {String} paymentId - PayPal paymentID
-         * @param {String} payerId - PayPal payerID
-         * @return {Promise}
-         */
-        $executeOrder: function (paymentId, payerId) {
-            var self = this;
-
-            return new Promise(function (resolve, reject) {
-                QUIAjax.post('package_quiqqer_payment-paypal_ajax_executeOrder', resolve, {
-                    'package': pkg,
-                    orderHash: self.getAttribute('orderhash'),
-                    paymentId: paymentId,
-                    payerId  : payerId,
-                    onError  : reject
-                });
             });
         },
 

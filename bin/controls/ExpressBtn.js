@@ -151,21 +151,39 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
          * Load PayPal Pay widgets
          */
         $loadPayPalWidgets: function () {
-            var self      = this;
-            var widgetUrl = "https://www.paypalobjects.com/api/checkout.js";
+            var self = this;
 
             if (document.id('paypal-checkout-api')) {
                 this.$renderPayPalBtn();
                 return;
             }
 
-            new Element('script', {
-                async: "async",
-                src  : widgetUrl,
-                id   : 'paypal-checkout-api'
-            }).inject(document.body);
+            Promise.all([
+                PayPalApi.getClientId(),
+                PayPalApi.getOrderDetails()
+            ]).then(function (result) {
+                var OrderDetails = result[1];
 
-            self.$renderPayPalBtn();
+                var widgetUrl = "https://www.paypal.com/sdk/js?client-id=" + result[0];
+
+                widgetUrl += '&currency=' + OrderDetails.currency;
+                widgetUrl += '&intent=capture';
+                widgetUrl += '&commit=false';
+
+                widgetUrl += '&disable-funding=card,credit,venmo,sepa,bancontact,eps,giropay,ideal,mybank';
+                widgetUrl += ',p24,sofort';
+
+                //widgetUrl += '&disable-card=card,credit,venmo,sepa,bancontact,eps,giropay,ideal,mybank';
+                //widgetUrl += ',p24,sofort';
+
+                new Element('script', {
+                    async: "async",
+                    src  : widgetUrl,
+                    id   : 'paypal-checkout-api'
+                }).inject(document.body);
+
+                self.$renderPayPalBtn();
+            });
         },
 
         /**
@@ -185,10 +203,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
             this.$PayPalBtnElm.set('html', '');
 
-            paypal.Button.render({
-                env   : !this.getAttribute('sandbox') ? 'production' : 'sandbox',
-                commit: false,
-
+            paypal.Buttons({
                 style: {
                     label: 'checkout',
                     size : this.getAttribute('displaysize'),
@@ -196,8 +211,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                     color: this.getAttribute('displaycolor')
                 },
 
-                // payment() is called when the button is clicked
-                payment: function () {
+                // createOrder() is called when the button is clicked
+                createOrder: function () {
                     self.$showLoader(QUILocale.get(pkg, 'ExpressBtn.confirm_payment'));
 
                     return PayPalApi.createOrder(
@@ -206,7 +221,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                         true
                     ).then(function (Order) {
                         self.$hash = Order.hash;
-                        return Order.payPalPaymentId;
+                        return Order.payPalOrderId;
                     }, function (Error) {
                         self.$hideLoader();
                         self.$showErrorMsg(Error.getMessage());
@@ -217,13 +232,13 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                     self.$hideLoader();
                 },
 
-                // onAuthorize() is called when the buyer approves the payment
-                onAuthorize: function (data) {
+                // onApprove() is called when the buyer approves the payment
+                onApprove: function (data) {
                     self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
 
                     PayPalApi.executeOrder(
                         self.$hash,
-                        data.paymentID,
+                        data.orderID,
                         data.payerID,
                         true
                     ).then(function (success) {
@@ -250,7 +265,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
                     self.$renderPayPalBtn();
                 }
-            }, this.$PayPalBtnElm).then(function () {
+            }).render(this.$PayPalBtnElm).then(function () {
                 if (self.$ContextParent) {
                     self.Loader.hide();
                 }

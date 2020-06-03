@@ -39,6 +39,7 @@ use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use PayPalCheckoutSdk\Orders\OrdersPatchRequest as PayPalOrdersPatchRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCreateRequest as PayPalOrdersCreateRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCaptureRequest as PayPalOrderCaptureRequestV2;
+use PayPalCheckoutSdk\Orders\OrdersGetRequest as PayPalOrderGetRequestV2;
 
 /**
  * Class Payment
@@ -65,7 +66,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const PAYPAL_ORDER_STATE_PENDING    = 'pending';
     const PAYPAL_ORDER_STATE_AUTHORIZED = 'authorized';
     const PAYPAL_ORDER_STATE_CAPTURED   = 'captured';
-    const PAYPAL_ORDER_STATE_COMPLETED  = 'completed';
+    const PAYPAL_ORDER_STATE_COMPLETED  = 'COMPLETED';
     const PAYPAL_ORDER_STATE_VOIDED     = 'voided';
 
     /**
@@ -261,13 +262,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->addHistory('PayPal :: Create Order');
 
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)) {
-            $Order->addHistory('PayPal :: Order already created. Voiding and re-creating...');
-            $this->voidPayPalOrder($Order);
+            $Order->addHistory('PayPal :: Order already created - updating with new details');
+            $this->updatePayPalOrder($Order);
+            return;
         }
 
         $body = $this->getPayPalDataForOrder($Order);
-
-        \QUI\System\Log::writeRecursive($body);
 
         try {
             $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_ORDER, $body, $Order);
@@ -278,7 +278,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $Order->addHistory('PayPal :: Order successfully created');
-        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, $response['id']);
+        $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, $response['id']);
         $this->saveOrder($Order);
     }
 
@@ -301,20 +301,18 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $payPalDataForOrder = $this->getPayPalDataForOrder($Order);
-        $transaction        = $payPalDataForOrder['transactions'][0];
+        $purchaseUnit       = $payPalDataForOrder['purchase_units'][0];
 
         $body = [
             [
                 'op'    => 'replace',
                 'path'  => '/purchase_units/@reference_id==\''.$Order->getHash().'\'/amount',
-                'value' => $transaction['amount']
+                'value' => $purchaseUnit['amount']
             ]
         ];
 
-        \QUI\System\Log::writeRecursive($body);
-
         try {
-            $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_UPDATE_ORDER, $body, $Order);
+            $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_UPDATE_ORDER, $body, $Order);
         } catch (PayPalException $Exception) {
             $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
             $this->saveOrder($Order);
@@ -322,7 +320,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $Order->addHistory('PayPal :: Order successfully updated');
-        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, $response['id']);
         $this->saveOrder($Order);
     }
 
@@ -499,25 +496,34 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $PriceCalculation = $Order->getPriceCalculation();
-        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
-        $captureId        = false;
+//        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
+        $captureId = false;
+        $captured  = false;
+        $amount    = false;
+
+        $checkOrderCaptureStatus = function ($payPalOrderData) use (&$captureId, &$captured, &$amount) {
+            if (empty($payPalOrderData['purchase_units'][0]['payments']['captures'])) {
+                return;
+            }
+
+            $captureData = $payPalOrderData['purchase_units'][0]['payments']['captures'][0];
+
+            $captured = !empty($captureData['status']) &&
+                        $captureData['status'] === self::PAYPAL_ORDER_STATE_COMPLETED &&
+                        $captureData['final_capture'];
+
+            $captureId = $captureData['id'];
+            $amount    = $captureData['amount'];
+        };
 
         try {
             $response = $this->payPalApiRequest(
                 self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER,
-                [
-                    'amount'           => [
-                        'total'    => $amountTotal,
-                        'currency' => $Order->getCurrency()->getCode()
-                    ],
-                    'is_final_capture' => true // capture full amount directly
-                ],
+                [],
                 $Order
             );
 
-            $captured  = !empty($response['state']) && $response['state'] === self::PAYPAL_ORDER_STATE_COMPLETED;
-            $captureId = $response['id'];
-            $amount    = $response['amount'];
+            $checkOrderCaptureStatus($response);
         } catch (PayPalException $Exception) {
             $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
             $this->saveOrder($Order);
@@ -525,19 +531,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             // it may happen that the capture was actually completed and the PHP SDK just
             // threw an exception
             $orderDetails = $this->getPayPalOrderDetails($Order);
-
-            if (!$orderDetails) {
-                $Order->addHistory('PayPal :: Order details could not be queried after failed capture request');
-                $this->saveOrder($Order);
-                $this->throwPayPalException();
-            }
-
-            $orderState = $orderDetails['state'];
-            $captured   = $orderState === self::PAYPAL_ORDER_STATE_COMPLETED
-                          || $orderState === self::PAYPAL_ORDER_STATE_CAPTURED;
-            $amount     = $orderDetails['amount'];
-
-            $Order->addHistory('PayPal :: Order status after failed capture request: "'.$orderState.'"');
+            $checkOrderCaptureStatus($orderDetails);
 
             if ($captured) {
                 $Order->addHistory(
@@ -594,8 +588,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->addHistory('PayPal :: Set Gateway purchase');
 
         $Transaction = Gateway::getInstance()->purchase(
-            $amount['total'],
-            new QUI\ERP\Currency\Currency($amount['currency']),
+            (float)$amount['value'],
+            new QUI\ERP\Currency\Currency($amount['currency_code']),
             $Order,
             $this
         );
@@ -1015,9 +1009,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         switch ($request) {
             case self::PAYPAL_REQUEST_TYPE_GET_ORDER:
-                $Request = new OrderGetRequest(
+                $Request = new PayPalOrderGetRequestV2(
                     $getData(self::ATTR_PAYPAL_ORDER_ID)
                 );
+
+                $apiV2 = true;
                 break;
 
             case self::PAYPAL_REQUEST_TYPE_CREATE_ORDER:
@@ -1044,6 +1040,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $Request = new PayPalOrderCaptureRequestV2(
                     $getData(self::ATTR_PAYPAL_ORDER_ID)
                 );
+                $Request->prefer('return=representation');    // return full order representation
 
                 $apiV2 = true;
                 break;

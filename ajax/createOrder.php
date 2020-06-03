@@ -43,8 +43,8 @@ QUI::$Ajax->registerFunction(
         }
 
         return [
-            'payPalPaymentId' => $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_PAYMENT_ID),
-            'hash'            => $Order->getHash()
+            'payPalOrderId' => $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_ID),
+            'hash'          => $Order->getHash()
         ];
     },
     ['orderHash', 'basketId']
