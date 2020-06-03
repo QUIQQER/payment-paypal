@@ -739,6 +739,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             )
         ];
 
+        $Order->recalculate();
         $PriceCalculation = $Order->getPriceCalculation();
         $currencyCode     = $Order->getCurrency()->getCode();
         $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
@@ -754,7 +755,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         if ($isNetto || $shippingCost) {
             $amountDetails = [
-                'subtotal' => Utils::formatPrice($PriceCalculation->getNettoSum()->get()),
+                'subtotal' => Utils::formatPrice($PriceCalculation->getNettoSubSum()->get()),
                 'tax'      => Utils::formatPrice($PriceCalculation->getVatSum()->get())
             ];
 
