@@ -9,8 +9,6 @@ use QUI\Utils\Security\Orthos;
 /**
  * Execute PayPal payment for an Order
  *
- * @param string $orderId - PayPal orderID
- * @param string $payerId - PayPal payerID
  * @param string $orderHash - Unique order hash to identify Order
  * @param bool $express (optional) - PayPal Express flag
  * @return bool - success
@@ -18,22 +16,14 @@ use QUI\Utils\Security\Orthos;
  */
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_executeOrder',
-    function ($orderHash, $orderId, $payerId, $express = false) {
+    function ($orderHash, $express = false) {
         $orderHash = Orthos::clear($orderHash);
         $express   = boolval($express);
 
         try {
             $Order = Handler::getInstance()->getOrderByHash($orderHash);
 
-            if ($express) {
-                $Payment = new PaymentExpress();
-            } else {
-                $Payment = new Payment();
-            }
-
-            $Payment->executePayPalOrder($Order, null, $payerId);
-
-            /*
+            /**
              * Authorization and capturing are only executed
              * if the user finalizes the Order by clicking
              * "Pay now" in the QUIQQER ERP Shop (not the PayPal popup)
@@ -42,7 +32,11 @@ QUI::$Ajax->registerFunction(
              * so these operations are only executed here if it is a
              * normal PayPal checkout
              */
-            if (!$express) {
+            if ($express) {
+                $Payment = new PaymentExpress();
+                $Payment->executePayPalOrder($Order);
+            } else {
+                $Payment = new Payment();
                 $Payment->capturePayPalOrder($Order);
             }
         } catch (PayPalException $Exception) {
@@ -55,5 +49,5 @@ QUI::$Ajax->registerFunction(
 
         return true;
     },
-    ['orderHash', 'orderId', 'payerId', 'express']
+    ['orderHash', 'express']
 );

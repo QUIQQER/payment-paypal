@@ -324,90 +324,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     }
 
     /**
-     * Execute a PayPal Order
+     * @internal This method is currently not called in the order process, since PayPal Orders are captured
+     * immediately after they are executed
      *
-     * @param string $paymentId - The paymentID from the user authorization of the Order
-     * (this is used to verify if the QUIQQER ERP Order is actually the PayPal Order that is executed here)
-     * @param string $payerId - The payerID from the user authorization of the Order
-     * @param AbstractOrder $Order
-     * @return void
-     *
-     * @throws PayPalException
-     * @throws QUI\Exception
-     */
-    public function executePayPalOrder(AbstractOrder $Order, $paymentId, $payerId)
-    {
-        $Order->addHistory('PayPal :: Execute Order');
-
-        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
-            $Order->addHistory('PayPal :: Order already executed');
-            $this->saveOrder($Order);
-            return;
-        }
-
-        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID) !== $paymentId) {
-            $Order->addHistory(
-                'PayPal :: PayPal Order ID that was saved in the QUIQQER Order'
-                .' did not match the PayPal paymentID that was given to the executePayPalOrder method'
-            );
-
-            $this->saveOrder($Order);
-            $this->throwPayPalException();
-        }
-
-        try {
-            $response = $this->payPalApiRequest(
-                self::PAYPAL_REQUEST_TYPE_EXECUTE_ORDER,
-                ['payer_id' => $payerId],
-                $Order
-            );
-        } catch (PayPalException $Exception) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
-            $this->saveOrder($Order);
-            throw $Exception;
-        }
-
-        if (empty($response['state'])
-            || $response['state'] !== 'approved') {
-            if (empty($response['failure_reason'])) {
-                $Order->addHistory(
-                    'PayPal :: Order execution was not approved by PayPal because of an unknown error'
-                );
-            } else {
-                $Order->addHistory(
-                    'PayPal :: Order execution was not approved by PayPal. Reason: "'.$response['failure_reason'].'"'
-                );
-            }
-
-            $this->voidPayPalOrder($Order);
-            $this->saveOrder($Order);
-            $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_APPROVED);
-        }
-
-        // parse Order ID for the transaction
-        $transaction = current($response['transactions']);
-        $resources   = current($transaction['related_resources']);
-
-        $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, $resources['order']['id']);
-
-        $Order->addHistory(
-            QUI::getLocale()->get(
-                'quiqqer/payment-paypal',
-                'history.order_id',
-                [
-                    'orderId' => $resources['order']['id']
-                ]
-            )
-        );
-
-        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_ID, $payerId);
-        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_DATA, $response['payer']);
-
-        $Order->addHistory('PayPal :: Order successfully executed and ready for authorization');
-        $this->saveOrder($Order);
-    }
-
-    /**
      * Authorize a PayPal Order
      *
      * @param AbstractOrder $Order
@@ -416,9 +335,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @throws PayPalException
      * @throws QUI\ERP\Exception
      * @throws QUI\Exception
-     * @internal This method is currently not called in the order process, since PayPal Orders are captured
-     * immediately after they are executed
-     *
      */
     public function authorizePayPalOrder(AbstractOrder $Order)
     {

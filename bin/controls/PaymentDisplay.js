@@ -177,12 +177,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         QUILocale.get(pkg, 'PaymentDisplay.execute_payment')
                     );
 
-                    PayPalApi.executeOrder(
-                        self.$hash,
-                        data.orderID,
-                        data.payerID,
-                        false
-                    ).then(function (success) {
+                    PayPalApi.executeOrder(self.$hash, false).then(function (success) {
                         if (success) {
                             self.$OrderProcess.next();
                             return;

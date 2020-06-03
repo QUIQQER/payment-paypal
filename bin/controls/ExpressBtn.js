@@ -236,12 +236,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 onApprove: function (data) {
                     self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
 
-                    PayPalApi.executeOrder(
-                        self.$hash,
-                        data.orderID,
-                        data.payerID,
-                        true
-                    ).then(function (success) {
+                    PayPalApi.executeOrder(self.$hash, true).then(function (success) {
                         if (success) {
                             self.$toCheckout();
                             return;

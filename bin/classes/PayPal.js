@@ -40,18 +40,14 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * Execute PayPal Order
          *
          * @param {String} orderHash - Unique order hash
-         * @param {String} orderId - PayPal orderID
-         * @param {String} payerId - PayPal payerID
          * @param {Boolean} [express] - PayPal express payment
          * @return {Promise}
          */
-        executeOrder: function (orderHash, orderId, payerId, express) {
+        executeOrder: function (orderHash, express) {
             return new Promise(function (resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_executeOrder', resolve, {
                     'package': pkg,
                     orderHash: orderHash,
-                    orderId  : orderId,
-                    payerId  : payerId,
                     express  : express ? 1 : 0,
                     onError  : reject
                 })

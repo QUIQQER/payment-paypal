@@ -80,16 +80,13 @@ class PaymentExpress extends Payment
     /**
      * Execute a PayPal Order
      *
-     * @param string $paymentId - The paymentID from the user authorization of the Order
-     * (this is used to verify if the QUIQQER ERP Order is actually the PayPal Order that is executed here)
-     * @param string $payerId - The payerID from the user authorization of the Order
      * @param AbstractOrder $Order
      * @return void
      *
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public function executePayPalOrder(AbstractOrder $Order, $paymentId, $payerId)
+    public function executePayPalOrder(AbstractOrder $Order)
     {
         $payPalOrder = $this->getPayPalOrderDetails($Order);
 
