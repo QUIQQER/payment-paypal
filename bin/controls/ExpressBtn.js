@@ -106,7 +106,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.Loader.inject(Elm);
             this.Loader.show();
 
-            self.$loadPayPalWidgets();
+            //self.$loadPayPalWidgets();    // can be re-enabled if PayPal fixes their JavaScript SDK
+            self.$loadPayPalWidgetsV1();
 
             // load context parent
             var contextParentControlSelector = false;
@@ -184,6 +185,27 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
                 self.$renderPayPalBtn();
             });
+        },
+
+        /**
+         * Load PayPal Pay widgets using the old checkout.js SDK
+         */
+        $loadPayPalWidgetsV1: function () {
+            var self      = this;
+            var widgetUrl = "https://www.paypalobjects.com/api/checkout.js";
+
+            if (document.id('paypal-checkout-api')) {
+                this.$renderPayPalBtnV1();
+                return;
+            }
+
+            new Element('script', {
+                async: "async",
+                src  : widgetUrl,
+                id   : 'paypal-checkout-api'
+            }).inject(document.body);
+
+            self.$renderPayPalBtnV1();
         },
 
         /**
@@ -268,6 +290,93 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
             this.$widgetsLoaded = true;
         },
+
+        /**
+         * Show PayPal Pay Button widget (btn) using the old checkout.js SDK
+         */
+        $renderPayPalBtnV1: function () {
+            if (typeof paypal === 'undefined') {
+                (function () {
+                    this.$renderPayPalBtnV1();
+                }).delay(200, this);
+                return;
+            }
+
+            var self = this;
+
+            // re-display if button was previously rendered and hidden
+            this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
+            this.$PayPalBtnElm.set('html', '');
+
+            paypal.Button.render({
+                env   : !this.getAttribute('sandbox') ? 'production' : 'sandbox',
+                commit: false,
+
+                style: {
+                    label: 'checkout',
+                    size : this.getAttribute('displaysize'),
+                    shape: this.getAttribute('displayshape'),
+                    color: this.getAttribute('displaycolor')
+                },
+
+                // payment() is called when the button is clicked
+                payment: function () {
+                    self.$showLoader(QUILocale.get(pkg, 'ExpressBtn.confirm_payment'));
+
+                    return PayPalApi.createOrder(
+                        self.$hash,
+                        self.getAttribute('basketid'),
+                        true
+                    ).then(function (Order) {
+                        self.$hash = Order.hash;
+                        return Order.payPalOrderId;
+                    }, function (Error) {
+                        self.$hideLoader();
+                        self.$showErrorMsg(Error.getMessage());
+                    });
+                },
+
+                onCancel: function () {
+                    self.$hideLoader();
+                },
+
+                // onAuthorize() is called when the buyer approves the payment
+                onAuthorize: function (data) {
+                    self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
+
+                    PayPalApi.executeOrder(self.$hash, true).then(function (success) {
+                        if (success) {
+                            self.$toCheckout();
+                            return;
+                        }
+
+                        self.$hideLoader();
+
+                        self.$showErrorMsg(
+                            QUILocale.get(pkg, 'ExpressBtn.processing_error')
+                        );
+                    }, function (Error) {
+                        self.$hideLoader();
+                        self.$showErrorMsg(Error.getMessage());
+                    });
+                },
+
+                onError: function () {
+                    self.$showErrorMsg(
+                        QUILocale.get(pkg, 'ExpressBtn.processing_error')
+                    );
+
+                    self.$renderPayPalBtnV1();
+                }
+            }, this.$PayPalBtnElm).then(function () {
+                if (self.$ContextParent) {
+                    self.Loader.hide();
+                }
+            });
+
+            this.$widgetsLoaded = true;
+        },
+
 
         /**
          * Show Loader of the contextual Order process
