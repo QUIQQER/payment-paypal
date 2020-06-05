@@ -127,7 +127,7 @@ class Utils
      * Get shipping costs by order
      *
      * @param AbstractOrder $Order
-     * @return float|false - Shipping cost (2 digit precision) or false if costs cannot be determined
+     * @return QUI\ERP\Products\Interfaces\PriceFactorInterface|false - Shipping cost (2 digit precision) or false if costs cannot be determined
      */
     public static function getShippingCostsByOrder(AbstractOrder $Order)
     {
@@ -138,18 +138,28 @@ class Utils
         $ShippingHandler = Shipping::getInstance();
         $Shipping        = $ShippingHandler->getShippingByObject($Order);
 
-        // If shipping not already set in order -> automatically use first available shipping method
-//        if (empty($Shipping) && $express) {
-//            $Shipping = self::getDefaultExpressShipping($Order);
-//        }
-
         if (empty($Shipping)) {
             return false;
         }
 
-        $PriceFactor = $Shipping->toPriceFactor(null, $Order);
+        /**
+         * Identify shipping price factor by title
+         *
+         * This is NOT stable and should be changed as soon as quiqqer/shipping allows
+         * to return the correct price factor.
+         */
+        $shippingPriceFactorTitle = QUI::getLocale()->get('quiqqer/shipping', 'shipping.order.title', [
+            'shipping' => $Shipping->getTitle()
+        ]);
 
-        return \number_format($PriceFactor->getValue(), 2); // @todo experimental
+        /** @var QUI\ERP\Products\Interfaces\PriceFactorInterface $PriceFactor */
+        foreach ($Order->getArticles()->getPriceFactors() as $PriceFactor) {
+            if ($PriceFactor->getTitle() === $shippingPriceFactorTitle) {
+                return $PriceFactor;
+            }
+        }
+
+        return false;
     }
 
     /**

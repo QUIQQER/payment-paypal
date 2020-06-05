@@ -306,8 +306,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $body = [
             [
                 'op'    => 'replace',
-                'path'  => '/purchase_units/@reference_id==\''.$Order->getHash().'\'/amount',
-                'value' => $purchaseUnit['amount']
+                'path'  => '/purchase_units/@reference_id==\''.$Order->getHash().'\'',
+                'value' => $purchaseUnit
             ]
         ];
 
@@ -324,17 +324,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     }
 
     /**
-     * @internal This method is currently not called in the order process, since PayPal Orders are captured
-     * immediately after they are executed
-     *
-     * Authorize a PayPal Order
-     *
      * @param AbstractOrder $Order
      * @return void
      *
      * @throws PayPalException
      * @throws QUI\ERP\Exception
      * @throws QUI\Exception
+     * @internal This method is currently not called in the order process, since PayPal Orders are captured
+     * immediately after they are executed
+     *
+     * Authorize a PayPal Order
+     *
      */
     public function authorizePayPalOrder(AbstractOrder $Order)
     {
@@ -658,29 +658,51 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->recalculate();
         $PriceCalculation = $Order->getPriceCalculation();
         $currencyCode     = $Order->getCurrency()->getCode();
-        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
 
         $amount = [
             'currency_code' => $currencyCode,
-            'value'         => Utils::formatPrice($PriceCalculation->getSum()->get())
+            'value'         => Utils::formatPrice($PriceCalculation->getSum()->get()),
         ];
 
         // Shipping data
-        $shippingCost    = Utils::getShippingCostsByOrder($Order);
+        $ShippingCost    = Utils::getShippingCostsByOrder($Order);
         $shippingAddress = Utils::getPayPalShippingAddressDataByOrder($Order);
 
-        if ($isNetto || $shippingCost) {
-            $amountDetails = [
-                'subtotal' => Utils::formatPrice($PriceCalculation->getNettoSubSum()->get()),
-                'tax'      => Utils::formatPrice($PriceCalculation->getVatSum()->get())
+        $taxTotal = Utils::formatPrice($PriceCalculation->getVatSum()->get());
+
+        $amountDetails = [
+            'subtotal' => Utils::formatPrice($PriceCalculation->getSubSum()->get()),
+            'tax'      => $taxTotal
+        ];
+
+        if ($isNetto) {
+            $amount['breakdown']['item_total'] = [
+                'value'         => Utils::formatPrice($PriceCalculation->getNettoSubSum()->get()),
+                'currency_code' => $currencyCode
             ];
 
-            if ($shippingCost !== false) {
-                $amountDetails['shipping'] = $shippingCost;
-            }
-
-            $amount['details'] = $amountDetails;
+            $amount['breakdown']['tax_total'] = [
+                'value'         => $taxTotal,
+                'currency_code' => $currencyCode
+            ];
+        } else {
+            $amount['breakdown']['item_total'] = [
+                'value'         => Utils::formatPrice($PriceCalculation->getSubSum()->get()),
+                'currency_code' => $currencyCode
+            ];
         }
+
+        if ($ShippingCost !== false) {
+            $shippingCost              = Utils::formatPrice($ShippingCost->getSum());
+            $amountDetails['shipping'] = $shippingCost;
+
+            $amount['breakdown']['shipping'] = [
+                'value'         => $shippingCost,
+                'currency_code' => $currencyCode
+            ];
+        }
+
+        $amount['details'] = $amountDetails;
 
         // Article List
         if (Provider::getPaymentSetting('display_paypal_basket')) {
@@ -718,47 +740,19 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $items[] = $item;
             }
 
-            // add price factors
-            $PriceFactors = $Order->getArticles()->getPriceFactors();
-
-            /** @var QUI\ERP\Accounting\PriceFactors\Factor $PriceFactor */
-            foreach ($PriceFactors as $PriceFactor) {
-                $FactorPriceCalc = new CalculationValue($PriceFactor->getSum());
-                $factorExtraText = ''; // @todo
-                $name            = $PriceFactor->getTitle();
-
-                if (!empty($factorExtraText)) {
-                    $name .= ' ('.$factorExtraText.')';
-                }
-
-                $items[] = [
-                    'name'        => $name,
-                    'quantity'    => 1,
-                    'unit_amount' => [
-                        'value'         => Utils::formatPrice($FactorPriceCalc->get()),
-                        'currency_code' => $currencyCode
-                    ]
-                ];
-            }
-
             $transactionData['items'] = $items;
 
             if ($shippingAddress !== false) {
                 $transactionData['shipping']['address'] = $shippingAddress;
             }
-
-            $amount['breakdown'] = [
-                'item_total' => [
-                    'value'         => $amountTotal,
-                    'currency_code' => $currencyCode
-                ]
-            ];
         }
 
         $transactionData['amount'] = $amount;
 
         // Return URLs
         $Gateway = new Gateway();
+
+        \QUI\System\Log::writeRecursive($transactionData);
 
         return [
             'intent'         => 'CAPTURE',
