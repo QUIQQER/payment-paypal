@@ -752,8 +752,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         // Return URLs
         $Gateway = new Gateway();
 
-        \QUI\System\Log::writeRecursive($transactionData);
-
         return [
             'intent'         => 'CAPTURE',
             'payer'          => [
