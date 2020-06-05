@@ -411,6 +411,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             return;
         }
 
+        $this->updatePayPalOrder($Order);
+
         $PriceCalculation = $Order->getPriceCalculation();
 //        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
         $captureId = false;
@@ -705,7 +707,25 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $amount['details'] = $amountDetails;
 
         // Article List
-        if (Provider::getPaymentSetting('display_paypal_basket')) {
+        $displayItemList = \boolval(Provider::getPaymentSetting('display_paypal_basket'));
+
+        /** @var QUI\ERP\Products\Interfaces\PriceFactorInterface $PriceFactor */
+        foreach ($Order->getArticles()->getPriceFactors() as $PriceFactor) {
+            if ($ShippingCost && $PriceFactor === $ShippingCost) {
+                continue;
+            }
+
+            // @todo add coupon price factor
+
+            $displayItemList = false;
+
+            unset($amount['breakdown']);
+            unset($amount['details']);
+
+            break;
+        }
+
+        if ($displayItemList) {
             $items = [];
 
             /** @var QUI\ERP\Accounting\Article $OrderArticle */
