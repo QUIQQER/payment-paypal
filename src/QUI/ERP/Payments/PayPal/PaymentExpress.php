@@ -34,11 +34,25 @@ class PaymentExpress extends Payment
      * Is the payment be visible in the frontend?
      * Every payment method can determine this by itself (API for developers)
      *
+     * @param AbstractOrder $Order
      * @return bool
      */
-    public function isVisible()
+    public function isVisible(AbstractOrder $Order)
     {
-        return false;
+        $Payment = $Order->getPayment();
+
+        if (empty($Payment)) {
+            return false;
+        }
+
+        try {
+            $PaymentType = $Payment->getPaymentType();
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return false;
+        }
+
+        return $PaymentType->getClass() === $this::getClass();
     }
 
     /**
