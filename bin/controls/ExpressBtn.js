@@ -460,7 +460,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                         Popup.close();
                     }
                 }
-            }).open();
+            });
+
+            this.$ErrorPopup.open();
         },
 
         /**
