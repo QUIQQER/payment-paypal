@@ -135,31 +135,7 @@ class Utils
             return false;
         }
 
-        $ShippingHandler = Shipping::getInstance();
-        $Shipping        = $ShippingHandler->getShippingByObject($Order);
-
-        if (empty($Shipping)) {
-            return false;
-        }
-
-        /**
-         * Identify shipping price factor by title
-         *
-         * This is NOT stable and should be changed as soon as quiqqer/shipping allows
-         * to return the correct price factor.
-         */
-        $shippingPriceFactorTitle = QUI::getLocale()->get('quiqqer/shipping', 'shipping.order.title', [
-            'shipping' => $Shipping->getTitle()
-        ]);
-
-        /** @var QUI\ERP\Products\Interfaces\PriceFactorInterface $PriceFactor */
-        foreach ($Order->getArticles()->getPriceFactors() as $PriceFactor) {
-            if ($PriceFactor->getTitle() === $shippingPriceFactorTitle) {
-                return $PriceFactor;
-            }
-        }
-
-        return false;
+        return Shipping::getInstance()->getShippingPriceFactorByOrder($Order);
     }
 
     /**

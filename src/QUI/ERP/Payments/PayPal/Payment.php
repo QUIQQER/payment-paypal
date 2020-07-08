@@ -694,7 +694,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             ];
         }
 
-        if ($ShippingCost !== false) {
+        if (!empty($ShippingCost)) {
             $shippingCost              = Utils::formatPrice($ShippingCost->getSum());
             $amountDetails['shipping'] = $shippingCost;
 
