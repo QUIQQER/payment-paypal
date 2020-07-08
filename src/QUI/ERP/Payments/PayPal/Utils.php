@@ -26,9 +26,9 @@ class Utils
         $amount          = $AmountValue->get();
         $formattedAmount = sprintf("%.2f", $amount);
 
-        if (mb_strpos($formattedAmount, '.00') !== false) {
-            return (string)(float)$formattedAmount;
-        }
+//        if (mb_strpos($formattedAmount, '.00') !== false) {
+//            return (string)(float)$formattedAmount;
+//        }
 
         return $formattedAmount;
     }
@@ -127,7 +127,7 @@ class Utils
      * Get shipping costs by order
      *
      * @param AbstractOrder $Order
-     * @return float|false - Shipping cost (2 digit precision) or false if costs cannot be determined
+     * @return QUI\ERP\Products\Interfaces\PriceFactorInterface|false - Shipping cost (2 digit precision) or false if costs cannot be determined
      */
     public static function getShippingCostsByOrder(AbstractOrder $Order)
     {
@@ -135,16 +135,23 @@ class Utils
             return false;
         }
 
-        $Shipping = Shipping::getInstance()->getShippingByObject($Order);
+        return Shipping::getInstance()->getShippingPriceFactorByOrder($Order);
+    }
 
-        if (!$Shipping) {
+    /**
+     * Get shipping method that is used in express orders
+     *
+     * @param AbstractOrder $Order
+     * @return QUI\ERP\Shipping\Types\ShippingEntry|false
+     */
+    public static function getDefaultExpressShipping(AbstractOrder $Order)
+    {
+        $shippingEntries = Shipping::getInstance()->getValidShippingEntriesByOrder($Order);
+
+        if (empty($shippingEntries)) {
             return false;
         }
 
-        $Shipping = Shipping::getInstance()->getShippingByObject($Order);
-
-        return false; // @todo fix shipping cost bug first
-
-        return \number_format($Shipping->getPrice(), 2);
+        return $shippingEntries[0];
     }
 }
