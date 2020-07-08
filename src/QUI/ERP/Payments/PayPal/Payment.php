@@ -715,8 +715,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 continue;
             }
 
-            // @todo add coupon price factor
-
+            /**
+             * If other price factors than the shipping cost price factor are found
+             * the detailled basket is NOT sent to PayPal since the exact category
+             * of the price factor (e.g. article, tax, insurance etc.)
+             * cannot be determined at the moment.
+             */
             $displayItemList = false;
 
             unset($amount['breakdown']);
