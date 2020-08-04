@@ -66,23 +66,43 @@ class PaymentExpress extends Payment
     }
 
     /**
-     * Execute a PayPal Order
+     * Set default shipping for express order
      *
-     * @param string $paymentId - The paymentID from the user authorization of the Order
-     * (this is used to verify if the QUIQQER ERP Order is actually the PayPal Order that is executed here)
-     * @param string $payerId - The payerID from the user authorization of the Order
      * @param AbstractOrder $Order
      * @return void
      *
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public function executePayPalOrder(AbstractOrder $Order, $paymentId, $payerId)
+    public function setDefaultShipping(AbstractOrder $Order)
     {
-        parent::executePayPalOrder($Order, $paymentId, $payerId);
+        // Shipping address not required of shipping module not installed
+        if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
+            return;
+        }
 
-        $payerData = $Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYER_DATA);
-        $payerInfo = $payerData['payer_info'];
+        $DefaultExpressShipping = Utils::getDefaultExpressShipping($Order);
+
+        if (!$DefaultExpressShipping) {
+            return;
+        }
+
+        $Order->setShipping($DefaultExpressShipping);
+        $this->saveOrder($Order);
+    }
+
+    /**
+     * Execute a PayPal Order
+     *
+     * @param AbstractOrder $Order
+     * @return void
+     *
+     * @throws PayPalException
+     * @throws QUI\Exception
+     */
+    public function executePayPalOrder(AbstractOrder $Order)
+    {
+        $payPalOrder = $this->getPayPalOrderDetails($Order);
 
         /**
          * SET ORDER PAYMENT
@@ -111,7 +131,7 @@ class PaymentExpress extends Payment
          */
         $Order->addHistory('PayPal Express :: Set Order invoice address');
 
-        if (empty($payerInfo['shipping_address'])) {
+        if (empty($payPalOrder['purchase_units'][0]['shipping'])) {
             $Order->addHistory(
                 'PayPal Express :: Could not set invoice address because PayPal did not deliver address data'
             );
@@ -120,22 +140,11 @@ class PaymentExpress extends Payment
             $this->throwPayPalException(self::PAYPAL_ERROR_NO_PAYER_ADDRESS);
         }
 
-        // do not allow checkout with addresses that are not yet confirmed by PayPal
-        if (empty($payerData['status'])
-            || $payerData['status'] !== 'VERIFIED') {
-            $Order->addHistory(
-                'PayPal Express :: Could not set invoice address because PayPal account was not VERIFIED'
-            );
-
-            $this->voidPayPalOrder($Order);
-            $this->throwPayPalException(self::PAYPAL_ERROR_ADDRESS_NOT_VERIFIED);
-        }
-
         $Customer            = $Order->getCustomer();
         $CustomerQuiqqerUser = QUI::getUsers()->get($Customer->getId());
 
         $InvoiceAddress       = false;
-        $PayPalQuiqqerAddress = $this->getQuiqqerAddressFromPayPalPayerInfo($payerInfo, $CustomerQuiqqerUser);
+        $PayPalQuiqqerAddress = $this->getQuiqqerAddressFromPayPalOrder($payPalOrder, $CustomerQuiqqerUser);
 
         // Check if $PayPalQuiqqerAddress already exists
         /** @var QUI\Users\Address $Address */
@@ -177,11 +186,17 @@ class PaymentExpress extends Payment
         }
 
         $Order->setInvoiceAddress($InvoiceAddress);
+        $ShippingAddress = new QUI\ERP\Address($InvoiceAddress->getAttributes(), $Customer);
+        $Order->setDeliveryAddress($ShippingAddress);
+
         $Order->addHistory(
             'PayPal Express :: Order invoice address set (QUIQQER address ID: #'.$InvoiceAddress->getId().')'
         );
 
         $this->saveOrder($Order);
+        $this->setDefaultShipping($Order);
+
+        $this->updatePayPalOrder($Order);
     }
 
     /**
@@ -191,36 +206,35 @@ class PaymentExpress extends Payment
      * User address in the database. If you do not need the address this method returns later on,
      * delete it by calling $Address->delete()
      *
-     * @param array $payerInfo
+     * @param array $payPalOrder
      * @param QUIQQERUser $QuiqqerUser
      * @return QUI\Users\Address
      *
      * @throws QUI\Exception
      */
-    protected function getQuiqqerAddressFromPayPalPayerInfo($payerInfo, QUIQQERUser $QuiqqerUser)
+    protected function getQuiqqerAddressFromPayPalOrder($payPalOrder, QUIQQERUser $QuiqqerUser)
     {
-        $payPalAddressData = $payerInfo['shipping_address'];
-        $SystemUser        = QUI::getUsers()->getSystemUser();
+        $SystemUser = QUI::getUsers()->getSystemUser();
 
         // Create Address
+        $shipping    = $payPalOrder['purchase_units'][0]['shipping'];
         $streetParts = [];
 
-        if (!empty($payPalAddressData['line1'])) {
-            $streetParts[] = $payPalAddressData['line1'];
+        if (!empty($shipping['address']['address_line_1'])) {
+            $streetParts[] = $shipping['address']['address_line_1'];
         }
 
-        if (!empty($payPalAddressData['line2'])) {
-            $streetParts[] = $payPalAddressData['line2'];
+        if (!empty($shipping['address']['address_line_2'])) {
+            $streetParts[] = $shipping['address']['address_line_2'];
         }
 
         $Address = $QuiqqerUser->addAddress([
-            'salutation' => !empty($payerInfo['salutation']) ? $payerInfo['salutation'] : '',
-            'firstname'  => !empty($payerInfo['first_name']) ? $payerInfo['first_name'] : '',
-            'lastname'   => !empty($payerInfo['last_name']) ? $payerInfo['last_name'] : '',
-            'street_no'  => implode(' ', $streetParts),
-            'zip'        => !empty($payPalAddressData['postal_code']) ? $payPalAddressData['postal_code'] : '',
-            'city'       => !empty($payPalAddressData['city']) ? $payPalAddressData['city'] : '',
-            'country'    => !empty($payPalAddressData['country_code']) ? mb_strtoupper($payPalAddressData['country_code']) : ''
+            'firstname' => !empty($payPalOrder['payer']['name']['given_name']) ? $payPalOrder['payer']['name']['given_name'] : '',
+            'lastname'  => !empty($payPalOrder['payer']['name']['surname']) ? $payPalOrder['payer']['name']['surname'] : '',
+            'street_no' => implode(' ', $streetParts),
+            'zip'       => !empty($shipping['address']['postal_code']) ? $shipping['address']['postal_code'] : '',
+            'city'      => !empty($shipping['address']['admin_area_2']) ? $shipping['address']['admin_area_2'] : '',
+            'country'   => !empty($shipping['address']['country_code']) ? mb_strtoupper($shipping['address']['country_code']) : ''
         ], $SystemUser);
 
         if (!empty($payerInfo['email'])) {

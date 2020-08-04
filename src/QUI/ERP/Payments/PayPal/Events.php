@@ -39,6 +39,10 @@ class Events
             return;
         }
 
+        if (!Provider::getPaymentSetting('display_express_basket')) {
+            return;
+        }
+
         $PaymentExpress = Provider::getPayPalExpressPayment();
 
         if (!$PaymentExpress || !$PaymentExpress->isActive()) {
@@ -92,6 +96,10 @@ class Events
     public static function templateOrderBasketSmallEnd(Collector $Collector, $Basket)
     {
         if (!($Basket instanceof Basket)) {
+            return;
+        }
+
+        if (!Provider::getPaymentSetting('display_express_smallbasket')) {
             return;
         }
 

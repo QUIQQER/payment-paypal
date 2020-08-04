@@ -121,11 +121,11 @@
             <de><![CDATA[Warenkorb an PayPal übertragen]]></de>
             <en><![CDATA[Send basket to PayPal]]></en>
         </locale>
-        <locale name="settings.payment.display_paypal_basket.description">
+        <locale name="settings.payment.display_paypal_basket.description" html="true">
             <de>
-                <![CDATA[Der detaillierte Warenkorb einer Bestellung soll mit allen Positionen an PayPal übertragen werden (der Benutzer kann bei PayPal die Details der Bestellung einsehen)]]></de>
+                <![CDATA[Der detaillierte Warenkorb einer Bestellung soll mit allen Positionen an PayPal übertragen werden (der Benutzer kann bei PayPal die Details der Bestellung einsehen). <b>Achtung:</b> Je nach verwendeten Preisfaktoren einer Bestellung kann es vorkommen, dass der detaillierte Warenkorb nicht an PayPal gesendet wird und nur die Gesamtsumme der Bestellung übermittelt wird.]]></de>
             <en>
-                <![CDATA[The detailed shopping cart of an order should be transferred with all positions to PayPal (the user can see the details of the order at PayPal)]]></en>
+                <![CDATA[The detailed shopping cart of an order should be transferred with all positions to PayPal (the user can see the details of the order at PayPal). <b>Attention:</b> Depending on the used price factors of an order it may happen that the detailed shopping cart is not sent to PayPal and only the total amount of the order is transmitted.]]></en>
         </locale>
         <locale name="settings.payment.display_express_basket.title">
             <de><![CDATA[PayPal Express Button - Warenkorb]]></de>
