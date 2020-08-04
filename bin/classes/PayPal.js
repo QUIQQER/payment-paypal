@@ -21,14 +21,16 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          *
          * @param {String} orderHash - Unique order hash
          * @param {Number} [basketId] - Basket ID
+         * @param {Boolean} [express] - PayPal express payment
          * @return {Promise}
          */
-        createOrder: function (orderHash, basketId) {
+        createOrder: function (orderHash, basketId, express) {
             return new Promise(function (resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_createOrder', resolve, {
                     'package': pkg,
                     orderHash: orderHash,
                     basketId : basketId || 0,
+                    express  : express ? 1 : 0,
                     onError  : reject
                 })
             });
@@ -38,18 +40,14 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * Execute PayPal Order
          *
          * @param {String} orderHash - Unique order hash
-         * @param {String} paymentId - PayPal paymentID
-         * @param {String} payerId - PayPal payerID
          * @param {Boolean} [express] - PayPal express payment
          * @return {Promise}
          */
-        executeOrder: function (orderHash, paymentId, payerId, express) {
+        executeOrder: function (orderHash, express) {
             return new Promise(function (resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_executeOrder', resolve, {
                     'package': pkg,
                     orderHash: orderHash,
-                    paymentId: paymentId,
-                    payerId  : payerId,
                     express  : express ? 1 : 0,
                     onError  : reject
                 })
@@ -148,6 +146,34 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
                     'package'         : pkg,
                     billingAgreementId: billingAgreementId,
                     onError           : reject
+                })
+            });
+        },
+
+        /**
+         * Get PayPal API client ID
+         *
+         * @return {Promise}
+         */
+        getClientId: function () {
+            return new Promise(function (resolve, reject) {
+                QUIAjax.get('package_quiqqer_payment-paypal_ajax_getClientId', resolve, {
+                    'package': pkg,
+                    onError  : reject
+                })
+            });
+        },
+
+        /**
+         * Get some necessary order details for setting up PayPal API
+         *
+         * @return {Promise}
+         */
+        getOrderDetails: function () {
+            return new Promise(function (resolve, reject) {
+                QUIAjax.get('package_quiqqer_payment-paypal_ajax_getOrderDetails', resolve, {
+                    'package': pkg,
+                    onError  : reject
                 })
             });
         }
