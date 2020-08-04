@@ -12,7 +12,7 @@ use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use QUI\ERP\Accounting\Payments\Order\Shipping as OrderProcessStepPayments;
+use QUI\ERP\Accounting\Payments\Order\Payment as OrderProcessStepPayments;
 use QUI\ERP\Accounting\Payments\Types\RecurringPaymentInterface;
 use QUI\ERP\Accounting\Invoice\Invoice;
 
