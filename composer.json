@@ -10,13 +10,13 @@
     {
       "name": "Patrick M\u00fcller",
       "email": "p.mueller@pcsg.de",
-      "homepage": "http:\/\/www.pcsg.de",
+      "homepage": "https:\/\/www.pcsg.de",
       "role": "Developer"
     }
   ],
   "support": {
     "email": "support@pcsg.de",
-    "url": "http:\/\/www.pcsg.de"
+    "url": "https:\/\/www.pcsg.de"
   },
   "require": {
     "quiqqer\/payments": "^1.0.1|dev-master|dev-dev",
