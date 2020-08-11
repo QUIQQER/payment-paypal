@@ -723,9 +723,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
              */
             $displayItemList = false;
 
-            unset($amount['breakdown']);
-            unset($amount['details']);
-
             break;
         }
 
@@ -769,6 +766,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             if ($shippingAddress !== false) {
                 $transactionData['shipping']['address'] = $shippingAddress;
             }
+        } else {
+            unset($amount['breakdown']);
+            unset($amount['details']);
         }
 
         $transactionData['amount'] = $amount;
