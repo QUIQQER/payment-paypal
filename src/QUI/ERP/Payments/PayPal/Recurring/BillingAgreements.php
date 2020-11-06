@@ -443,9 +443,12 @@ class BillingAgreements
 
         $data['start_date'] = $Start->format('Y-m-d');
 
-        if ($End > $Start && $Start->format('Y-m-d') !== $End->format('Y-m-d')) {
-            $data['end_date'] = $End->format('Y-m-d');
+        if ($End < $Start || $Start->format('Y-m-d') === $End->format('Y-m-d')) {
+            $End = clone $Start;
+            $End->add(\date_interval_create_from_date_string('1 day'));
         }
+
+        $data['end_date'] = $End->format('Y-m-d');
 
         $result = self::payPalApiRequest(
             RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT_TRANSACTIONS,
