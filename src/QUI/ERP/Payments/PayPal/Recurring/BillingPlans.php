@@ -92,11 +92,12 @@ class BillingPlans
         $body['payment_definitions'] = self::parsePaymentDefinitionsFromOrder($Order, $PlanProduct);
 
         // Merchant preferences
-        $Gateway = new Gateway();
+        $Gateway    = new Gateway();
+        $gatewayUrl = \rtrim('?', $Gateway->getGatewayUrl());
 
         $body['merchant_preferences'] = [
-            'cancel_url' => $Gateway->getGatewayUrl(),
-            'return_url' => $Gateway->getGatewayUrl()
+            'cancel_url' => $gatewayUrl,
+            'return_url' => $gatewayUrl
         ];
 
         // Create Billing Plan

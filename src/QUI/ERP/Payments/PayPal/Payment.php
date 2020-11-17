@@ -14,8 +14,6 @@ use PayPal\v1\BillingPlans\PlanGetRequest;
 use PayPal\v1\BillingPlans\PlanListRequest;
 use PayPal\v1\BillingPlans\PlanUpdateRequest;
 use PayPal\v1\Payments\OrderAuthorizeRequest;
-use PayPal\v1\Payments\OrderCaptureRequest;
-use PayPal\v1\Payments\OrderGetRequest;
 use PayPal\v1\Payments\OrderVoidRequest;
 use PayPal\v1\Payments\PaymentExecuteRequest;
 use PayPal\v1\Payments\CaptureRefundRequest;
@@ -26,7 +24,6 @@ use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use PayPal\Core\PayPalHttpClient as PayPalClient;
 use PayPal\Core\ProductionEnvironment;
 use PayPal\Core\SandboxEnvironment;
-use PayPal\v1\Payments\PaymentCreateRequest;
 use QUI;
 use QUI\ERP\Accounting\Payments\Payments;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
@@ -774,7 +771,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $transactionData['amount'] = $amount;
 
         // Return URLs
-        $Gateway = new Gateway();
+        $Gateway    = new Gateway();
+        $gatewayUrl = \rtrim('?', $Gateway->getGatewayUrl());
 
         return [
             'intent'         => 'CAPTURE',
@@ -783,8 +781,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             ],
             'purchase_units' => [$transactionData],
             'redirect_urls'  => [
-                'return_url' => $Gateway->getGatewayUrl(),
-                'cancel_url' => $Gateway->getGatewayUrl()
+                'return_url' => $gatewayUrl,
+                'cancel_url' => $gatewayUrl
             ]
         ];
     }
