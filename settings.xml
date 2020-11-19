@@ -335,6 +335,10 @@
                     </title>
 
                     <settings name="billing_plans" title="billing_plans">
+                        <title>
+                            <locale group="quiqqer/payment-paypal" var="settings.category.billing_plans.title"/>
+                        </title>
+
                         <input type="hidden" data-qui="package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans" label="false">
                         </input>
                     </settings>
@@ -348,6 +352,10 @@
                     </title>
 
                     <settings name="billing_agreements" title="billing_agreements">
+                        <title>
+                            <locale group="quiqqer/payment-paypal" var="settings.category.billing_agreements.title"/>
+                        </title>
+
                         <input type="hidden" data-qui="package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements" label="false">
                         </input>
                     </settings>
