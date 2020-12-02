@@ -93,7 +93,7 @@ class BillingPlans
 
         // Merchant preferences
         $Gateway    = new Gateway();
-        $gatewayUrl = \rtrim('?', $Gateway->getGatewayUrl());
+        $gatewayUrl = \rtrim($Gateway->getGatewayUrl(), '?');
 
         $body['merchant_preferences'] = [
             'cancel_url' => $gatewayUrl,
