@@ -593,7 +593,7 @@
         </locale>
         <locale name="controls.recurring.PaymentDisplay.error">
             <de>
-                <![CDATA[Leider ist bei der Kommunikation mit PayPal ist ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsmethode oder probieren es zu einem späteren Zeitpunkt nochmal.]]></de>
+                <![CDATA[Leider ist bei der Kommunikation mit PayPal ein Fehler aufgetreten. Ihr PayPal-Konto wurde nicht belastet. Bitte wählen Sie eine andere Zahlungsmethode oder probieren es zu einem späteren Zeitpunkt nochmal.]]></de>
             <en><![CDATA[Unfortunately an error occurred during the communication with PayPal. Your PayPal account was not debited. Please choose another payment method or try again later.]]></en>
         </locale>
 
