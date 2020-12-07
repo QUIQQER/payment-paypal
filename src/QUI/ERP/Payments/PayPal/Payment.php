@@ -773,6 +773,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         // Return URLs
         $Gateway = new Gateway();
+        $Gateway->setOrder($Order);
 
         return [
             'intent'         => 'CAPTURE',
