@@ -37,6 +37,7 @@ use PayPalCheckoutSdk\Orders\OrdersPatchRequest as PayPalOrdersPatchRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCreateRequest as PayPalOrdersCreateRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCaptureRequest as PayPalOrderCaptureRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersGetRequest as PayPalOrderGetRequestV2;
+use function GuzzleHttp\Promise\queue;
 
 /**
  * Class Payment
@@ -771,8 +772,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $transactionData['amount'] = $amount;
 
         // Return URLs
-        $Gateway    = new Gateway();
-        $gatewayUrl = \rtrim($Gateway->getGatewayUrl(), '?');
+        $Gateway = new Gateway();
 
         return [
             'intent'         => 'CAPTURE',
@@ -781,8 +781,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             ],
             'purchase_units' => [$transactionData],
             'redirect_urls'  => [
-                'return_url' => $gatewayUrl,
-                'cancel_url' => $gatewayUrl
+                'return_url' => \rtrim($Gateway->getSuccessUrl(), '?'),
+                'cancel_url' => \rtrim($Gateway->getCancelUrl(), '?')
             ]
         ];
     }
