@@ -104,8 +104,8 @@ class BillingAgreements
                 'id' => $Order->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)
             ],
             'override_merchant_preferences' => [
-                'cancel_url' => $Gateway->getCancelUrl(),
-                'return_url' => $Gateway->getSuccessUrl()
+                'return_url' => \rtrim($Gateway->getSuccessUrl(), '?'),
+                'cancel_url' => \rtrim($Gateway->getCancelUrl(), '?')
             ]
         ];
 
