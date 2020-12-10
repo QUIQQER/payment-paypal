@@ -552,6 +552,10 @@ class BillingAgreements
      */
     public static function executeBillingAgreement(AbstractOrder $Order, string $agreementToken)
     {
+        if (!empty($Order->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID))) {
+            return;
+        }
+
         try {
             $response = self::payPalApiRequest(
                 RecurringPayment::PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT,
