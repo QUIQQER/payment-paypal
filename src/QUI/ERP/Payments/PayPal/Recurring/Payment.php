@@ -45,6 +45,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     const PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT          = 'paypal-api-execute_billing_agreement';
     const PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT             = 'paypal-api-bill_billing_agreement';
     const PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT           = 'paypal-api-cancel_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_SUSPEND_BILLING_AGREEMENT          = 'paypal-api-suspend_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_RESUME_BILLING_AGREEMENT           = 'paypal-api-resume_billing_agreement';
     const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT              = 'paypal-api-get_billing_agreement';
     const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT_TRANSACTIONS = 'paypal-api-get_billing_agreement_transactions';
 
@@ -230,6 +232,45 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     }
 
     /**
+     * Suspend a Subscription
+     *
+     * This *temporarily* suspends the automated collection of payments until explicitly resumed.
+     *
+     * @param int|string $subscriptionId
+     * @param string $note (optional) - Suspension note
+     * @return void
+     */
+    public function suspendSubscription($subscriptionId, string $note = null)
+    {
+        BillingAgreements::suspendBillingAgreement($subscriptionId, $note);
+    }
+
+    /**
+     * Resume a suspended Subscription
+     *
+     * This resumes automated collection of payments of a previously supsendes Subscription.
+     *
+     * @param int|string $subscriptionId
+     * @param string $note (optional) - Resume note
+     * @return void
+     */
+    public function resumeSubscription($subscriptionId, string $note = null)
+    {
+        BillingAgreements::resumeSubscription($subscriptionId, $note);
+    }
+
+    /**
+     * Checks if a subscription is currently suspended
+     *
+     * @param int|string $subscriptionId
+     * @return bool
+     */
+    public function isSuspended($subscriptionId)
+    {
+        return BillingAgreements::isSuspended($subscriptionId);
+    }
+
+    /**
      * Sets a subscription as inactive (on the side of this QUIQQER system only!)
      *
      * IMPORTANT: This does NOT mean that the corresponding subscription at the payment provider
@@ -384,8 +425,18 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             return true;
         }
 
-        return !empty($billingAgreement['state'])
-               && $billingAgreement['state'] === BillingAgreements::BILLING_AGREEMENT_STATE_ACTIVE;
+        if (empty($billingAgreement['state'])) {
+            return false;
+        }
+
+        switch ($billingAgreement['state']) {
+            case BillingAgreements::BILLING_AGREEMENT_STATE_ACTIVE:
+            case BillingAgreements::BILLING_AGREEMENT_STATE_SUSPENDED:
+                return true;
+
+            default:
+                return false;
+        }
     }
 
     /**

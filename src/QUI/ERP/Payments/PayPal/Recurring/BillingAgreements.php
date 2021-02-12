@@ -27,9 +27,13 @@ class BillingAgreements
     const TBL_BILLING_AGREEMENTS             = 'paypal_billing_agreements';
     const TBL_BILLING_AGREEMENT_TRANSACTIONS = 'paypal_billing_agreement_transactions';
 
-    const BILLING_AGREEMENT_STATE_ACTIVE = 'Active';
-    const TRANSACTION_STATE_COMPLETED    = 'Completed';
-    const TRANSACTION_STATE_DENIED       = 'Denied';
+    const BILLING_AGREEMENT_STATE_ACTIVE    = 'Active';
+    const BILLING_AGREEMENT_STATE_CANCELLED = 'Cancelled';
+    const BILLING_AGREEMENT_STATE_SUSPENDED = 'Suspended';
+    const BILLING_AGREEMENT_STATE_EXPIRED   = 'Expired';
+
+    const TRANSACTION_STATE_COMPLETED = 'Completed';
+    const TRANSACTION_STATE_DENIED    = 'Denied';
 
     /**
      * Runtime cache that knows then a transaction history
@@ -520,9 +524,142 @@ class BillingAgreements
     }
 
     /**
+     * Suspend a Subscription
+     *
+     * This *temporarily* suspends the automated collection of payments until explicitly resumed.
+     *
+     * @param int|string $billingAgreementId
+     * @param string $note (optional) - Suspension note
+     * @return void
+     */
+    public static function suspendBillingAgreement($billingAgreementId, string $note = null)
+    {
+        $data = self::getBillingAgreementData($billingAgreementId);
+
+        if (empty($data)) {
+            return;
+        }
+
+        if (empty($note)) {
+            try {
+                $Locale = new QUI\Locale();
+                $Locale->setCurrent($data['customer']['lang']);
+            } catch (\Exception $Exception) {
+                QUI\System\Log::writeException($Exception);
+                return;
+            }
+
+            $note = $Locale->get(
+                'quiqqer/payment-paypal',
+                'recurring.billing_agreement.suspension.note',
+                [
+                    'url'             => Utils::getProjectUrl(),
+                    'globalProcessId' => $data['globalProcessId']
+                ]
+            );
+        }
+
+        try {
+            self::payPalApiRequest(
+                RecurringPayment::PAYPAL_REQUEST_TYPE_SUSPEND_BILLING_AGREEMENT,
+                [
+                    'note' => $note
+                ],
+                [
+                    RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
+                ]
+            );
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+
+            throw new PayPalException(
+                QUI::getLocale()->get(
+                    'quiqqer/payment-paypal',
+                    'exception.Recurring.suspend.error'
+                )
+            );
+        }
+    }
+
+    /**
+     * Resume a suspended Subscription
+     *
+     * This resumes automated collection of payments of a previously supsendes Subscription.
+     *
+     * @param int|string $billingAgreementId
+     * @param string $note (optional) - Resume note
+     * @return void
+     */
+    public static function resumeSubscription($billingAgreementId, string $note = null)
+    {
+        $data = self::getBillingAgreementData($billingAgreementId);
+
+        if (empty($data)) {
+            return;
+        }
+
+        if (empty($note)) {
+            try {
+                $Locale = new QUI\Locale();
+                $Locale->setCurrent($data['customer']['lang']);
+            } catch (\Exception $Exception) {
+                QUI\System\Log::writeException($Exception);
+                return;
+            }
+
+            $note = $Locale->get(
+                'quiqqer/payment-paypal',
+                'recurring.billing_agreement.resume.note',
+                [
+                    'url'             => Utils::getProjectUrl(),
+                    'globalProcessId' => $data['globalProcessId']
+                ]
+            );
+        }
+
+        try {
+            self::payPalApiRequest(
+                RecurringPayment::PAYPAL_REQUEST_TYPE_RESUME_BILLING_AGREEMENT,
+                [
+                    'note' => $note
+                ],
+                [
+                    RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
+                ]
+            );
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+
+            throw new PayPalException(
+                QUI::getLocale()->get(
+                    'quiqqer/payment-paypal',
+                    'exception.Recurring.resume.error'
+                )
+            );
+        }
+    }
+
+    /**
+     * Checks if a subscription is currently suspended
+     *
+     * @param int|string $billingAgreementId
+     * @return bool
+     */
+    public static function isSuspended($billingAgreementId)
+    {
+        $data = self::getBillingAgreementDetails($billingAgreementId);
+
+        if (empty($data)) {
+            return false;
+        }
+
+        return $data['state'] === self::BILLING_AGREEMENT_STATE_SUSPENDED;
+    }
+
+    /**
      * Set status of a BillingAgreement as inactive
      *
-     * @param string $billingAgreementId
+     * @param int|string $billingAgreementId
      * @return void
      */
     public static function setBillingAgreementAsInactive($billingAgreementId)
@@ -918,7 +1055,7 @@ class BillingAgreements
      * Get all completed Billing Agreement transactions that are unprocessed by QUIQQER ERP
      *
      * @param string $billingAgreementId
-     * @param string $status (optional) - Get transactions with this status [default: "Completed"]
+     * @param string $status (optional) - Get transactions with this PayPal transaction status [default: "Completed"]
      * @return array
      * @throws QUI\Database\Exception
      * @throws PayPalException
