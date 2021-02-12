@@ -509,9 +509,25 @@
             <de><![CDATA[Kündigung Ihres Abonnements aus Bestellung [globalProcessId] auf [url]]]></de>
             <en><![CDATA[Cancellation of your subscription from order [globalProcessId] at [url]]]></en>
         </locale>
+        <locale name="recurring.billing_agreement.suspension.note">
+            <de><![CDATA[Deaktivierung Ihres Abonnements aus Bestellung [globalProcessId] auf [url] auf Grund von Vertragskündigung. Nach Ablauf des Vertrags wird diese Abrechnungsvereinbarung automatisch beendet.]]></de>
+            <en><![CDATA[Deactivation of your subscription from order [globalProcessId] at [url] due to contract cancellation. This billing agreement will be terminated automatically if the contract ends.]]></en>
+        </locale>
+        <locale name="recurring.billing_agreement.resume.note">
+            <de><![CDATA[Re-Aktivierung Ihres Abonnements aus Bestellung [globalProcessId] auf [url] auf Grund von Rücknahme der Vertragskündigung.]]></de>
+            <en><![CDATA[Re-activation of your subscription from order [globalProcessId] at [url] due to contract cancellation revocation.]]></en>
+        </locale>
         <locale name="exception.Recurring.cancel.error">
             <de><![CDATA[Der Kündigungsvorgang der Abrechnungsvereinbarung konnte nicht durchgeführt werden. Bitte wiederholen Sie den Vorgang oder kontaktieren Sie einen Administrator.]]></de>
             <en><![CDATA[The cancellation of the Billing Agreement could not be executed. Please repeat the process or contact an administrator.]]></en>
+        </locale>
+        <locale name="exception.Recurring.suspension.error">
+            <de><![CDATA[Die Suspendierung der Abrechnungsvereinbarung konnte nicht durchgeführt werden. Bitte wiederholen Sie den Vorgang oder kontaktieren Sie einen Administrator.]]></de>
+            <en><![CDATA[The suspension of the Billing Agreement could not be executed. Please repeat the process or contact an administrator.]]></en>
+        </locale>
+        <locale name="exception.Recurring.resume.error">
+            <de><![CDATA[Die Re-Aktivierung der Abrechnungsvereinbarung konnte nicht durchgeführt werden. Bitte wiederholen Sie den Vorgang oder kontaktieren Sie einen Administrator.]]></de>
+            <en><![CDATA[The re-activation of the Billing Agreement could not be executed. Please repeat the process or contact an administrator.]]></en>
         </locale>
         <locale name="recurring.additional_invoice_text">
             <de><![CDATA[Der Betrag wird automatisch über Ihr PayPal-Konto eingezogen.]]></de>
@@ -667,6 +683,10 @@
         <locale name="controls.backend.BillingAgreementWindow.inactive_warning" html="true">
             <de><![CDATA[<b>Achtung!</b> Diese Abrechnungsvereinbarung ist auf Seiten von PayPal gekündigt, in diesem QUIQQER-System jedoch noch als aktiv gekennzeichnet. Dies kann bedeuten, dass der Kunde in seinem PayPal-Konto die Abrechnungsvereinbarung gekündigt hat ohne seinen laufenden Vertrag/Mitgliedschaft in diesem QUIQQER-System zu kündigen. Dies hat zur Folge, dass <b>keine Zahlungen</b> mehr von PayPal für die zugeordneten Rechnungen eingezogen werden. Bitte kontaktieren Sie den Kunden, um die Angelegenheit individuell zu klären.]]></de>
             <en><![CDATA[<b>Caution!</b> This Billing Agreement has been terminated on the side of PayPal, but is still marked as active in this QUIQQER system. This may mean that the customer has cancelled the Billing Agreement in his PayPal account without cancelling his current contract/membership in this QUIQQER system. As a result, <b>no payments</b> will be collected by PayPal for the associated invoices. Please contact the customer to clarify the matter individually.]]></en>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.loading_data">
+            <de><![CDATA[Frage Daten bei PayPal ab...]]></de>
+            <en><![CDATA[Requesting data from PayPal...]]></en>
         </locale>
 
         <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements -->

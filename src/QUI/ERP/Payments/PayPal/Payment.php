@@ -8,6 +8,8 @@ use PayPal\v1\BillingAgreements\AgreementCreateRequest;
 use PayPal\v1\BillingAgreements\AgreementExecuteRequest;
 use PayPal\v1\BillingAgreements\AgreementGetRequest;
 use PayPal\v1\BillingAgreements\AgreementTransactionsRequest;
+use PayPal\v1\BillingAgreements\AgreementSuspendRequest;
+use PayPal\v1\BillingAgreements\AgreementReActivateRequest;
 use PayPal\v1\Payments\SaleRefundRequest;
 use PayPal\v1\BillingPlans\PlanCreateRequest;
 use PayPal\v1\BillingPlans\PlanGetRequest;
@@ -1049,6 +1051,18 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             case RecurringPayment::PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT:
                 $Request = new AgreementCancelRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_SUSPEND_BILLING_AGREEMENT:
+                $Request = new AgreementSuspendRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_RESUME_BILLING_AGREEMENT:
+                $Request = new AgreementReActivateRequest(
                     $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
                 );
                 break;

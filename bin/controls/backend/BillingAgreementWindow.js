@@ -68,7 +68,9 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
 
             this.getElm().addClass('quiqqer-payment-paypal-backend-billingagreementwindow');
 
-            this.Loader.show();
+            this.Loader.show(
+                QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.loading_data')
+            );
 
             PayPal.getBillingAgreement(this.getAttribute('billingAgreementId')).then(function (BillingAgreement) {
                 self.Loader.hide();
@@ -83,7 +85,19 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
 
                 self.setContent('<pre>' + JSON.stringify(BillingAgreement, null, 2) + '</pre>');
 
-                if (BillingAgreement.state === 'Active') {
+                var isActive;
+
+                switch (BillingAgreement.state) {
+                    case 'Active':
+                    case 'Suspended':
+                        isActive = true;
+                        break;
+
+                    default:
+                        isActive = false;
+                }
+
+                if (isActive) {
                     CancelBtn.enable();
                 } else if (BillingAgreement.quiqqer_data.active) {
                     new Element('div', {
