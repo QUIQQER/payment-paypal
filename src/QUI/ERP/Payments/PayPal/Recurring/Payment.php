@@ -139,7 +139,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                     ]);
 
                     $Gateway->getOrder()->setSuccessfulStatus();
+                } catch (PayPalException $Exception) {
+                    $goToBasket = true;
                 } catch (\Exception $Exception) {
+                    QUI\System\Log::writeException($Exception);
                     $goToBasket = true;
                 }
             }
