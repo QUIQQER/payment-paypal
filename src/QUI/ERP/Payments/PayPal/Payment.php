@@ -1120,7 +1120,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $Response = $this->getPayPalClient()->execute($Request);
             }
         } catch (\Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
+            QUI\System\Log::writeDebugException($Exception);
             $this->throwPayPalException();
         }
 
