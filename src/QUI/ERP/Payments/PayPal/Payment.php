@@ -8,14 +8,14 @@ use PayPal\v1\BillingAgreements\AgreementCreateRequest;
 use PayPal\v1\BillingAgreements\AgreementExecuteRequest;
 use PayPal\v1\BillingAgreements\AgreementGetRequest;
 use PayPal\v1\BillingAgreements\AgreementTransactionsRequest;
+use PayPal\v1\BillingAgreements\AgreementSuspendRequest;
+use PayPal\v1\BillingAgreements\AgreementReActivateRequest;
 use PayPal\v1\Payments\SaleRefundRequest;
 use PayPal\v1\BillingPlans\PlanCreateRequest;
 use PayPal\v1\BillingPlans\PlanGetRequest;
 use PayPal\v1\BillingPlans\PlanListRequest;
 use PayPal\v1\BillingPlans\PlanUpdateRequest;
 use PayPal\v1\Payments\OrderAuthorizeRequest;
-use PayPal\v1\Payments\OrderCaptureRequest;
-use PayPal\v1\Payments\OrderGetRequest;
 use PayPal\v1\Payments\OrderVoidRequest;
 use PayPal\v1\Payments\PaymentExecuteRequest;
 use PayPal\v1\Payments\CaptureRefundRequest;
@@ -26,7 +26,6 @@ use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use PayPal\Core\PayPalHttpClient as PayPalClient;
 use PayPal\Core\ProductionEnvironment;
 use PayPal\Core\SandboxEnvironment;
-use PayPal\v1\Payments\PaymentCreateRequest;
 use QUI;
 use QUI\ERP\Accounting\Payments\Payments;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
@@ -40,6 +39,7 @@ use PayPalCheckoutSdk\Orders\OrdersPatchRequest as PayPalOrdersPatchRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCreateRequest as PayPalOrdersCreateRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCaptureRequest as PayPalOrderCaptureRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersGetRequest as PayPalOrderGetRequestV2;
+use function GuzzleHttp\Promise\queue;
 
 /**
  * Class Payment
@@ -735,8 +735,19 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $calculated  = $articleData['calculated'];
                 $FactorPrice = new CalculationValue($calculated['price']); // unit price
 
+                // Article name
+                $articleName = $OrderArticle->getTitle();
+
+                if (empty($articleName)) {
+                    $articleName = $OrderArticle->getArticleNo();
+                }
+
+                if (empty($articleName)) {
+                    $articleName = '#'.$OrderArticle->getId();
+                }
+
                 $item = [
-                    'name'        => $OrderArticle->getTitle(),
+                    'name'        => $articleName,
                     'quantity'    => $OrderArticle->getQuantity(),
                     'unit_amount' => [
                         'value'         => Utils::formatPrice($FactorPrice->get()),
@@ -775,6 +786,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         // Return URLs
         $Gateway = new Gateway();
+        $Gateway->setOrder($Order);
 
         return [
             'intent'         => 'CAPTURE',
@@ -783,8 +795,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             ],
             'purchase_units' => [$transactionData],
             'redirect_urls'  => [
-                'return_url' => $Gateway->getGatewayUrl(),
-                'cancel_url' => $Gateway->getGatewayUrl()
+                'return_url' => \rtrim($Gateway->getSuccessUrl(), '?'),
+                'cancel_url' => \rtrim($Gateway->getCancelUrl(), '?')
             ]
         ];
     }
@@ -1043,6 +1055,18 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
                 break;
 
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_SUSPEND_BILLING_AGREEMENT:
+                $Request = new AgreementSuspendRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
+            case RecurringPayment::PAYPAL_REQUEST_TYPE_RESUME_BILLING_AGREEMENT:
+                $Request = new AgreementReActivateRequest(
+                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID)
+                );
+                break;
+
             case RecurringPayment::PAYPAL_REQUEST_TYPE_LIST_BILLING_PLANS:
                 $Request = new PlanListRequest();
 
@@ -1096,7 +1120,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $Response = $this->getPayPalClient()->execute($Request);
             }
         } catch (\Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
+            $message = $Exception->getCode()." :: \n\n";
+            $message .= $Exception->getMessage()."\n";
+            $message .= $Exception->getTraceAsString();
+
+            QUI\System\Log::write(
+                $message,
+                QUI\System\Log::LEVEL_WARNING,
+                [],
+                'paypal_api'
+            );
+
             $this->throwPayPalException();
         }
 

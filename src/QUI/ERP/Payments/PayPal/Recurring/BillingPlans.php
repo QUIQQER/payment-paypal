@@ -93,10 +93,11 @@ class BillingPlans
 
         // Merchant preferences
         $Gateway = new Gateway();
+        $Gateway->setOrder($Order);
 
         $body['merchant_preferences'] = [
-            'cancel_url' => $Gateway->getGatewayUrl(),
-            'return_url' => $Gateway->getGatewayUrl()
+            'cancel_url' => \rtrim($Gateway->getCancelUrl(), '?'),
+            'return_url' => \rtrim($Gateway->getSuccessUrl(), '?')
         ];
 
         // Create Billing Plan
