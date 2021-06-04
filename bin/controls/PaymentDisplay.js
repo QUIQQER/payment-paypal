@@ -89,8 +89,18 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
         $loadPayPalWidgets: function () {
             var self = this;
 
+            /*
+             * In case the express button was shown in a previous step in the order process,
+             * the new button cannot be rendered currently. Thus we have to load the button in
+             * the legacy way.
+             */
             if (typeof paypal !== 'undefined') {
-                this.$renderPayPalBtnV1();
+                if (!('paypalV1ButtonRendered' in window) || !window.paypalV1ButtonRendered) {
+                    this.$renderPayPalBtn();
+                } else {
+                    this.$renderPayPalBtnV1();
+                }
+
                 return;
             }
 
@@ -219,6 +229,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             }).render(self.$PayPalBtnElm).then(function () {
                 self.$OrderProcess.resize();
                 self.$OrderProcess.Loader.hide();
+
+                window.paypalV1ButtonRendered = false;
             });
         },
 
@@ -314,6 +326,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             }, self.$PayPalBtnElm).then(function () {
                 self.$OrderProcess.resize();
                 self.$OrderProcess.Loader.hide();
+
+                window.paypalV1ButtonRendered = true;
             });
         },
 
