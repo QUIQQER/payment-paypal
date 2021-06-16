@@ -507,7 +507,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $Transaction = Gateway::getInstance()->purchase(
             (float)$amount['value'],
-            new QUI\ERP\Currency\Currency($amount['currency_code']),
+            QUI\ERP\Currency\Handler::getCurrency($amount['currency_code']),
             $Order,
             $this
         );
