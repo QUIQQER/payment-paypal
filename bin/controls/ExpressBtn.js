@@ -286,6 +286,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 if (self.$ContextParent) {
                     self.Loader.hide();
                 }
+
+                window.paypalV1ButtonRendered = false;
             });
 
             this.$widgetsLoaded = true;
@@ -372,6 +374,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 if (self.$ContextParent) {
                     self.Loader.hide();
                 }
+
+                window.paypalV1ButtonRendered = true;
             });
 
             this.$widgetsLoaded = true;
