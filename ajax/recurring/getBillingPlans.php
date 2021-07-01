@@ -30,7 +30,13 @@ QUI::$Ajax->registerFunction(
             $perPage = (int)$searchParams['perPage'];
         }
 
-        $list = BillingPlans::getBillingPlanList($page, $perPage);
+        $list = null;
+
+        try {
+            $list = BillingPlans::getBillingPlanList($page, $perPage);
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeDebugException($Exception);
+        }
 
         $plans = [];
         $count = 0;
