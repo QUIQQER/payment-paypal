@@ -39,7 +39,6 @@ use PayPalCheckoutSdk\Orders\OrdersPatchRequest as PayPalOrdersPatchRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCreateRequest as PayPalOrdersCreateRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCaptureRequest as PayPalOrderCaptureRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersGetRequest as PayPalOrderGetRequestV2;
-use function GuzzleHttp\Promise\queue;
 
 /**
  * Class Payment
@@ -68,6 +67,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const PAYPAL_ORDER_STATE_CAPTURED   = 'captured';
     const PAYPAL_ORDER_STATE_COMPLETED  = 'COMPLETED';
     const PAYPAL_ORDER_STATE_VOIDED     = 'voided';
+
+    /**
+     * PayPal Capture states
+     */
+    const PAYPAL_CAPTURE_STATE_COMPLETED = 'COMPLETED';
+    const PAYPAL_CAPTURE_STATE_PENDING   = 'PENDING';
 
     /**
      * PayPal Refund states
@@ -417,18 +422,30 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 //        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
         $captureId = false;
         $captured  = false;
+        $pending   = false;
         $amount    = false;
 
-        $checkOrderCaptureStatus = function ($payPalOrderData) use (&$captureId, &$captured, &$amount) {
+        $checkOrderCaptureStatus = function ($payPalOrderData) use (&$captureId, &$captured, &$amount, &$pending) {
             if (empty($payPalOrderData['purchase_units'][0]['payments']['captures'])) {
                 return;
             }
 
             $captureData = $payPalOrderData['purchase_units'][0]['payments']['captures'][0];
 
-            $captured = !empty($captureData['status']) &&
-                        $captureData['status'] === self::PAYPAL_ORDER_STATE_COMPLETED &&
-                        $captureData['final_capture'];
+            switch ($captureData['status']) {
+                case self::PAYPAL_CAPTURE_STATE_COMPLETED:
+                    $captured = true;
+                    break;
+
+                case self::PAYPAL_CAPTURE_STATE_PENDING:
+                    $captured = true;
+                    $pending  = true;
+                    break;
+            }
+
+//            $captured = !empty($captureData['status']) &&
+//                        $captureData['status'] === self::PAYPAL_ORDER_STATE_COMPLETED &&
+//                        $captureData['final_capture'];
 
             $captureId = $captureData['id'];
             $amount    = $captureData['amount'];
@@ -462,13 +479,23 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         if (!$captured) {
-            if (empty($response['reason_code'])) {
+            $captureFailReason = '';
+
+            if (!empty($payPalOrderData['purchase_units'][0]['payments']['captures'][0]['status_details'])) {
+                $captureFailReason = \json_encode(
+                    $payPalOrderData['purchase_units'][0]['payments']['captures'][0]['status_details']
+                );
+            }
+
+            if (!empty($response['reason_code'])) {
                 $Order->addHistory(
-                    'PayPal :: Order capture was not completed by PayPal because of an unknown error'
+                    'PayPal :: Order capture was not completed by PayPal. Reason code: "'.$response['reason_code'].'"'
+                    .' | Capture failed because: '.$captureFailReason
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order capture was not completed by PayPal. Reason: "'.$response['reason_code'].'"'
+                    'PayPal :: Order capture was not completed by PayPal. Unknown reason code.'
+                    .' | Capture failed because: '.$captureFailReason
                 );
             }
 
@@ -505,26 +532,35 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         // Gateway purchase
         $Order->addHistory('PayPal :: Set Gateway purchase');
 
-        $Transaction = Gateway::getInstance()->purchase(
-            (float)$amount['value'],
-            QUI\ERP\Currency\Handler::getCurrency($amount['currency_code']),
-            $Order,
-            $this
-        );
+        if (!$pending) {
+            $Transaction = Gateway::getInstance()->purchase(
+                (float)$amount['value'],
+                QUI\ERP\Currency\Handler::getCurrency($amount['currency_code']),
+                $Order,
+                $this
+            );
 
-        $Transaction->setData(
-            self::ATTR_PAYPAL_ORDER_ID,
-            $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)
-        );
+            $Transaction->setData(
+                self::ATTR_PAYPAL_ORDER_ID,
+                $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)
+            );
 
-        $Transaction->setData(
-            self::ATTR_PAYPAL_CAPTURE_ID,
-            $Order->getPaymentDataEntry(self::ATTR_PAYPAL_CAPTURE_ID)
-        );
+            $Transaction->setData(
+                self::ATTR_PAYPAL_CAPTURE_ID,
+                $Order->getPaymentDataEntry(self::ATTR_PAYPAL_CAPTURE_ID)
+            );
 
-        $Transaction->updateData();
+            $Transaction->updateData();
 
-        $Order->addHistory('PayPal :: Gateway purchase completed and Order payment finished');
+            $Order->addHistory('PayPal :: Order was captured. Transaction '.$Transaction->getTxId().' added.');
+        } else {
+            $Order->addHistory(
+                'PayPal :: Order was not captured immediately.'
+                .' Payment is PENDING and has to be manually added to order.'
+            );
+        }
+
+        $Order->addHistory('PayPal :: Gateway purchase completed.');
         $this->saveOrder($Order);
     }
 
@@ -851,42 +887,57 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             return;
         }
 
-        try {
-            $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_VOID_ORDER, [], $Order);
-        } catch (PayPalException $Exception) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
-            $this->saveOrder($Order);
+        $Order->addHistory(
+            'PayPal :: Order voided.'
+        );
 
-            throw $Exception;
-        }
-
-        if (empty($response['state'])
-            || $response['state'] !== 'voided') {
-            if (empty($response['reason_code'])) {
-                $Order->addHistory(
-                    'PayPal :: Order could not be voided because of an unknown reason.'
-                );
-            } else {
-                $Order->addHistory(
-                    'PayPal :: Order could not be voided. Reason: "'.$response['reason_code'].'"'
-                );
-            }
-
-            $this->saveOrder($Order);
-            $this->throwPayPalException();
-        }
-
-        // reset payment data so the order can be created again
-        $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, null);
-        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_DATA, null);
-        $Order->setPaymentData(self::ATTR_PAYPAL_AUTHORIZATION_ID, null);
-        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_ID, null);
-        $Order->setPaymentData(self::ATTR_PAYPAL_CAPTURE_ID, null);
-        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, null);
-        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, false);
-
-        $Order->addHistory('PayPal :: Order successfully voided');
         $this->saveOrder($Order);
+
+        return;
+
+        /*
+         * PayPal Orders that are captured immediately and do not go with the authorize -> capture later
+         * process cannot be voided directly.
+         *
+         * In this case it is ok to just leave the order be.
+         */
+
+//        try {
+//            $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_VOID_ORDER, [], $Order);
+//        } catch (PayPalException $Exception) {
+//            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+//            $this->saveOrder($Order);
+//
+//            throw $Exception;
+//        }
+//
+//        if (empty($response['state'])
+//            || $response['state'] !== 'voided') {
+//            if (empty($response['reason_code'])) {
+//                $Order->addHistory(
+//                    'PayPal :: Order could not be voided because of an unknown reason.'
+//                );
+//            } else {
+//                $Order->addHistory(
+//                    'PayPal :: Order could not be voided. Reason: "'.$response['reason_code'].'"'
+//                );
+//            }
+//
+//            $this->saveOrder($Order);
+//            $this->throwPayPalException();
+//        }
+//
+//        // reset payment data so the order can be created again
+//        $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, null);
+//        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_DATA, null);
+//        $Order->setPaymentData(self::ATTR_PAYPAL_AUTHORIZATION_ID, null);
+//        $Order->setPaymentData(self::ATTR_PAYPAL_PAYER_ID, null);
+//        $Order->setPaymentData(self::ATTR_PAYPAL_CAPTURE_ID, null);
+//        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_ID, null);
+//        $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, false);
+//
+//        $Order->addHistory('PayPal :: Order successfully voided');
+//        $this->saveOrder($Order);
     }
 
     /**
