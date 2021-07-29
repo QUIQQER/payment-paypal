@@ -824,11 +824,34 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Gateway = new Gateway();
         $Gateway->setOrder($Order);
 
+        // Payer data
+        $payer = [
+            'payment_method' => 'paypal'
+        ];
+
+        $DeliveryAddress = $Order->getDeliveryAddress();
+
+        $payer['name'] = [
+            'given_name' => $DeliveryAddress->getAttribute('firstname'),
+            'surname'    => $DeliveryAddress->getAttribute('lastname') ?: ''
+        ];
+
+        $transactionData['shipping'] = [
+            'name'    => [
+                'full_name' => $DeliveryAddress->getName(),
+            ],
+            'type'    => 'SHIPPING',
+            'address' => [
+                'address_line_1' => $DeliveryAddress->getAttribute('street_no') ?: '',
+                'admin_area_2'   => $DeliveryAddress->getAttribute('city') ?: '',
+                'postal_code'    => $DeliveryAddress->getAttribute('zip') ?: '',
+                'country_code'   => $DeliveryAddress->getCountry()->getCode()
+            ]
+        ];
+
         return [
             'intent'         => 'CAPTURE',
-            'payer'          => [
-                'payment_method' => 'paypal'
-            ],
+            'payer'          => $payer,
             'purchase_units' => [$transactionData],
             'redirect_urls'  => [
                 'return_url' => \rtrim($Gateway->getSuccessUrl(), '?'),
