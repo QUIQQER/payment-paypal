@@ -836,18 +836,41 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             'surname'    => $DeliveryAddress->getAttribute('lastname') ?: ''
         ];
 
-        $transactionData['shipping'] = [
-            'name'    => [
-                'full_name' => $DeliveryAddress->getName(),
-            ],
-            'type'    => 'SHIPPING',
-            'address' => [
-                'address_line_1' => $DeliveryAddress->getAttribute('street_no') ?: '',
-                'admin_area_2'   => $DeliveryAddress->getAttribute('city') ?: '',
-                'postal_code'    => $DeliveryAddress->getAttribute('zip') ?: '',
-                'country_code'   => $DeliveryAddress->getCountry()->getCode()
-            ]
+        $shippingAddress = [
+            'address_line_1' => $DeliveryAddress->getAttribute('street_no') ?: '',
+            'admin_area_2'   => $DeliveryAddress->getAttribute('city') ?: '',
+            'postal_code'    => $DeliveryAddress->getAttribute('zip') ?: '',
         ];
+
+        try {
+            $ShippingCountry                 = $DeliveryAddress->getCountry();
+            $shippingAddress['country_code'] = $ShippingCountry->getCode();
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeDebugException($Exception);
+        }
+
+        $requiredFields = [
+            'address_line_1',
+            'admin_area_2',
+            'postal_code'
+        ];
+
+        foreach ($requiredFields as $requiredField) {
+            if (empty($shippingAddress[$requiredField])) {
+                $shippingAddress = false;
+                break;
+            }
+        }
+
+        if ($shippingAddress && !empty($DeliveryAddress->getName())) {
+            $transactionData['shipping'] = [
+                'name'    => [
+                    'full_name' => $DeliveryAddress->getName(),
+                ],
+                'type'    => 'SHIPPING',
+                'address' => $shippingAddress
+            ];
+        }
 
         return [
             'intent'         => 'CAPTURE',
