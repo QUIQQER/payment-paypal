@@ -795,6 +795,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $description = $OrderArticle->getDescription();
 
                 if (!empty($description)) {
+                    $description = \mb_substr($description, 0, 127);
+
+                    if (\mb_strlen($description) === 127) {
+                        $description = \mb_substr($description, 0, 124).'...';
+                    }
+
                     $item['description'] = $description;
                 }
 
@@ -829,47 +835,49 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             'payment_method' => 'paypal'
         ];
 
-        $DeliveryAddress = $Order->getDeliveryAddress();
+        if (QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
+            $DeliveryAddress = $Order->getDeliveryAddress();
 
-        $payer['name'] = [
-            'given_name' => $DeliveryAddress->getAttribute('firstname'),
-            'surname'    => $DeliveryAddress->getAttribute('lastname') ?: ''
-        ];
-
-        $shippingAddress = [
-            'address_line_1' => $DeliveryAddress->getAttribute('street_no') ?: '',
-            'admin_area_2'   => $DeliveryAddress->getAttribute('city') ?: '',
-            'postal_code'    => $DeliveryAddress->getAttribute('zip') ?: '',
-        ];
-
-        try {
-            $ShippingCountry                 = $DeliveryAddress->getCountry();
-            $shippingAddress['country_code'] = $ShippingCountry->getCode();
-        } catch (\Exception $Exception) {
-            QUI\System\Log::writeDebugException($Exception);
-        }
-
-        $requiredFields = [
-            'address_line_1',
-            'admin_area_2',
-            'postal_code'
-        ];
-
-        foreach ($requiredFields as $requiredField) {
-            if (empty($shippingAddress[$requiredField])) {
-                $shippingAddress = false;
-                break;
-            }
-        }
-
-        if ($shippingAddress && !empty($DeliveryAddress->getName())) {
-            $transactionData['shipping'] = [
-                'name'    => [
-                    'full_name' => $DeliveryAddress->getName(),
-                ],
-                'type'    => 'SHIPPING',
-                'address' => $shippingAddress
+            $payer['name'] = [
+                'given_name' => $DeliveryAddress->getAttribute('firstname'),
+                'surname'    => $DeliveryAddress->getAttribute('lastname') ?: ''
             ];
+
+            $shippingAddress = [
+                'address_line_1' => $DeliveryAddress->getAttribute('street_no') ?: '',
+                'admin_area_2'   => $DeliveryAddress->getAttribute('city') ?: '',
+                'postal_code'    => $DeliveryAddress->getAttribute('zip') ?: '',
+            ];
+
+            try {
+                $ShippingCountry                 = $DeliveryAddress->getCountry();
+                $shippingAddress['country_code'] = $ShippingCountry->getCode();
+            } catch (\Exception $Exception) {
+                QUI\System\Log::writeDebugException($Exception);
+            }
+
+            $requiredFields = [
+                'address_line_1',
+                'admin_area_2',
+                'postal_code'
+            ];
+
+            foreach ($requiredFields as $requiredField) {
+                if (empty($shippingAddress[$requiredField])) {
+                    $shippingAddress = false;
+                    break;
+                }
+            }
+
+            if ($shippingAddress && !empty($DeliveryAddress->getName())) {
+                $transactionData['shipping'] = [
+                    'name'    => [
+                        'full_name' => $DeliveryAddress->getName(),
+                    ],
+                    'type'    => 'SHIPPING',
+                    'address' => $shippingAddress
+                ];
+            }
         }
 
         return [
