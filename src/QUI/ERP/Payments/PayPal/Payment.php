@@ -513,7 +513,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, true);
 
-        $Order->addHistory('PayPal :: Order successfully captured');
+        $Order->addHistory('PayPal :: Order capture request was successful. Checking capture status...');
 
         $Order->addHistory(
             QUI::getLocale()->get(
@@ -552,11 +552,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             $Transaction->updateData();
 
-            $Order->addHistory('PayPal :: Order was captured. Transaction '.$Transaction->getTxId().' added.');
+            $Order->addHistory('PayPal :: Order capture was completed. Transaction '.$Transaction->getTxId().' added.');
         } else {
             $Order->addHistory(
-                'PayPal :: Order was not captured immediately.'
-                .' Payment is PENDING and has to be manually added to order.'
+                'PayPal :: Order capture was not completed immediately.'
+                .' Payment is PENDING and has to be added manually to the order or checked via cronjob.'
             );
         }
 
@@ -1298,4 +1298,112 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         return $this->PayPalClientV2;
     }
+
+    # region Cron
+
+    /**
+     * Checks pending captures of unpaid or not-yet-fully-paid PayPal orders.
+     *
+     * @return void
+     */
+    public function checkPendingCaptures()
+    {
+        // Determine payment type IDs
+        $payments = Payments::getInstance()->getPayments([
+            'select' => ['id'],
+            'where'  => [
+                'payment_type' => self::class
+            ]
+        ]);
+
+        $paymentTypeIds = [];
+
+        /** @var QUI\ERP\Accounting\Payments\Types\Payment $Payment */
+        foreach ($payments as $Payment) {
+            $paymentTypeIds[] = $Payment->getId();
+        }
+
+        if (empty($paymentTypeIds)) {
+            return;
+        }
+
+        $OrderHandler = OrderHandler::getInstance();
+
+        try {
+            $result = QUI::getDataBase()->fetch([
+                'select' => ['id'],
+                'from'   => $OrderHandler->table(),
+                'where'  => [
+                    'payment_id'  => [
+                        'type'  => 'IN',
+                        'value' => $paymentTypeIds
+                    ],
+                    'paid_status' => [
+                        'type'  => 'IN',
+                        'value' => [
+                            QUI\ERP\Constants::PAYMENT_STATUS_OPEN,
+                            QUI\ERP\Constants::PAYMENT_STATUS_PART
+                        ]
+                    ]
+                ]
+            ]);
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return;
+        }
+
+        foreach ($result as $row) {
+            try {
+                $Order           = $OrderHandler->get($row['id']);
+                $payPalOrderData = $this->getPayPalOrderDetails($Order);
+
+                if (!$payPalOrderData) {
+                    continue;
+                }
+
+                if (empty($payPalOrderData['purchase_units'][0]['payments']['captures'])) {
+                    continue;
+                }
+
+                $amountTotal        = 0;
+                $amountCurrencyCode = false;
+
+                foreach ($payPalOrderData['purchase_units'][0]['payments']['captures'] as $capture) {
+                    if ($capture['status'] !== 'COMPLETED') {
+                        continue 2;
+                    }
+
+                    $amountTotal        += $capture['amount']['value'];
+                    $amountCurrencyCode = $capture['amount']['currency_code'];
+                }
+
+                // Add transaction
+                $Transaction = Gateway::getInstance()->purchase(
+                    (float)$amountTotal,
+                    QUI\ERP\Currency\Handler::getCurrency($amountCurrencyCode),
+                    $Order,
+                    $this
+                );
+
+                $Transaction->setData(
+                    self::ATTR_PAYPAL_ORDER_ID,
+                    $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)
+                );
+
+                $Transaction->setData(
+                    self::ATTR_PAYPAL_CAPTURE_ID,
+                    $Order->getPaymentDataEntry(self::ATTR_PAYPAL_CAPTURE_ID)
+                );
+
+                $Transaction->updateData();
+
+                $Order->addHistory('PayPal :: Pending order capture was completed. Transaction '.$Transaction->getTxId().' added.');
+                $this->saveOrder($Order);
+            } catch (\Exception $Exception) {
+                QUI\System\Log::writeException($Exception);
+            }
+        }
+    }
+
+    # endregion
 }
