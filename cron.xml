@@ -10,4 +10,13 @@
         </description>
     </cron>
 
+    <cron exec="\QUI\ERP\Payments\PayPal\Cron::checkPendingCaptures">
+        <title>
+            <locale group="quiqqer/payment-paypal" var="cron.checkPendingCaptures.title"/>
+        </title>
+        <description>
+            <locale group="quiqqer/payment-paypal" var="cron.checkPendingCaptures.description"/>
+        </description>
+    </cron>
+
 </crons>

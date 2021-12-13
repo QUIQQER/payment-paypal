@@ -407,12 +407,20 @@
 
         <!-- Cron -->
         <locale name="cron.processUnpaidInvoices.title">
-            <de><![CDATA[PayPal: Rechnungen für wiederkehrende Zahlungen abarbeiten]]></de>
-            <en><![CDATA[PayPal: Process invoices for recurring payments]]></en>
+            <de><![CDATA[PayPal - Rechnungen für wiederkehrende Zahlungen abarbeiten]]></de>
+            <en><![CDATA[PayPal - Process invoices for recurring payments]]></en>
         </locale>
         <locale name="cron.processUnpaidInvoices.description">
-            <de><![CDATA[Für alle offenen Rechnungen mit wiederkehrenden Zahlungen die passenden PayPal-Transaktionen finden und intern buchen]]></de>
-            <en><![CDATA[For all open invoices with recurring payments, find the matching PayPal transactions and book them internally]]></en>
+            <de><![CDATA[Für alle offenen Rechnungen mit wiederkehrenden Zahlungen die passenden PayPal-Transaktionen finden und intern buchen.]]></de>
+            <en><![CDATA[For all open invoices with recurring payments, find the matching PayPal transactions and book them internally.]]></en>
+        </locale>
+        <locale name="cron.checkPendingCaptures.title">
+            <de><![CDATA[PayPal - Ausstehende Zahlungen prüfen]]></de>
+            <en><![CDATA[PayPal - Check pending payments]]></en>
+        </locale>
+        <locale name="cron.checkPendingCaptures.description">
+            <de><![CDATA[Prüft den Zahlungsstatus für alle Bestellungen, die mit PayPal durchgeführt wurden und deren Zahlungsstatus "ausstehend" ist.]]></de>
+            <en><![CDATA[Checks the payment status for all order that have been executed with PayPal and whose payment status is "pending".]]></en>
         </locale>
         
     </groups>
