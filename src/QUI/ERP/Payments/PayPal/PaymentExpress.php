@@ -149,7 +149,8 @@ class PaymentExpress extends Payment
         // Check if $PayPalQuiqqerAddress already exists
         /** @var QUI\Users\Address $Address */
         foreach ($CustomerQuiqqerUser->getAddressList() as $Address) {
-            if ($Address->equals($PayPalQuiqqerAddress)) {
+            if ($Address->getId() !== $PayPalQuiqqerAddress->getId() &&
+                $Address->equals($PayPalQuiqqerAddress)) {
                 $InvoiceAddress = $Address;
                 $PayPalQuiqqerAddress->delete();
                 break;
@@ -162,12 +163,50 @@ class PaymentExpress extends Payment
                 'PayPal Express :: PayPal Address found in QUIQQER User -> Adding PayPal QUIQQER Address'
             );
 
-            $InvoiceAddress       = $PayPalQuiqqerAddress;
-            $userPrimaryAddressId = false;
-            $SystemUser           = QUI::getUsers()->getSystemUser();
+            $InvoiceAddress  = $PayPalQuiqqerAddress;
+            $StandardAddress = false;
+            $SystemUser      = QUI::getUsers()->getSystemUser();
 
             try {
-                $userPrimaryAddressId = $CustomerQuiqqerUser->getStandardAddress()->getId();
+                $StandardAddress = $CustomerQuiqqerUser->getStandardAddress();
+
+                /*
+                 * If user standard adress's name equals the PayPal address but the street
+                 * address data is empty, then set PayPal adress data to standard address.
+                 */
+                if ($StandardAddress->getAttribute('firstname') === $PayPalQuiqqerAddress->getAttribute('firstname') &&
+                    $StandardAddress->getAttribute('lastname') === $PayPalQuiqqerAddress->getAttribute('lastname')) {
+                    $checkAttributes = [
+                        'street_no',
+                        'zip',
+                        'city',
+                        'country'
+                    ];
+
+                    $setPayPalAddressDataToStandardAddress = true;
+
+                    foreach ($checkAttributes as $attribute) {
+                        if (!empty($StandardAddress->getAttribute($attribute))) {
+                            $setPayPalAddressDataToStandardAddress = false;
+                            break;
+                        }
+                    }
+
+                    if ($setPayPalAddressDataToStandardAddress) {
+                        $StandardAddress->setAttributes([
+                            'street_no' => $PayPalQuiqqerAddress->getAttribute('street_no'),
+                            'zip'       => $PayPalQuiqqerAddress->getAttribute('zip'),
+                            'city'      => $PayPalQuiqqerAddress->getAttribute('city'),
+                            'country'   => $PayPalQuiqqerAddress->getAttribute('country')
+                        ]);
+
+                        $StandardAddress->save(QUI::getUsers()->getSystemUser());
+
+                        $PayPalQuiqqerAddress->delete();
+
+                        $InvoiceAddress = $StandardAddress;
+                    }
+                }
             } catch (QUI\Users\Exception $Exception) {
                 // nothing, no default address set
             } catch (\Exception $Exception) {
@@ -175,7 +214,7 @@ class PaymentExpress extends Payment
             }
 
             // Set the PayPal address as default address if no default address previously set
-            if (!$userPrimaryAddressId) {
+            if (!$StandardAddress) {
                 $CustomerQuiqqerUser->setAttribute('address', $InvoiceAddress->getId());
                 $CustomerQuiqqerUser->save($SystemUser);
 
@@ -228,25 +267,31 @@ class PaymentExpress extends Payment
             $streetParts[] = $shipping['address']['address_line_2'];
         }
 
+        $city = !empty($shipping['address']['admin_area_2']) ? $shipping['address']['admin_area_2'] : '';
+
+        if (!empty($shipping['address']['admin_area_1'])) {
+            $city .= ', '.$shipping['address']['admin_area_1'];
+        }
+
         $Address = $QuiqqerUser->addAddress([
             'firstname' => !empty($payPalOrder['payer']['name']['given_name']) ? $payPalOrder['payer']['name']['given_name'] : '',
             'lastname'  => !empty($payPalOrder['payer']['name']['surname']) ? $payPalOrder['payer']['name']['surname'] : '',
             'street_no' => implode(' ', $streetParts),
             'zip'       => !empty($shipping['address']['postal_code']) ? $shipping['address']['postal_code'] : '',
-            'city'      => !empty($shipping['address']['admin_area_2']) ? $shipping['address']['admin_area_2'] : '',
-            'country'   => !empty($shipping['address']['country_code']) ? mb_strtoupper($shipping['address']['country_code']) : ''
+            'city'      => $city,
+            'country'   => !empty($shipping['address']['country_code']) ? \mb_strtoupper($shipping['address']['country_code']) : ''
         ], $SystemUser);
 
-        if (!empty($payerInfo['email'])) {
-            $Address->addMail($payerInfo['email']);
+        if (!empty($payPalOrder['payer']['email_address'])) {
+            $Address->addMail($payPalOrder['payer']['email_address']);
         }
 
-        if (!empty($payPalAddressData['phone'])) {
-            $Address->addPhone([
-                'type' => 'tel',
-                'no'   => $payPalAddressData['phone']
-            ]);
-        }
+//        if (!empty($payPalAddressData['phone'])) {
+//            $Address->addPhone([
+//                'type' => 'tel',
+//                'no'   => $payPalAddressData['phone']
+//            ]);
+//        }
 
         $Address->setCustomDataEntry('source', 'PayPal');
         $Address->save($SystemUser);
