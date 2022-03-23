@@ -8,6 +8,11 @@
         <description>
             <locale group="quiqqer/payment-paypal" var="cron.processUnpaidInvoices.description"/>
         </description>
+
+        <autocreate>
+            <interval>0 2 * * *</interval>
+            <active>1</active>
+        </autocreate>
     </cron>
 
     <cron exec="\QUI\ERP\Payments\PayPal\Cron::checkPendingCaptures">
@@ -17,6 +22,11 @@
         <description>
             <locale group="quiqqer/payment-paypal" var="cron.checkPendingCaptures.description"/>
         </description>
+
+        <autocreate>
+            <interval>0 1 * * *</interval>
+            <active>1</active>
+        </autocreate>
     </cron>
 
 </crons>
