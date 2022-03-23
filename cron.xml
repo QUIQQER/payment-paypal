@@ -10,7 +10,7 @@
         </description>
 
         <autocreate>
-            <interval>0 2 * * *</interval>
+            <interval>0 * * * *</interval>
             <active>1</active>
         </autocreate>
     </cron>
@@ -24,7 +24,7 @@
         </description>
 
         <autocreate>
-            <interval>0 1 * * *</interval>
+            <interval>10 * * * *</interval>
             <active>1</active>
         </autocreate>
     </cron>
