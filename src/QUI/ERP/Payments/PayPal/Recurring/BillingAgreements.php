@@ -516,7 +516,12 @@ class BillingAgreements
                 QUI::getLocale()->get(
                     'quiqqer/payment-paypal',
                     'exception.Recurring.cancel.error'
-                )
+                ),
+                0,
+                [
+                    'billingAgreementId' => $billingAgreementId,
+                    'cancelReason'       => $reason
+                ]
             );
         }
 
@@ -576,7 +581,12 @@ class BillingAgreements
                 QUI::getLocale()->get(
                     'quiqqer/payment-paypal',
                     'exception.Recurring.suspend.error'
-                )
+                ),
+                0,
+                [
+                    'billingAgreementId' => $billingAgreementId,
+                    'suspendNote'        => $note
+                ]
             );
         }
     }
@@ -634,7 +644,12 @@ class BillingAgreements
                 QUI::getLocale()->get(
                     'quiqqer/payment-paypal',
                     'exception.Recurring.resume.error'
-                )
+                ),
+                0,
+                [
+                    'billingAgreementId' => $billingAgreementId,
+                    'resumeNote'         => $note
+                ]
             );
         }
     }
