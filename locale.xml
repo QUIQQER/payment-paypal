@@ -342,6 +342,10 @@
         </locale>
 
         <!-- History -->
+        <locale name="history.order.no_longer_exists_at_paypal">
+            <de><![CDATA[Der Zahlungsstatus dieser Bestellung kann bei PayPal nicht mehr überprüft werden, da PayPal keine Daten mehr zu dieser Bestellung gespeichert hat. Der Zahlungsstatus bleibt daher ab jetzt unverändert. Bitte ändern Sie die Zahlungsart und prüfen Sie den Zahlungseingang zu dieser Bestellung händisch.]]></de>
+            <en><![CDATA[The payment status of this order can no longer be checked at PayPal, because PayPal has no longer stored any data about this order. The payment status therefore remains unchanged from now on. Please change the payment method and check the receipt of payment for this order manually.]]></en>
+        </locale>
         <locale name="history.order.billing_plan_created">
             <de><![CDATA[PayPal Billing Plan (Abrechnungsplan) erstell. ID: [billingPlanId]]]></de>
             <en><![CDATA[PayPal Billing Plan created. ID: [billingPlanId]]]></en>
