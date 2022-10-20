@@ -39,6 +39,9 @@ use PayPalCheckoutSdk\Orders\OrdersPatchRequest as PayPalOrdersPatchRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCreateRequest as PayPalOrdersCreateRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersCaptureRequest as PayPalOrderCaptureRequestV2;
 use PayPalCheckoutSdk\Orders\OrdersGetRequest as PayPalOrderGetRequestV2;
+use function is_array;
+use function json_last_error;
+use const JSON_ERROR_NONE;
 
 /**
  * Class Payment
@@ -50,14 +53,15 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * PayPal API Order attributes
      */
-    const ATTR_PAYPAL_PAYMENT_ID         = 'paypal-PaymentId';
-    const ATTR_PAYPAL_PAYER_ID           = 'paypal-PayerId';
-    const ATTR_PAYPAL_ORDER_ID           = 'paypal-OrderId';
-    const ATTR_PAYPAL_AUTHORIZATION_ID   = 'paypal-AuthorizationId';
-    const ATTR_PAYPAL_CAPTURE_ID         = 'paypal-CaptureId';
-    const ATTR_PAYPAL_PAYMENT_SUCCESSFUL = 'paypal-PaymentSuccessful';
-    const ATTR_PAYPAL_PAYER_DATA         = 'paypal-PayerData';
-    const ATTR_PAYPAL_REFUND_ID          = 'paypal-RefundIds';
+    const ATTR_PAYPAL_PAYMENT_ID           = 'paypal-PaymentId';
+    const ATTR_PAYPAL_PAYER_ID             = 'paypal-PayerId';
+    const ATTR_PAYPAL_ORDER_ID             = 'paypal-OrderId';
+    const ATTR_PAYPAL_AUTHORIZATION_ID     = 'paypal-AuthorizationId';
+    const ATTR_PAYPAL_CAPTURE_ID           = 'paypal-CaptureId';
+    const ATTR_PAYPAL_PAYMENT_SUCCESSFUL   = 'paypal-PaymentSuccessful';
+    const ATTR_PAYPAL_PAYER_DATA           = 'paypal-PayerData';
+    const ATTR_PAYPAL_REFUND_ID            = 'paypal-RefundIds';
+    const ATTR_PAYPAL_ORDER_DOES_NOT_EXIST = 'paypal-OrderDoesNotExist';
 
     /**
      * PayPal Order states
@@ -101,6 +105,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const PAYPAL_ERROR_ORDER_NOT_CAPTURED                    = 'order_not_captured';
     const PAYPAL_ERROR_ORDER_NOT_REFUNDED                    = 'order_not_refunded';
     const PAYPAL_ERROR_ORDER_NOT_REFUNDED_ORDER_NOT_CAPTURED = 'order_not_refunded_order_not_captured';
+
+    /**
+     * Error codes returned from PayPal API
+     */
+    const PAYPAL_API_EXCEPTION_MESSAGE_RESOURCE_NOT_FOUND = 'RESOURCE_NOT_FOUND';
 
     /**
      * PayPal PHP REST Client (v1)
@@ -1033,11 +1042,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @param array $body - Request data
      * @param AbstractOrder|Transaction|array $TransactionObj - Object that contains necessary request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
+     * @param bool $throwSystemException (optional) - API errors are thrown as special PayPalSystemException for *internal* handling
+     *
      * @return array|false - Response body or false on error
      *
      * @throws PayPalException
+     * @throws PayPalSystemException
      */
-    public function payPalApiRequest($request, $body, $TransactionObj)
+    public function payPalApiRequest($request, $body, $TransactionObj, bool $throwSystemException = false)
     {
         $getData = function ($key) use ($TransactionObj) {
             if ($TransactionObj instanceof AbstractOrder) {
@@ -1236,6 +1248,16 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 'paypal_api'
             );
 
+            if ($throwSystemException) {
+                throw new PayPalSystemException(
+                    $Exception->getMessage(),
+                    $Exception->getCode(),
+                    [
+                        'request' => $request
+                    ]
+                );
+            }
+
             $this->throwPayPalException();
         }
 
@@ -1354,8 +1376,44 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         foreach ($result as $row) {
             try {
-                $Order           = $OrderHandler->get($row['id']);
-                $payPalOrderData = $this->getPayPalOrderDetails($Order);
+                $Order = $OrderHandler->get($row['id']);
+
+                // Some order entities do not exist any longer at PayPal - we do not have to check these
+                if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST)) {
+                    continue;
+                }
+
+                try {
+                    $payPalOrderData = $this->payPalApiRequest(
+                        self::PAYPAL_REQUEST_TYPE_GET_ORDER,
+                        [],
+                        $Order,
+                        true
+                    );
+                } catch (PayPalSystemException $Exception) {
+                    // Check if Order does not exist anymore at PayPal
+                    $exMsg = $Exception->getMessage();
+                    $exMsg = \json_decode($exMsg, true);
+
+                    if (is_array($exMsg) &&
+                        json_last_error() === JSON_ERROR_NONE &&
+                        !empty($exMsg['name']) &&
+                        $exMsg['name'] == self::PAYPAL_API_EXCEPTION_MESSAGE_RESOURCE_NOT_FOUND
+                    ) {
+                        $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST, true);
+
+                        $Order->addHistory(
+                            QUI::getSystemLocale()->get(
+                                'quiqqer/payment-paypal',
+                                'history.order.no_longer_exists_at_paypal'
+                            )
+                        );
+
+                        $this->saveOrder($Order);
+                    }
+
+                    continue;
+                }
 
                 if (!$payPalOrderData) {
                     continue;
