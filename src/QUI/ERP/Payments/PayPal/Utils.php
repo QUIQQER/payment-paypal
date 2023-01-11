@@ -24,7 +24,7 @@ class Utils
     {
         $AmountValue     = new CalculationValue($amount, null, 2);
         $amount          = $AmountValue->get();
-        $formattedAmount = sprintf("%.2f", $amount);
+        $formattedAmount = sprintf("%.2F", $amount);
 
 //        if (mb_strpos($formattedAmount, '.00') !== false) {
 //            return (string)(float)$formattedAmount;
