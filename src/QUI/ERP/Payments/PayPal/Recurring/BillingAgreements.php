@@ -806,7 +806,8 @@ class BillingAgreements
                     'value' => $paymentTypeIds
                 ]
             ],
-            'order'  => 'date ASC'
+            'order'  => 'date ASC',
+            'limit'  => 99999 // yes, i hate this too
         ]);
 
         $invoiceIds = [];
