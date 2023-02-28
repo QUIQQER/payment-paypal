@@ -16,6 +16,7 @@ use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
 use QUI\ERP\Accounting\Payments\Payments;
 use QUI\ERP\Accounting\Payments\Transactions\Handler as TransactionHandler;
+use function date_interval_create_from_date_string;
 
 /**
  * Class BillingAgreements
@@ -122,9 +123,11 @@ class BillingAgreements
 
         // Determine start date
         $Now = new \DateTime();
-//        $Now->add(new \DateInterval('PT24H'));
 
-        $body['start_date'] = $Now->format('Y-m-d\TH:i:s\Z');
+        // Set 1 minute to the future
+        $Now->add(date_interval_create_from_date_string('1 minute'));
+
+        $body['start_date'] = $Now->format('Y-m-d\TH:i:sP'); // ISO 8601
 
         try {
             $response = self::payPalApiRequest(
@@ -803,7 +806,8 @@ class BillingAgreements
                     'value' => $paymentTypeIds
                 ]
             ],
-            'order'  => 'date ASC'
+            'order'  => 'date ASC',
+            'limit'  => 99999 // yes, i hate this too
         ]);
 
         $invoiceIds = [];
