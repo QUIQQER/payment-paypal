@@ -21,7 +21,7 @@
   "require": {
     "quiqqer\/payments": "^1.1|dev-master|dev-dev",
     "paypal\/rest-api-sdk-php": "dev-2.0-beta",
-    "paypal\/paypal-checkout-sdk": "^1.0.1"
+    "quiqqer/paypal-rest-api-sdk-php": "^1|dev-master"
   },
   "suggest": {
     "quiqqer\/erp-plans": "Allows handling of orders that require automated recurring payments"
