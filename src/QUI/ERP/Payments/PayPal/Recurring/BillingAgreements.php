@@ -2,6 +2,9 @@
 
 namespace QUI\ERP\Payments\PayPal\Recurring;
 
+use DateTime;
+use Exception;
+use PDO;
 use QUI;
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
 use QUI\ERP\Accounting\Invoice\Invoice;
@@ -18,6 +21,7 @@ use QUI\ERP\Payments\PayPal\Utils;
 use QUI\Utils\Security\Orthos;
 
 use function date_interval_create_from_date_string;
+use function rtrim;
 
 /**
  * Class BillingAgreements
@@ -60,7 +64,7 @@ class BillingAgreements
      * @throws QUI\ERP\Payments\PayPal\PayPalException
      * @throws QUI\ERP\Exception
      * @throws QUI\Exception
-     * @throws \Exception
+     * @throws Exception
      */
     public static function createBillingAgreement(AbstractOrder $Order)
     {
@@ -112,8 +116,8 @@ class BillingAgreements
                 'id' => $Order->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)
             ],
             'override_merchant_preferences' => [
-                'return_url' => \rtrim($Gateway->getSuccessUrl(), '?'),
-                'cancel_url' => \rtrim($Gateway->getCancelUrl(), '?')
+                'return_url' => rtrim($Gateway->getSuccessUrl(), '?'),
+                'cancel_url' => rtrim($Gateway->getCancelUrl(), '?')
             ]
         ];
 
@@ -125,7 +129,7 @@ class BillingAgreements
         }
 
         // Determine start date
-        $Now = new \DateTime();
+        $Now = new DateTime();
 
         // Set 1 minute to the future
         $Now->add(date_interval_create_from_date_string('1 minute'));
@@ -196,7 +200,7 @@ class BillingAgreements
      * @param Invoice $Invoice
      * @return void
      * @throws PayPalException
-     * @throws \QUI\Exception
+     * @throws QUI\Exception
      */
     public static function billBillingAgreementBalance(Invoice $Invoice)
     {
@@ -309,7 +313,7 @@ class BillingAgreements
                         'paypalTransactionId' => $transaction['transaction_id']
                     ])
                 );
-            } catch (\Exception $Exception) {
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
             }
 
@@ -345,7 +349,7 @@ class BillingAgreements
 
             $binds['search'] = [
                 'value' => '%' . $searchParams['search'] . '%',
-                'type' => \PDO::PARAM_STR
+                'type' => PDO::PARAM_STR
             ];
         }
 
@@ -355,15 +359,11 @@ class BillingAgreements
         }
 
         // ORDER
-        if (!empty($searchParams['sortOn'])
-        ) {
+        if (!empty($searchParams['sortOn'])) {
             $sortOn = Orthos::clear($searchParams['sortOn']);
             $order = "ORDER BY " . $sortOn;
 
-            if (
-                isset($searchParams['sortBy']) &&
-                !empty($searchParams['sortBy'])
-            ) {
+            if (!empty($searchParams['sortBy'])) {
                 $order .= " " . Orthos::clear($searchParams['sortBy']);
             } else {
                 $order .= " ASC";
@@ -373,10 +373,7 @@ class BillingAgreements
         }
 
         // LIMIT
-        if (
-            !empty($gridParams['limit'])
-            && !$countOnly
-        ) {
+        if (!empty($gridParams['limit']) && !$countOnly) {
             $sql .= " LIMIT " . $gridParams['limit'];
         } else {
             if (!$countOnly) {
@@ -393,8 +390,8 @@ class BillingAgreements
 
         try {
             $Stmt->execute();
-            $result = $Stmt->fetchAll(\PDO::FETCH_ASSOC);
-        } catch (\Exception $Exception) {
+            $result = $Stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $Exception) {
             QUI\System\Log::addError(
                 self::class . ' :: searchUsers() -> ' . $Exception->getMessage()
             );
@@ -431,23 +428,23 @@ class BillingAgreements
      * Get transaction list for a Billing Agreement
      *
      * @param string $billingAgreementId
-     * @param \DateTime $Start (optional)
-     * @param \DateTime $End (optional)
+     * @param DateTime $Start (optional)
+     * @param DateTime $End (optional)
      * @return array
      * @throws PayPalException
-     * @throws \Exception
+     * @throws Exception
      */
     public static function getBillingAgreementTransactions(
         $billingAgreementId,
-        \DateTime $Start = null,
-        \DateTime $End = null
+        DateTime $Start = null,
+        DateTime $End = null
     ) {
         $data = [
             RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
         ];
 
         if (is_null($Start)) {
-            $Start = new \DateTime(date('Y-m') . '-01 00:00:00');
+            $Start = new DateTime(date('Y-m') . '-01 00:00:00');
         }
 
         if (is_null($End)) {
@@ -493,7 +490,7 @@ class BillingAgreements
         try {
             $Locale = new QUI\Locale();
             $Locale->setCurrent($data['customer']['lang']);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return;
         }
@@ -519,7 +516,7 @@ class BillingAgreements
                     RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
                 ]
             );
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
             throw new PayPalException(
@@ -559,7 +556,7 @@ class BillingAgreements
             try {
                 $Locale = new QUI\Locale();
                 $Locale->setCurrent($data['customer']['lang']);
-            } catch (\Exception $Exception) {
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
                 return;
             }
@@ -584,7 +581,7 @@ class BillingAgreements
                     RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
                 ]
             );
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
             throw new PayPalException(
@@ -622,7 +619,7 @@ class BillingAgreements
             try {
                 $Locale = new QUI\Locale();
                 $Locale->setCurrent($data['customer']['lang']);
-            } catch (\Exception $Exception) {
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
                 return;
             }
@@ -647,7 +644,7 @@ class BillingAgreements
                     RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
                 ]
             );
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
             throw new PayPalException(
@@ -699,7 +696,7 @@ class BillingAgreements
                     'paypal_agreement_id' => $billingAgreementId
                 ]
             );
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
         }
     }
@@ -766,7 +763,7 @@ class BillingAgreements
                     'active' => 1
                 ]
             );
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
             throw new PayPalException(
@@ -849,7 +846,7 @@ class BillingAgreements
                     ]
                 ]
             ]);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return;
         }
@@ -871,7 +868,7 @@ class BillingAgreements
 
                         // Second: Process all completed transactions for Invoice
                         self::billBillingAgreementBalance($Invoice);
-                    } catch (\Exception $Exception) {
+                    } catch (Exception $Exception) {
                         QUI\System\Log::writeException($Exception);
                     }
                 }
@@ -905,7 +902,7 @@ class BillingAgreements
                 $billingAgreementId,
                 self::TRANSACTION_STATE_DENIED
             );
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return;
         }
@@ -915,7 +912,7 @@ class BillingAgreements
 
             $invoiceAmount = (float)$Invoice->getAttribute('toPay');
             $invoiceCurrency = $Invoice->getCurrency()->getCode();
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return;
         }
@@ -968,7 +965,7 @@ class BillingAgreements
                         'paypalTransactionId' => $transaction['id']
                     ])
                 );
-            } catch (\Exception $Exception) {
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
             }
         }
@@ -981,7 +978,7 @@ class BillingAgreements
      * @return void
      * @throws PayPalException
      * @throws QUI\Database\Exception
-     * @throws \Exception
+     * @throws Exception
      */
     protected static function refreshTransactionList($billingAgreementId)
     {
@@ -1008,12 +1005,12 @@ class BillingAgreements
         ]);
 
         if (empty($result)) {
-            $Start = new \DateTime(date('Y') . '-01-01 00:00:00'); // Beginning of current year
+            $Start = new DateTime(date('Y') . '-01-01 00:00:00'); // Beginning of current year
         } else {
-            $Start = new \DateTime($result[0]['paypal_transaction_date']);
+            $Start = new DateTime($result[0]['paypal_transaction_date']);
         }
 
-        $End = new \DateTime(); // today
+        $End = new DateTime(); // today
 
         // Determine existing transactions
         $result = QUI::getDataBase()->fetch([
@@ -1059,7 +1056,7 @@ class BillingAgreements
                 continue;
             }
 
-            $TransactionTime = new \DateTime($transaction['time_stamp']);
+            $TransactionTime = new DateTime($transaction['time_stamp']);
             $transactionTime = $TransactionTime->format('Y-m-d H:i:s');
 
             $idHash = md5($transaction['transaction_id'] . $transactionTime);
@@ -1091,7 +1088,7 @@ class BillingAgreements
      * @return array
      * @throws QUI\Database\Exception
      * @throws PayPalException
-     * @throws \Exception
+     * @throws Exception
      */
     protected static function getUnprocessedTransactions(
         $billingAgreementId,
@@ -1170,7 +1167,7 @@ class BillingAgreements
                     'paypal_agreement_id' => $billingAgreementId
                 ]
             ]);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
