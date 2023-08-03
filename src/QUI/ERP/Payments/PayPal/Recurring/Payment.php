@@ -2,19 +2,19 @@
 
 namespace QUI\ERP\Payments\PayPal\Recurring;
 
+use QUI;
 use QUI\ERP\Accounting\CalculationValue;
+use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Accounting\Payments\Order\Payment as OrderProcessStepPayments;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
-use QUI\ERP\Payments\PayPal\Utils;
-use Symfony\Component\HttpFoundation\Response;
-use QUI;
-use QUI\ERP\Payments\PayPal\Payment as BasePayment;
-use QUI\ERP\Order\AbstractOrder;
-use QUI\ERP\Payments\PayPal\PayPalException;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use QUI\ERP\Accounting\Payments\Order\Payment as OrderProcessStepPayments;
 use QUI\ERP\Accounting\Payments\Types\RecurringPaymentInterface;
-use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Order\AbstractOrder;
+use QUI\ERP\Payments\PayPal\Payment as BasePayment;
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Utils;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Class Payment
@@ -26,10 +26,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * PayPal Order attribute for recurring payments
      */
-    const ATTR_PAYPAL_BILLING_PLAN_ID                  = 'paypal-BillingPlanId';
-    const ATTR_PAYPAL_BILLING_AGREEMENT_ID             = 'paypal-BillingAgreementId';
-    const ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN          = 'paypal-BillingAgreementToken';
-    const ATTR_PAYPAL_BILLING_AGREEMENT_APPROVAL_URL   = 'paypal-BillingAgreementApprovalUrl';
+    const ATTR_PAYPAL_BILLING_PLAN_ID = 'paypal-BillingPlanId';
+    const ATTR_PAYPAL_BILLING_AGREEMENT_ID = 'paypal-BillingAgreementId';
+    const ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN = 'paypal-BillingAgreementToken';
+    const ATTR_PAYPAL_BILLING_AGREEMENT_APPROVAL_URL = 'paypal-BillingAgreementApprovalUrl';
     const ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID = 'paypal-BillingAgreementTransactionId';
 
     /**
@@ -37,17 +37,17 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     const PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN = 'paypal-api-create_billing_plan';
     const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN = 'paypal-api-update_billing_plan';
-    const PAYPAL_REQUEST_TYPE_GET_BILLING_PLAN    = 'paypal-api-get_billing_plan';
-    const PAYPAL_REQUEST_TYPE_LIST_BILLING_PLANS  = 'paypal-api-list_billing_plans';
+    const PAYPAL_REQUEST_TYPE_GET_BILLING_PLAN = 'paypal-api-get_billing_plan';
+    const PAYPAL_REQUEST_TYPE_LIST_BILLING_PLANS = 'paypal-api-list_billing_plans';
 
-    const PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT           = 'paypal-api-create_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_AGREEMENT           = 'paypal-api-update_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT          = 'paypal-api-execute_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT             = 'paypal-api-bill_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT           = 'paypal-api-cancel_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_SUSPEND_BILLING_AGREEMENT          = 'paypal-api-suspend_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_RESUME_BILLING_AGREEMENT           = 'paypal-api-resume_billing_agreement';
-    const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT              = 'paypal-api-get_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT = 'paypal-api-create_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_UPDATE_BILLING_AGREEMENT = 'paypal-api-update_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_EXECUTE_BILLING_AGREEMENT = 'paypal-api-execute_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_BILL_BILLING_AGREEMENT = 'paypal-api-bill_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_CANCEL_BILLING_AGREEMENT = 'paypal-api-cancel_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_SUSPEND_BILLING_AGREEMENT = 'paypal-api-suspend_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_RESUME_BILLING_AGREEMENT = 'paypal-api-resume_billing_agreement';
+    const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT = 'paypal-api-get_billing_agreement';
     const PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT_TRANSACTIONS = 'paypal-api-get_billing_agreement_transactions';
 
     const PAYPAL_REQUEST_TYPE_SALE_REFUND = 'paypal-api-sale_refund';
@@ -120,7 +120,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function executeGatewayPayment(QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway)
     {
-        $Order        = $Gateway->getOrder();
+        $Order = $Gateway->getOrder();
         $OrderProcess = new QUI\ERP\Order\OrderProcess([
             'orderHash' => $Order->getHash()
         ]);
@@ -193,7 +193,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__, 2).'/PaymentDisplay.Header.html'));
+        $Step->setContent($Engine->fetch(dirname(__FILE__, 2) . '/PaymentDisplay.Header.html'));
 
         return $Control->create();
     }
@@ -321,10 +321,12 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     public function refundPayment(Transaction $Transaction, $refundHash, $amount, $reason = '')
     {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
-        $Process->addHistory('PayPal :: Start Billing Agreement refund for transaction #'.$Transaction->getTxId());
+        $Process->addHistory('PayPal :: Start Billing Agreement refund for transaction #' . $Transaction->getTxId());
 
         if (!$Transaction->getData(self::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID)) {
-            $Process->addHistory('PayPal :: Transaction cannot be refunded because it is not a PayPal Billing Agreement transaction.');
+            $Process->addHistory(
+                'PayPal :: Transaction cannot be refunded because it is not a PayPal Billing Agreement transaction.'
+            );
             $this->throwPayPalException(self::PAYPAL_ERROR_NO_BILLING_AGREEMENT_TRANSACTION);
             return;
         }
@@ -337,7 +339,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             $Transaction->getPayment()->getName(),
             [
                 'isRefund' => 1,
-                'message'  => $reason
+                'message' => $reason
             ],
             null,
             false,
@@ -346,8 +348,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
 
         $RefundTransaction->pending();
 
-        $Currency       = $Transaction->getCurrency();
-        $AmountCalc     = new CalculationValue($amount, $Currency, 2);
+        $Currency = $Transaction->getCurrency();
+        $AmountCalc = new CalculationValue($amount, $Currency, 2);
         $amountRefunded = Utils::formatPrice($AmountCalc->get());
 
         try {
@@ -355,7 +357,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                 self::PAYPAL_REQUEST_TYPE_SALE_REFUND,
                 [
                     'amount' => [
-                        'total'    => $amountRefunded,
+                        'total' => $amountRefunded,
                         'currency' => $Currency->getCode()
                     ],
                     'reason' => mb_substr($reason, 0, 30)
@@ -365,9 +367,9 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         } catch (PayPalException $Exception) {
             $Process->addHistory(
                 'PayPal :: Refund operation failed.'
-                .' Reason: "'.$Exception->getMessage().'".'
-                .' ReasonCode: "'.$Exception->getCode().'".'
-                .' Transaction #'.$Transaction->getTxId()
+                . ' Reason: "' . $Exception->getMessage() . '".'
+                . ' ReasonCode: "' . $Exception->getCode() . '".'
+                . ' Transaction #' . $Transaction->getTxId()
             );
 
             $RefundTransaction->error();
@@ -388,7 +390,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                         'history.refund',
                         [
                             'refundId' => $response['id'],
-                            'amount'   => $response['amount']['total'],
+                            'amount' => $response['amount']['total'],
                             'currency' => $response['amount']['currency']
                         ]
                     )
@@ -406,7 +408,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             default:
                 $Process->addHistory(
                     'PayPal :: Billing Agreement transaction refund was not completed by PayPal because of an unknown error.'
-                    .' Refund state: '.$response['state']
+                    . ' Refund state: ' . $response['state']
                 );
 
                 $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED);
@@ -453,8 +455,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         try {
             $result = QUI::getDataBase()->fetch([
                 'select' => ['active'],
-                'from'   => BillingAgreements::getBillingAgreementsTable(),
-                'where'  => [
+                'from' => BillingAgreements::getBillingAgreementsTable(),
+                'where' => [
                     'paypal_agreement_id' => $subscriptionId
                 ]
             ]);
@@ -487,8 +489,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         try {
             $result = QUI::getDataBase()->fetch([
                 'select' => ['paypal_agreement_id'],
-                'from'   => BillingAgreements::getBillingAgreementsTable(),
-                'where'  => $where
+                'from' => BillingAgreements::getBillingAgreementsTable(),
+                'where' => $where
             ]);
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);

@@ -1,8 +1,5 @@
 <?php
 
-use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
-
 /**
  * Get details of a PayPal Billing Agreement
  *
@@ -10,11 +7,15 @@ use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
  * @return array|false- Billing Agreement data
  * @throws PayPalException
  */
+
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
+
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_getBillingAgreement',
     function ($billingAgreementId) {
         try {
-            $billingAgreement                 = BillingAgreements::getBillingAgreementDetails($billingAgreementId);
+            $billingAgreement = BillingAgreements::getBillingAgreementDetails($billingAgreementId);
             $billingAgreement['quiqqer_data'] = BillingAgreements::getBillingAgreementData($billingAgreementId);
 
             return $billingAgreement;

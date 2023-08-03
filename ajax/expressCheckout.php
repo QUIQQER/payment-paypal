@@ -1,10 +1,5 @@
 <?php
 
-use QUI\ERP\Order\Handler;
-use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\ERP\Payments\PayPal\PaymentExpress;
-use QUI\Utils\Security\Orthos;
-
 /**
  * Execute PayPal payment for an Order
  *
@@ -12,6 +7,12 @@ use QUI\Utils\Security\Orthos;
  * @return bool - success
  * @throws PayPalException
  */
+
+use QUI\ERP\Order\Handler;
+use QUI\ERP\Payments\PayPal\PaymentExpress;
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\Utils\Security\Orthos;
+
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_expressCheckout',
     function ($orderHash) {

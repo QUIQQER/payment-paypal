@@ -1,12 +1,5 @@
 <?php
 
-use QUI\ERP\Order\Handler;
-use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
-use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\Utils\Security\Orthos;
-use QUI\Utils\Grid;
-use QUI\ERP\Payments\PayPal\Recurring\BillingPlans;
-
 /**
  * Get list of PayPal Billing Plans
  *
@@ -14,12 +7,18 @@ use QUI\ERP\Payments\PayPal\Recurring\BillingPlans;
  * @return array - PayPal Order/Payment ID and Order hash
  * @throws PayPalException
  */
+
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Recurring\BillingPlans;
+use QUI\Utils\Grid;
+use QUI\Utils\Security\Orthos;
+
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_getBillingPlans',
     function ($searchParams) {
         $searchParams = Orthos::clearArray(json_decode($searchParams, true));
 
-        $page    = 0;
+        $page = 0;
         $perPage = null;
 
         if (!empty($searchParams['page'])) {

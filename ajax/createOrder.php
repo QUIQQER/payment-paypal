@@ -1,10 +1,5 @@
 <?php
 
-use QUI\ERP\Order\Handler;
-use QUI\ERP\Payments\PayPal\Payment;
-use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\Utils\Security\Orthos;
-
 /**
  * Create PayPal payment for an Order
  *
@@ -14,13 +9,19 @@ use QUI\Utils\Security\Orthos;
  * @return array - PayPal Order/Payment ID and Order hash
  * @throws PayPalException
  */
+
+use QUI\ERP\Order\Handler;
+use QUI\ERP\Payments\PayPal\Payment;
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\Utils\Security\Orthos;
+
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_createOrder',
     function ($orderHash, $basketId, $express = false) {
         try {
             if (!empty($orderHash)) {
                 $orderHash = Orthos::clear($orderHash);
-                $Order     = Handler::getInstance()->getOrderByHash($orderHash);
+                $Order = Handler::getInstance()->getOrderByHash($orderHash);
             } elseif (!empty($basketId)) {
                 $Basket = new QUI\ERP\Order\Basket\Basket((int)$basketId);
 
@@ -44,7 +45,7 @@ QUI::$Ajax->registerFunction(
 
         return [
             'payPalOrderId' => $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_ID),
-            'hash'          => $Order->getHash()
+            'hash' => $Order->getHash()
         ];
     },
     ['orderHash', 'basketId']
