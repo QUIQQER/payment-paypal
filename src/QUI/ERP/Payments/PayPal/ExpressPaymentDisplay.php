@@ -38,13 +38,13 @@ class ExpressPaymentDisplay extends QUI\Control
     public function getBody()
     {
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Order  = $this->getAttribute('Order');
+        $Order = $this->getAttribute('Order');
         $this->setJavaScriptControlOption('orderhash', $Order->getHash());
 
         $Engine->assign([
             'apiSetUp' => Provider::isApiSetUp(),
         ]);
 
-        return $Engine->fetch(dirname(__FILE__).'/ExpressPaymentDisplay.html');
+        return $Engine->fetch(dirname(__FILE__) . '/ExpressPaymentDisplay.html');
     }
 }

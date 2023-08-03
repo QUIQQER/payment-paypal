@@ -1,10 +1,5 @@
 <?php
 
-use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
-use QUI\Utils\Security\Orthos;
-use QUI\Utils\Grid;
-
 /**
  * Get details of a PayPal Billing Agreement
  *
@@ -12,6 +7,12 @@ use QUI\Utils\Grid;
  * @return array - Billing Agreements list
  * @throws PayPalException
  */
+
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
+use QUI\Utils\Grid;
+use QUI\Utils\Security\Orthos;
+
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_getBillingAgreementList',
     function ($searchParams) {

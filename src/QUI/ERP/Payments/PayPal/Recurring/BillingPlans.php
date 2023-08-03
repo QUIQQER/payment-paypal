@@ -3,16 +3,16 @@
 namespace QUI\ERP\Payments\PayPal\Recurring;
 
 use QUI;
+use QUI\ERP\Accounting\Payments\Gateway\Gateway;
+use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Order\AbstractOrder;
+use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Provider;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
-use QUI\ERP\Accounting\Payments\Gateway\Gateway;
+use QUI\ERP\Payments\PayPal\Utils;
 use QUI\ERP\Plans\Utils as ErpPlansUtils;
 use QUI\ERP\Products\Handler\Products as ProductsHandler;
-use QUI\ERP\Payments\PayPal\Utils;
 use QUI\ERP\Products\Product\Product;
-use QUI\ERP\Accounting\Payments\Transactions\Transaction;
-use QUI\ERP\Payments\PayPal\PayPalException;
 
 /**
  * Class BillingPlans
@@ -52,7 +52,7 @@ class BillingPlans
 
         if (!ErpPlansUtils::isPlanOrder($Order)) {
             throw new QUI\ERP\Accounting\Payments\Exception(
-                'Order #'.$Order->getHash().' contains no plan products.'
+                'Order #' . $Order->getHash() . ' contains no plan products.'
             );
         }
 
@@ -69,7 +69,7 @@ class BillingPlans
         // Read name and description from PlanProduct (= Product that contains subscription plan information)
         $Locale = $Order->getCustomer()->getLocale();
 
-        $name        = $PlanProduct->getTitle($Locale);
+        $name = $PlanProduct->getTitle($Locale);
         $description = $PlanProduct->getDescription($Locale);
 
         if (empty($description)) {
@@ -77,7 +77,7 @@ class BillingPlans
         }
 
         $body = [
-            'name'        => $name,
+            'name' => $name,
             'description' => $description
         ];
 
@@ -85,7 +85,7 @@ class BillingPlans
         $planDetails = ErpPlansUtils::getPlanDetailsFromOrder($Order);
 
         // Determine plan type
-        $autoExtend   = !empty($planDetails['auto_extend']);
+        $autoExtend = !empty($planDetails['auto_extend']);
         $body['type'] = $autoExtend ? 'INFINITE' : 'FIXED';
 
         // Determine payment definitions
@@ -113,7 +113,7 @@ class BillingPlans
         QUI::getDataBase()->insert(
             self::getBillingPlansTable(),
             [
-                'paypal_id'           => $billingPlanId,
+                'paypal_id' => $billingPlanId,
                 'identification_hash' => self::getIdentificationHash($Order)
             ]
         );
@@ -142,8 +142,8 @@ class BillingPlans
             RecurringPayment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN,
             [
                 [
-                    'op'    => 'replace',
-                    'path'  => '/',
+                    'op' => 'replace',
+                    'path' => '/',
                     'value' => [
                         'state' => 'ACTIVE'
                     ]
@@ -168,8 +168,8 @@ class BillingPlans
             RecurringPayment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN,
             [
                 [
-                    'op'    => 'replace',
-                    'path'  => '/',
+                    'op' => 'replace',
+                    'path' => '/',
                     'value' => [
                         'state' => 'DELETED'
                     ]
@@ -205,9 +205,9 @@ class BillingPlans
             RecurringPayment::PAYPAL_REQUEST_TYPE_LIST_BILLING_PLANS,
             [],
             [
-                'page'           => $page,
-                'page_size'      => $pageSize,
-                'status'         => 'ACTIVE',
+                'page' => $page,
+                'page_size' => $pageSize,
+                'status' => 'ACTIVE',
                 'total_required' => 'yes'
             ]
         );
@@ -224,8 +224,8 @@ class BillingPlans
         try {
             $result = QUI::getDataBase()->fetch([
                 'select' => ['paypal_id'],
-                'from'   => self::getBillingPlansTable(),
-                'where'  => [
+                'from' => self::getBillingPlansTable(),
+                'where' => [
                     'identification_hash' => self::getIdentificationHash($Order)
                 ]
             ]);
@@ -260,9 +260,9 @@ class BillingPlans
         // sort IDs ASC
         sort($productIds);
 
-        $lang         = $Order->getCustomer()->getLang();
-        $totalSum     = $Order->getPriceCalculation()->getSum()->get();
-        $hashedString = $lang.$totalSum.implode(',', $productIds);
+        $lang = $Order->getCustomer()->getLang();
+        $totalSum = $Order->getPriceCalculation()->getSum()->get();
+        $hashedString = $lang . $totalSum . implode(',', $productIds);
 
         if (Provider::getApiSetting('sandbox')) {
             $hashedString .= '_sandbox';
@@ -287,22 +287,22 @@ class BillingPlans
      */
     protected static function parsePaymentDefinitionsFromOrder(AbstractOrder $Order, Product $PlanProduct)
     {
-        $paymentDefinitions   = [];
-        $planDetails          = ErpPlansUtils::getPlanDetailsFromProduct($PlanProduct);
+        $paymentDefinitions = [];
+        $planDetails = ErpPlansUtils::getPlanDetailsFromProduct($PlanProduct);
         $invoiceIntervalParts = explode('-', $planDetails['invoice_interval']);
 
         $paymentDefinition = [
-            'name'               => QUI::getLocale()->get(
+            'name' => QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
                 'recurring.payment_definition.name',
                 [
                     'planTitle' => $PlanProduct->getTitle(),
-                    'url'       => Utils::getProjectUrl()
+                    'url' => Utils::getProjectUrl()
                 ]
             ),
-            'type'               => 'REGULAR',
+            'type' => 'REGULAR',
             'frequency_interval' => $invoiceIntervalParts[0], // e.g. "1"
-            'frequency'          => mb_strtoupper($invoiceIntervalParts[1]) // e.g. "MONTH"
+            'frequency' => mb_strtoupper($invoiceIntervalParts[1]) // e.g. "MONTH"
         ];
 
         // Calculate cycles
@@ -313,10 +313,10 @@ class BillingPlans
         } else {
             try {
                 $DurationInterval = ErpPlansUtils::parseIntervalFromDuration($planDetails['duration_interval']);
-                $InvoiceInterval  = ErpPlansUtils::parseIntervalFromDuration($planDetails['invoice_interval']);
+                $InvoiceInterval = ErpPlansUtils::parseIntervalFromDuration($planDetails['invoice_interval']);
 
                 $Start = new \DateTime();
-                $End   = clone $Start;
+                $End = clone $Start;
                 $End->add($DurationInterval)->sub(new \DateInterval('P1D'));
             } catch (\Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
@@ -341,11 +341,11 @@ class BillingPlans
 
         // Amount
         $PriceCalculation = $Order->getPriceCalculation();
-        $amountNetTotal   = Utils::formatPrice($PriceCalculation->getNettoSum()->get());
-        $amountTaxTotal   = Utils::formatPrice($PriceCalculation->getVatSum()->get());
+        $amountNetTotal = Utils::formatPrice($PriceCalculation->getNettoSum()->get());
+        $amountTaxTotal = Utils::formatPrice($PriceCalculation->getVatSum()->get());
 
         $paymentDefinition['amount'] = [
-            'value'    => $amountNetTotal,
+            'value' => $amountNetTotal,
             'currency' => $Order->getCurrency()->getCode()
         ];
 
@@ -353,9 +353,9 @@ class BillingPlans
 
         // Tax
         $paymentDefinition['charge_models'][] = [
-            'type'   => 'TAX',
+            'type' => 'TAX',
             'amount' => [
-                'value'    => $amountTaxTotal,
+                'value' => $amountTaxTotal,
                 'currency' => $Order->getCurrency()->getCode()
             ]
         ];

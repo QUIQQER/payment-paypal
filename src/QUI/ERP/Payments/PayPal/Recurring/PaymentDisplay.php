@@ -7,8 +7,6 @@
 namespace QUI\ERP\Payments\PayPal\Recurring;
 
 use QUI;
-use QUI\ERP\Order\Utils\Utils as OrderUtils;
-use QUI\ERP\Order\Controls\OrderProcess\Finish as FinishStep;
 use QUI\ERP\Accounting\Payments\Order\Shipping as PaymentStep;
 use QUI\ERP\Payments\PayPal\Provider;
 
@@ -49,13 +47,13 @@ class PaymentDisplay extends QUI\Control
     public function getBody()
     {
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Order  = $this->getAttribute('Order');
+        $Order = $this->getAttribute('Order');
         $this->setJavaScriptControlOption('orderhash', $Order->getHash());
 
         $Engine->assign([
             'apiSetUp' => Provider::isApiSetUp()
         ]);
 
-        return $Engine->fetch(dirname(__FILE__).'/PaymentDisplay.html');
+        return $Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.html');
     }
 }

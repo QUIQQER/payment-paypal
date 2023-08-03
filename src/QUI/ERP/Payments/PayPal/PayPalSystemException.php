@@ -7,5 +7,4 @@ namespace QUI\ERP\Payments\PayPal;
  */
 class PayPalSystemException extends \QUI\ERP\Accounting\Payments\Exception
 {
-
 }

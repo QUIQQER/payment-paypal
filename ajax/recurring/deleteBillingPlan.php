@@ -1,8 +1,5 @@
 <?php
 
-use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\ERP\Payments\PayPal\Recurring\BillingPlans;
-
 /**
  * Delete a PayPal Billing Plan
  *
@@ -10,6 +7,10 @@ use QUI\ERP\Payments\PayPal\Recurring\BillingPlans;
  * @return void
  * @throws PayPalException
  */
+
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Recurring\BillingPlans;
+
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_deleteBillingPlan',
     function ($billingPlanId) {
