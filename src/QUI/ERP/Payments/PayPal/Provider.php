@@ -113,7 +113,7 @@ class Provider extends AbstractPaymentProvider
     public static function isApiSetUp()
     {
         try {
-            $Conf        = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+            $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
             $apiSettings = $Conf->getSection('api');
         } catch (QUI\Exception $Exception) {
             return false;
@@ -134,9 +134,9 @@ class Provider extends AbstractPaymentProvider
         if (!$isSetup) {
             QUI\System\Log::addError(
                 'Your PayPal API credentials seem to be (partially) missing.'
-                .' PayPal CAN NOT be used at the moment. Please enter all your'
-                .' API credentials. See https://dev.quiqqer.com/quiqqer/payment-paypal/wikis/api-configuration'
-                .' for further instructions.'
+                . ' PayPal CAN NOT be used at the moment. Please enter all your'
+                . ' API credentials. See https://dev.quiqqer.com/quiqqer/payment-paypal/wikis/api-configuration'
+                . ' for further instructions.'
             );
 
             return false;

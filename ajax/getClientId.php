@@ -1,14 +1,15 @@
 <?php
 
-use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\ERP\Payments\PayPal\Provider;
-
 /**
  * Get PayPal API client ID
  *
  * @return string|false - Client ID or false on error
  * @throws PayPalException
  */
+
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Provider;
+
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_getClientId',
     function () {

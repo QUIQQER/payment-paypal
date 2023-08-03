@@ -1,8 +1,5 @@
 <?php
 
-use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
-
 /**
  * Cancel a PayPal Billing Agreement
  *
@@ -10,6 +7,10 @@ use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
  * @return void
  * @throws PayPalException
  */
+
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
+
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_cancelBillingAgreement',
     function ($billingAgreementId) {

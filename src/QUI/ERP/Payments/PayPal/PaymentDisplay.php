@@ -7,7 +7,6 @@
 namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
-use QUI\ERP\Order\Handler as OrderHandler;
 
 /**
  * Class PaymentDisplay
@@ -26,7 +25,7 @@ class PaymentDisplay extends QUI\Control
     {
         parent::__construct($attributes);
 
-        $this->addCSSFile(dirname(__FILE__).'/PaymentDisplay.css');
+        $this->addCSSFile(dirname(__FILE__) . '/PaymentDisplay.css');
 
         $this->addCSSClass('quiqqer-payment-paypal');
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay');
@@ -52,15 +51,15 @@ class PaymentDisplay extends QUI\Control
         $Engine = QUI::getTemplateManager()->getEngine();
 
         /* @var $Order QUI\ERP\Order\OrderInProcess */
-        $Order            = $this->getAttribute('Order');
+        $Order = $this->getAttribute('Order');
         $PriceCalculation = $Order->getPriceCalculation();
 
         $Engine->assign([
             'display_price' => $PriceCalculation->getSum()->formatted(),
-            'apiSetUp'      => Provider::isApiSetUp(),
-            'btn_size'      => Provider::getWidgetsSetting('btn_size'),
-            'btn_color'     => Provider::getWidgetsSetting('btn_color'),
-            'btn_shape'     => Provider::getWidgetsSetting('btn_shape')
+            'apiSetUp' => Provider::isApiSetUp(),
+            'btn_size' => Provider::getWidgetsSetting('btn_size'),
+            'btn_color' => Provider::getWidgetsSetting('btn_color'),
+            'btn_shape' => Provider::getWidgetsSetting('btn_shape')
         ]);
 
         $this->setJavaScriptControlOption('orderhash', $Order->getHash());
@@ -68,6 +67,6 @@ class PaymentDisplay extends QUI\Control
         // Check if an PayPal authorization already exists (i.e. Order is successful / can be processed)
         $this->setJavaScriptControlOption('successful', $Order->isSuccessful());
 
-        return $Engine->fetch(dirname(__FILE__).'/PaymentDisplay.html');
+        return $Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.html');
     }
 }

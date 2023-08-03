@@ -22,8 +22,8 @@ class Utils
      */
     public static function formatPrice($amount)
     {
-        $AmountValue     = new CalculationValue($amount, null, 2);
-        $amount          = $AmountValue->get();
+        $AmountValue = new CalculationValue($amount, null, 2);
+        $amount = $AmountValue->get();
         $formattedAmount = sprintf("%.2F", $amount);
 
 //        if (mb_strpos($formattedAmount, '.00') !== false) {
@@ -69,7 +69,7 @@ class Utils
      */
     public static function getHistoryText(string $context, $data = [])
     {
-        return QUI::getLocale()->get('quiqqer/payment-paypal', 'history.'.$context, $data);
+        return QUI::getLocale()->get('quiqqer/payment-paypal', 'history.' . $context, $data);
     }
 
     /**

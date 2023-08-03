@@ -1,10 +1,5 @@
 <?php
 
-use QUI\ERP\Order\Handler;
-use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
-use QUI\ERP\Payments\PayPal\PayPalException;
-use QUI\Utils\Security\Orthos;
-
 /**
  * Create PayPal billing plans and agreements for plan orders
  *
@@ -12,14 +7,20 @@ use QUI\Utils\Security\Orthos;
  * @return array - PayPal Order/Payment ID and Order hash
  * @throws PayPalException
  */
+
+use QUI\ERP\Order\Handler;
+use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
+use QUI\Utils\Security\Orthos;
+
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_createBillingAgreement',
     function ($orderHash) {
         try {
             $orderHash = Orthos::clear($orderHash);
-            $Order     = Handler::getInstance()->getOrderByHash($orderHash);
+            $Order = Handler::getInstance()->getOrderByHash($orderHash);
 
-            $Payment     = new RecurringPayment();
+            $Payment = new RecurringPayment();
             $approvalUrl = $Payment->createSubscription($Order);
         } catch (PayPalException $Exception) {
             throw $Exception;
@@ -30,7 +31,7 @@ QUI::$Ajax->registerFunction(
 
         return [
             'approvalUrl' => $approvalUrl,
-            'hash'        => $Order->getHash()
+            'hash' => $Order->getHash()
         ];
     },
     ['orderHash']

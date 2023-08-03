@@ -2,48 +2,47 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use PayPalCheckoutSdk\Core\PayPalHttpClient as PayPalClientV2;
+use PayPalCheckoutSdk\Core\ProductionEnvironment as PayPalProductionEnvironmentV2;
+use PayPalCheckoutSdk\Core\SandboxEnvironment as PayPalSandboxEnvironmentV2;
+use PayPalCheckoutSdk\Orders\OrdersCaptureRequest as PayPalOrderCaptureRequestV2;
+use PayPalCheckoutSdk\Orders\OrdersCreateRequest as PayPalOrdersCreateRequestV2;
+use PayPalCheckoutSdk\Orders\OrdersGetRequest as PayPalOrderGetRequestV2;
+use PayPalCheckoutSdk\Orders\OrdersPatchRequest as PayPalOrdersPatchRequestV2;
+use QUI;
+use QUI\ERP\Accounting\CalculationValue;
+use QUI\ERP\Accounting\Payments\Gateway\Gateway;
+use QUI\ERP\Accounting\Payments\Payments;
+use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
+use QUI\ERP\Accounting\Payments\Transactions\Transaction;
+use QUI\ERP\Order\AbstractOrder;
+use QUI\ERP\Order\Handler as OrderHandler;
+use QUI\ERP\Payments\PayPal\PhpSdk\Core\PayPalHttpClient as PayPalClient;
+use QUI\ERP\Payments\PayPal\PhpSdk\Core\ProductionEnvironment;
+use QUI\ERP\Payments\PayPal\PhpSdk\Core\SandboxEnvironment;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementBillBalanceRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementCancelRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementCreateRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementExecuteRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementGetRequest;
-use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementTransactionsRequest;
-use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementSuspendRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementReActivateRequest;
-use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\SaleRefundRequest;
+use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementSuspendRequest;
+use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingAgreements\AgreementTransactionsRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingPlans\PlanCreateRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingPlans\PlanGetRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingPlans\PlanListRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingPlans\PlanUpdateRequest;
+use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\CaptureRefundRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\OrderAuthorizeRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\OrderVoidRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\PaymentExecuteRequest;
-use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\CaptureRefundRequest;
-use QUI\ERP\Payments\PayPal\PhpSdk\Core\PayPalHttpClient as PayPalClient;
-use QUI\ERP\Payments\PayPal\PhpSdk\Core\ProductionEnvironment;
-use QUI\ERP\Payments\PayPal\PhpSdk\Core\SandboxEnvironment;
-
-use PayPalCheckoutSdk\Core\PayPalHttpClient as PayPalClientV2;
-use PayPalCheckoutSdk\Core\SandboxEnvironment as PayPalSandboxEnvironmentV2;
-use PayPalCheckoutSdk\Core\ProductionEnvironment as PayPalProductionEnvironmentV2;
-use PayPalCheckoutSdk\Orders\OrdersPatchRequest as PayPalOrdersPatchRequestV2;
-use PayPalCheckoutSdk\Orders\OrdersCreateRequest as PayPalOrdersCreateRequestV2;
-use PayPalCheckoutSdk\Orders\OrdersCaptureRequest as PayPalOrderCaptureRequestV2;
-use PayPalCheckoutSdk\Orders\OrdersGetRequest as PayPalOrderGetRequestV2;
-
-use QUI;
-use QUI\ERP\Accounting\Payments\Payments;
-use QUI\ERP\Accounting\Payments\Transactions\Transaction;
-use QUI\ERP\Order\AbstractOrder;
-use QUI\ERP\Order\Handler as OrderHandler;
-use QUI\ERP\Utils\User as ERPUserUtils;
-use QUI\ERP\Accounting\CalculationValue;
-use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
+use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\SaleRefundRequest;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
-use QUI\ERP\Accounting\Payments\Gateway\Gateway;
+use QUI\ERP\Utils\User as ERPUserUtils;
 
 use function is_array;
 use function json_last_error;
+
 use const JSON_ERROR_NONE;
 
 /**
@@ -56,57 +55,57 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * PayPal API Order attributes
      */
-    const ATTR_PAYPAL_PAYMENT_ID           = 'paypal-PaymentId';
-    const ATTR_PAYPAL_PAYER_ID             = 'paypal-PayerId';
-    const ATTR_PAYPAL_ORDER_ID             = 'paypal-OrderId';
-    const ATTR_PAYPAL_AUTHORIZATION_ID     = 'paypal-AuthorizationId';
-    const ATTR_PAYPAL_CAPTURE_ID           = 'paypal-CaptureId';
-    const ATTR_PAYPAL_PAYMENT_SUCCESSFUL   = 'paypal-PaymentSuccessful';
-    const ATTR_PAYPAL_PAYER_DATA           = 'paypal-PayerData';
-    const ATTR_PAYPAL_REFUND_ID            = 'paypal-RefundIds';
+    const ATTR_PAYPAL_PAYMENT_ID = 'paypal-PaymentId';
+    const ATTR_PAYPAL_PAYER_ID = 'paypal-PayerId';
+    const ATTR_PAYPAL_ORDER_ID = 'paypal-OrderId';
+    const ATTR_PAYPAL_AUTHORIZATION_ID = 'paypal-AuthorizationId';
+    const ATTR_PAYPAL_CAPTURE_ID = 'paypal-CaptureId';
+    const ATTR_PAYPAL_PAYMENT_SUCCESSFUL = 'paypal-PaymentSuccessful';
+    const ATTR_PAYPAL_PAYER_DATA = 'paypal-PayerData';
+    const ATTR_PAYPAL_REFUND_ID = 'paypal-RefundIds';
     const ATTR_PAYPAL_ORDER_DOES_NOT_EXIST = 'paypal-OrderDoesNotExist';
 
     /**
      * PayPal Order states
      */
-    const PAYPAL_ORDER_STATE_PENDING    = 'pending';
+    const PAYPAL_ORDER_STATE_PENDING = 'pending';
     const PAYPAL_ORDER_STATE_AUTHORIZED = 'authorized';
-    const PAYPAL_ORDER_STATE_CAPTURED   = 'captured';
-    const PAYPAL_ORDER_STATE_COMPLETED  = 'COMPLETED';
-    const PAYPAL_ORDER_STATE_VOIDED     = 'voided';
+    const PAYPAL_ORDER_STATE_CAPTURED = 'captured';
+    const PAYPAL_ORDER_STATE_COMPLETED = 'COMPLETED';
+    const PAYPAL_ORDER_STATE_VOIDED = 'voided';
 
     /**
      * PayPal Capture states
      */
     const PAYPAL_CAPTURE_STATE_COMPLETED = 'COMPLETED';
-    const PAYPAL_CAPTURE_STATE_PENDING   = 'PENDING';
+    const PAYPAL_CAPTURE_STATE_PENDING = 'PENDING';
 
     /**
      * PayPal Refund states
      */
-    const PAYPAL_REFUND_STATE_PENDING   = 'pending';
+    const PAYPAL_REFUND_STATE_PENDING = 'pending';
     const PAYPAL_REFUND_STATE_COMPLETED = 'completed';
 
     /**
      * PayPal REST API request types
      */
-    const PAYPAL_REQUEST_TYPE_GET_ORDER       = 'paypal-api-get_order';
-    const PAYPAL_REQUEST_TYPE_CREATE_ORDER    = 'paypal-api-create_order';
-    const PAYPAL_REQUEST_TYPE_UPDATE_ORDER    = 'paypal-api-update_order';
-    const PAYPAL_REQUEST_TYPE_EXECUTE_ORDER   = 'paypal-api-execute_order';
+    const PAYPAL_REQUEST_TYPE_GET_ORDER = 'paypal-api-get_order';
+    const PAYPAL_REQUEST_TYPE_CREATE_ORDER = 'paypal-api-create_order';
+    const PAYPAL_REQUEST_TYPE_UPDATE_ORDER = 'paypal-api-update_order';
+    const PAYPAL_REQUEST_TYPE_EXECUTE_ORDER = 'paypal-api-execute_order';
     const PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER = 'paypal-api-authorize_order';
-    const PAYPAL_REQUEST_TYPE_CAPTURE_ORDER   = 'paypal-api-capture_order';
-    const PAYPAL_REQUEST_TYPE_VOID_ORDER      = 'paypal-api-void_oder';
-    const PAYPAL_REQUEST_TYPE_REFUND_ORDER    = 'paypal-api-refund_order';
+    const PAYPAL_REQUEST_TYPE_CAPTURE_ORDER = 'paypal-api-capture_order';
+    const PAYPAL_REQUEST_TYPE_VOID_ORDER = 'paypal-api-void_oder';
+    const PAYPAL_REQUEST_TYPE_REFUND_ORDER = 'paypal-api-refund_order';
 
     /**
      * Error codes
      */
-    const PAYPAL_ERROR_GENERAL_ERROR                         = 'general_error';
-    const PAYPAL_ERROR_ORDER_NOT_APPROVED                    = 'order_not_approved';
-    const PAYPAL_ERROR_ORDER_NOT_AUTHORIZED                  = 'order_not_authorized';
-    const PAYPAL_ERROR_ORDER_NOT_CAPTURED                    = 'order_not_captured';
-    const PAYPAL_ERROR_ORDER_NOT_REFUNDED                    = 'order_not_refunded';
+    const PAYPAL_ERROR_GENERAL_ERROR = 'general_error';
+    const PAYPAL_ERROR_ORDER_NOT_APPROVED = 'order_not_approved';
+    const PAYPAL_ERROR_ORDER_NOT_AUTHORIZED = 'order_not_authorized';
+    const PAYPAL_ERROR_ORDER_NOT_CAPTURED = 'order_not_captured';
+    const PAYPAL_ERROR_ORDER_NOT_REFUNDED = 'order_not_refunded';
     const PAYPAL_ERROR_ORDER_NOT_REFUNDED_ORDER_NOT_CAPTURED = 'order_not_refunded_order_not_captured';
 
     /**
@@ -152,9 +151,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     public function getIcon()
     {
-        return Payments::getInstance()->getHost().
-               URL_OPT_DIR.
-               'quiqqer/payment-paypal/bin/images/Payment.png';
+        return Payments::getInstance()->getHost() .
+            URL_OPT_DIR .
+            'quiqqer/payment-paypal/bin/images/Payment.png';
     }
 
     /**
@@ -170,8 +169,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $Order = OrderHandler::getInstance()->getOrderByHash($hash);
         } catch (\Exception $Exception) {
             QUI\System\Log::addError(
-                'PayPal :: Cannot check if payment process for Order #'.$hash.' is successful'
-                .' -> '.$Exception->getMessage()
+                'PayPal :: Cannot check if payment process for Order #' . $hash . ' is successful'
+                . ' -> ' . $Exception->getMessage()
             );
 
             return false;
@@ -259,7 +258,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__).'/PaymentDisplay.Header.html'));
+        $Step->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
 
         return $Control->create();
     }
@@ -318,12 +317,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $payPalDataForOrder = $this->getPayPalDataForOrder($Order);
-        $purchaseUnit       = $payPalDataForOrder['purchase_units'][0];
+        $purchaseUnit = $payPalDataForOrder['purchase_units'][0];
 
         $body = [
             [
-                'op'    => 'replace',
-                'path'  => '/purchase_units/@reference_id==\''.$Order->getHash().'\'',
+                'op' => 'replace',
+                'path' => '/purchase_units/@reference_id==\'' . $Order->getHash() . '\'',
                 'value' => $purchaseUnit
             ]
         ];
@@ -364,14 +363,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $PriceCalculation = $Order->getPriceCalculation();
-        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
+        $amountTotal = Utils::formatPrice($PriceCalculation->getSum()->get());
 
         try {
             $response = $this->payPalApiRequest(
                 self::PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER,
                 [
                     'amount' => [
-                        'total'    => $amountTotal,
+                        'total' => $amountTotal,
                         'currency' => $Order->getCurrency()->getCode()
                     ]
                 ],
@@ -385,15 +384,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         // @todo handle pending status
 
-        if (empty($response['state'])
-            || $response['state'] !== 'authorized') {
+        if (
+            empty($response['state'])
+            || $response['state'] !== 'authorized'
+        ) {
             if (empty($response['reason_code'])) {
                 $Order->addHistory(
                     'PayPal :: Order was not authorized by PayPal because of an unknown error'
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order was not authorized by PayPal. Reason: "'.$response['reason_code'].'"'
+                    'PayPal :: Order was not authorized by PayPal. Reason: "' . $response['reason_code'] . '"'
                 );
             }
 
@@ -433,9 +434,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $PriceCalculation = $Order->getPriceCalculation();
 //        $amountTotal      = Utils::formatPrice($PriceCalculation->getSum()->get());
         $captureId = false;
-        $captured  = false;
-        $pending   = false;
-        $amount    = false;
+        $captured = false;
+        $pending = false;
+        $amount = false;
 
         $checkOrderCaptureStatus = function ($payPalOrderData) use (&$captureId, &$captured, &$amount, &$pending) {
             if (empty($payPalOrderData['purchase_units'][0]['payments']['captures'])) {
@@ -451,7 +452,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
                 case self::PAYPAL_CAPTURE_STATE_PENDING:
                     $captured = true;
-                    $pending  = true;
+                    $pending = true;
                     break;
             }
 
@@ -460,7 +461,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 //                        $captureData['final_capture'];
 
             $captureId = $captureData['id'];
-            $amount    = $captureData['amount'];
+            $amount = $captureData['amount'];
         };
 
         try {
@@ -483,7 +484,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             if ($captured) {
                 $Order->addHistory(
                     'PayPal :: Order capture REST request failed. But Order capture was still completed on PayPal site.'
-                    .' Continuing payment process.'
+                    . ' Continuing payment process.'
                 );
             }
 
@@ -501,13 +502,13 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             if (!empty($response['reason_code'])) {
                 $Order->addHistory(
-                    'PayPal :: Order capture was not completed by PayPal. Reason code: "'.$response['reason_code'].'"'
-                    .' | Capture failed because: '.$captureFailReason
+                    'PayPal :: Order capture was not completed by PayPal. Reason code: "' . $response['reason_code'] . '"'
+                    . ' | Capture failed because: ' . $captureFailReason
                 );
             } else {
                 $Order->addHistory(
                     'PayPal :: Order capture was not completed by PayPal. Unknown reason code.'
-                    .' | Capture failed because: '.$captureFailReason
+                    . ' | Capture failed because: ' . $captureFailReason
                 );
             }
 
@@ -564,11 +565,13 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             $Transaction->updateData();
 
-            $Order->addHistory('PayPal :: Order capture was completed. Transaction '.$Transaction->getTxId().' added.');
+            $Order->addHistory(
+                'PayPal :: Order capture was completed. Transaction ' . $Transaction->getTxId() . ' added.'
+            );
         } else {
             $Order->addHistory(
                 'PayPal :: Order capture was not completed immediately.'
-                .' Payment is PENDING and has to be added manually to the order or checked via cronjob.'
+                . ' Payment is PENDING and has to be added manually to the order or checked via cronjob.'
             );
         }
 
@@ -591,10 +594,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     public function refundPayment(Transaction $Transaction, $refundHash, $amount, $reason = '')
     {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
-        $Process->addHistory('PayPal :: Start refund for transaction #'.$Transaction->getTxId());
+        $Process->addHistory('PayPal :: Start refund for transaction #' . $Transaction->getTxId());
 
         if (!$Transaction->getData(self::ATTR_PAYPAL_CAPTURE_ID)) {
-            $Process->addHistory('PayPal :: Transaction cannot be refunded because it is not yet captured / completed.');
+            $Process->addHistory(
+                'PayPal :: Transaction cannot be refunded because it is not yet captured / completed.'
+            );
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED_ORDER_NOT_CAPTURED);
             return;
         }
@@ -607,7 +612,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $Transaction->getPayment()->getName(),
             [
                 'isRefund' => 1,
-                'message'  => $reason
+                'message' => $reason
             ],
             null,
             false,
@@ -616,8 +621,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $RefundTransaction->pending();
 
-        $Currency       = $Transaction->getCurrency();
-        $AmountCalc     = new CalculationValue($amount, $Currency, 2);
+        $Currency = $Transaction->getCurrency();
+        $AmountCalc = new CalculationValue($amount, $Currency, 2);
         $amountRefunded = Utils::formatPrice($AmountCalc->get());
 
         try {
@@ -625,7 +630,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 self::PAYPAL_REQUEST_TYPE_REFUND_ORDER,
                 [
                     'amount' => [
-                        'total'    => $amountRefunded,
+                        'total' => $amountRefunded,
                         'currency' => $Currency->getCode()
                     ],
                     'reason' => mb_substr($reason, 0, 30)
@@ -635,9 +640,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         } catch (PayPalException $Exception) {
             $Process->addHistory(
                 'PayPal :: Refund operation failed.'
-                .' Reason: "'.$Exception->getMessage().'".'
-                .' ReasonCode: "'.$Exception->getCode().'".'
-                .' Transaction #'.$Transaction->getTxId()
+                . ' Reason: "' . $Exception->getMessage() . '".'
+                . ' ReasonCode: "' . $Exception->getCode() . '".'
+                . ' Transaction #' . $Transaction->getTxId()
             );
 
             $RefundTransaction->error();
@@ -658,7 +663,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                         'history.refund',
                         [
                             'refundId' => $response['id'],
-                            'amount'   => $response['amount']['total'],
+                            'amount' => $response['amount']['total'],
                             'currency' => $response['amount']['currency']
                         ]
                     )
@@ -676,7 +681,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             default:
                 $Process->addHistory(
                     'PayPal :: Order refund was not completed by PayPal because of an unknown error.'
-                    .' Refund state: '.$response['state']
+                    . ' Refund state: ' . $response['state']
                 );
 
                 $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED);
@@ -696,7 +701,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         // Basic payment data
         $transactionData = [
             'reference_id' => $Order->getHash(),
-            'description'  => $this->getLocale()->get(
+            'description' => $this->getLocale()->get(
                 'quiqqer/payment-paypal',
                 'Payment.order.create.description',
                 [
@@ -707,47 +712,47 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $Order->recalculate();
         $PriceCalculation = $Order->getPriceCalculation();
-        $currencyCode     = $Order->getCurrency()->getCode();
+        $currencyCode = $Order->getCurrency()->getCode();
 
         $amount = [
             'currency_code' => $currencyCode,
-            'value'         => Utils::formatPrice($PriceCalculation->getSum()->get()),
+            'value' => Utils::formatPrice($PriceCalculation->getSum()->get()),
         ];
 
         // Shipping data
-        $ShippingCost    = Utils::getShippingCostsByOrder($Order);
+        $ShippingCost = Utils::getShippingCostsByOrder($Order);
         $shippingAddress = Utils::getPayPalShippingAddressDataByOrder($Order);
 
         $taxTotal = Utils::formatPrice($PriceCalculation->getVatSum()->get());
 
         $amountDetails = [
             'subtotal' => Utils::formatPrice($PriceCalculation->getSubSum()->get()),
-            'tax'      => $taxTotal
+            'tax' => $taxTotal
         ];
 
         if ($isNetto) {
             $amount['breakdown']['item_total'] = [
-                'value'         => Utils::formatPrice($PriceCalculation->getNettoSubSum()->get()),
+                'value' => Utils::formatPrice($PriceCalculation->getNettoSubSum()->get()),
                 'currency_code' => $currencyCode
             ];
 
             $amount['breakdown']['tax_total'] = [
-                'value'         => $taxTotal,
+                'value' => $taxTotal,
                 'currency_code' => $currencyCode
             ];
         } else {
             $amount['breakdown']['item_total'] = [
-                'value'         => Utils::formatPrice($PriceCalculation->getSubSum()->get()),
+                'value' => Utils::formatPrice($PriceCalculation->getSubSum()->get()),
                 'currency_code' => $currencyCode
             ];
         }
 
         if (!empty($ShippingCost)) {
-            $shippingCost              = Utils::formatPrice($ShippingCost->getSum());
+            $shippingCost = Utils::formatPrice($ShippingCost->getSum());
             $amountDetails['shipping'] = $shippingCost;
 
             $amount['breakdown']['shipping'] = [
-                'value'         => $shippingCost,
+                'value' => $shippingCost,
                 'currency_code' => $currencyCode
             ];
         }
@@ -780,7 +785,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             /** @var QUI\ERP\Accounting\Article $OrderArticle */
             foreach ($PriceCalculation->getArticles() as $OrderArticle) {
                 $articleData = $OrderArticle->toArray();
-                $calculated  = $articleData['calculated'];
+                $calculated = $articleData['calculated'];
                 $FactorPrice = new CalculationValue($calculated['price']); // unit price
 
                 // Article name
@@ -791,14 +796,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 }
 
                 if (empty($articleName)) {
-                    $articleName = '#'.$OrderArticle->getId();
+                    $articleName = '#' . $OrderArticle->getId();
                 }
 
                 $item = [
-                    'name'        => $articleName,
-                    'quantity'    => $OrderArticle->getQuantity(),
+                    'name' => $articleName,
+                    'quantity' => $OrderArticle->getQuantity(),
                     'unit_amount' => [
-                        'value'         => Utils::formatPrice($FactorPrice->get()),
+                        'value' => Utils::formatPrice($FactorPrice->get()),
                         'currency_code' => $currencyCode
                     ]
                 ];
@@ -810,7 +815,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     $description = \mb_substr($description, 0, 127);
 
                     if (\mb_strlen($description) === 127) {
-                        $description = \mb_substr($description, 0, 124).'...';
+                        $description = \mb_substr($description, 0, 124) . '...';
                     }
 
                     $item['description'] = $description;
@@ -852,17 +857,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             $payer['name'] = [
                 'given_name' => $DeliveryAddress->getAttribute('firstname'),
-                'surname'    => $DeliveryAddress->getAttribute('lastname') ?: ''
+                'surname' => $DeliveryAddress->getAttribute('lastname') ?: ''
             ];
 
             $shippingAddress = [
                 'address_line_1' => $DeliveryAddress->getAttribute('street_no') ?: '',
-                'admin_area_2'   => $DeliveryAddress->getAttribute('city') ?: '',
-                'postal_code'    => $DeliveryAddress->getAttribute('zip') ?: '',
+                'admin_area_2' => $DeliveryAddress->getAttribute('city') ?: '',
+                'postal_code' => $DeliveryAddress->getAttribute('zip') ?: '',
             ];
 
             try {
-                $ShippingCountry                 = $DeliveryAddress->getCountry();
+                $ShippingCountry = $DeliveryAddress->getCountry();
                 $shippingAddress['country_code'] = $ShippingCountry->getCode();
             } catch (\Exception $Exception) {
                 QUI\System\Log::writeDebugException($Exception);
@@ -883,20 +888,20 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             if ($shippingAddress && !empty($DeliveryAddress->getName())) {
                 $transactionData['shipping'] = [
-                    'name'    => [
+                    'name' => [
                         'full_name' => $DeliveryAddress->getName(),
                     ],
-                    'type'    => 'SHIPPING',
+                    'type' => 'SHIPPING',
                     'address' => $shippingAddress
                 ];
             }
         }
 
         return [
-            'intent'         => 'CAPTURE',
-            'payer'          => $payer,
+            'intent' => 'CAPTURE',
+            'payer' => $payer,
             'purchase_units' => [$transactionData],
-            'redirect_urls'  => [
+            'redirect_urls' => [
                 'return_url' => \rtrim($Gateway->getSuccessUrl(), '?'),
                 'cancel_url' => \rtrim($Gateway->getCancelUrl(), '?')
             ]
@@ -946,7 +951,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         if (!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
             $Order->addHistory(
                 'PayPal :: Order cannot be voided because it has not been created yet'
-                .' or was voided before'
+                . ' or was voided before'
             );
 
             $this->saveOrder($Order);
@@ -1017,9 +1022,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     protected function throwPayPalException($errorCode = self::PAYPAL_ERROR_GENERAL_ERROR, $exceptionAttributes = [])
     {
-        $L   = $this->getLocale();
-        $lg  = 'quiqqer/payment-paypal';
-        $msg = $L->get($lg, 'payment.error_msg.'.$errorCode);
+        $L = $this->getLocale();
+        $lg = 'quiqqer/payment-paypal';
+        $msg = $L->get($lg, 'payment.error_msg.' . $errorCode);
 
         $Exception = new PayPalException($msg);
         $Exception->setAttributes($exceptionAttributes);
@@ -1208,7 +1213,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
 
                 $startDate = $getData('start_date');
-                $endDate   = $getData('end_date');
+                $endDate = $getData('end_date');
 
                 if (!empty($startDate)) {
                     $Request->startDate($startDate);
@@ -1240,8 +1245,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $Response = $this->getPayPalClient()->execute($Request);
             }
         } catch (\Exception $Exception) {
-            $message = $Exception->getCode()." :: \n\n";
-            $message .= $Exception->getMessage()."\n";
+            $message = $Exception->getCode() . " :: \n\n";
+            $message .= $Exception->getMessage() . "\n";
             $message .= $Exception->getTraceAsString();
 
             QUI\System\Log::write(
@@ -1336,7 +1341,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         // Determine payment type IDs
         $payments = Payments::getInstance()->getPayments([
             'select' => ['id'],
-            'where'  => [
+            'where' => [
                 'payment_type' => self::class
             ]
         ]);
@@ -1357,14 +1362,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         try {
             $result = QUI::getDataBase()->fetch([
                 'select' => ['id'],
-                'from'   => $OrderHandler->table(),
-                'where'  => [
-                    'payment_id'  => [
-                        'type'  => 'IN',
+                'from' => $OrderHandler->table(),
+                'where' => [
+                    'payment_id' => [
+                        'type' => 'IN',
                         'value' => $paymentTypeIds
                     ],
                     'paid_status' => [
-                        'type'  => 'IN',
+                        'type' => 'IN',
                         'value' => [
                             QUI\ERP\Constants::PAYMENT_STATUS_OPEN,
                             QUI\ERP\Constants::PAYMENT_STATUS_PART
@@ -1398,7 +1403,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     $exMsg = $Exception->getMessage();
                     $exMsg = \json_decode($exMsg, true);
 
-                    if (is_array($exMsg) &&
+                    if (
+                        is_array($exMsg) &&
                         json_last_error() === JSON_ERROR_NONE &&
                         !empty($exMsg['name']) &&
                         $exMsg['name'] == self::PAYPAL_API_EXCEPTION_MESSAGE_RESOURCE_NOT_FOUND
@@ -1426,7 +1432,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     continue;
                 }
 
-                $amountTotal        = 0;
+                $amountTotal = 0;
                 $amountCurrencyCode = false;
 
                 foreach ($payPalOrderData['purchase_units'][0]['payments']['captures'] as $capture) {
@@ -1434,7 +1440,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                         continue 2;
                     }
 
-                    $amountTotal        += $capture['amount']['value'];
+                    $amountTotal += $capture['amount']['value'];
                     $amountCurrencyCode = $capture['amount']['currency_code'];
                 }
 
@@ -1458,7 +1464,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
                 $Transaction->updateData();
 
-                $Order->addHistory('PayPal :: Pending order capture was completed. Transaction '.$Transaction->getTxId().' added.');
+                $Order->addHistory(
+                    'PayPal :: Pending order capture was completed. Transaction ' . $Transaction->getTxId() . ' added.'
+                );
                 $this->saveOrder($Order);
             } catch (\Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
