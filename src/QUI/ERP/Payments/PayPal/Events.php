@@ -13,7 +13,7 @@ use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Payments\PayPal\Payment as PayPalPayment;
 use QUI\ERP\Plans\Utils as ERPPlansUtils;
 use QUI\ERP\Plans\Utils as ErpPlanUtils;
-use Quiqqer\Engine\Collector;
+use QUI\Smarty\Collector;
 
 /**
  * Class Events
@@ -76,6 +76,56 @@ class Events
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="basket"
                   data-qui-options-basketid="' . $Basket->getId() . '"
+                  data-qui-options-sandbox="' . $sandbox . '"
+                  data-qui-options-orderhash="' . $orderHash . '"
+                  data-qui-options-checkout="' . $checkout . '"
+                  data-qui-options-displaysize="' . Provider::getWidgetsSetting('btn_express_size') . '"
+                  data-qui-options-displaycolor="' . Provider::getWidgetsSetting('btn_express_color') . '"
+                  data-qui-options-displayshape="' . Provider::getWidgetsSetting('btn_express_shape') . '"
+                  data-qui-options-orderprocessurl="' . OrderUtils::getOrderProcessUrl($Project, $CheckoutStep) . '">
+            </div>'
+        );
+    }
+
+    public static function templateOrderSimpleExpressButtons(
+        Collector $Collector,
+        QUI\ERP\Order\AbstractOrder $Order
+    ) {
+        // Check if order is a plan order
+        if (\class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
+            return;
+        }
+
+        if (!Provider::getPaymentSetting('display_express_basket')) {
+            return;
+        }
+
+        $PaymentExpress = Provider::getPayPalExpressPayment();
+
+        if (!$PaymentExpress || !$PaymentExpress->isActive()) {
+            return;
+        }
+
+        $Project = QUI::getProjectManager()->getStandard();
+        $CheckoutStep = new CheckoutStep();
+        $checkout = 0;
+        $orderHash = $Order->getHash();
+        $Payment = $Order->getPayment();
+
+        if (
+            $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+            && $Payment
+            && $Payment->getPaymentType() instanceof PaymentExpress
+        ) {
+            $checkout = 1;
+        }
+
+        $sandbox = Provider::getApiSetting('sandbox') ? 1 : 0;
+
+        $Collector->append(
+            '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtn"
+                  data-qui-options-context="simple-checkout"
+                  data-qui-options-orderid="' . $Order->getId() . '"
                   data-qui-options-sandbox="' . $sandbox . '"
                   data-qui-options-orderhash="' . $orderHash . '"
                   data-qui-options-checkout="' . $checkout . '"
@@ -156,7 +206,7 @@ class Events
         }
 
         $Collector->append(
-            '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
+            '<div data-qui="package / quiqqer / payment - paypal / bin / controls / ExpressBtnLoader"
                   data-qui-options-context="smallbasket"
                   data-qui-options-basketid="' . $Basket->getId() . '"
                   data-qui-options-checkout="' . $checkout . '"

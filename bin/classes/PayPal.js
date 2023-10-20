@@ -7,8 +7,8 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
 
     'Ajax'
 
-], function (QUIAjax) {
-    "use strict";
+], function(QUIAjax) {
+    'use strict';
 
     var pkg = 'quiqqer/payment-paypal';
 
@@ -24,15 +24,15 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * @param {Boolean} [express] - PayPal express payment
          * @return {Promise}
          */
-        createOrder: function (orderHash, basketId, express) {
-            return new Promise(function (resolve, reject) {
+        createOrder: function(orderHash, basketId, express) {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_createOrder', resolve, {
                     'package': pkg,
                     orderHash: orderHash,
-                    basketId : basketId || 0,
-                    express  : express ? 1 : 0,
-                    onError  : reject
-                })
+                    basketId: basketId || 0,
+                    express: express ? 1 : 0,
+                    onError: reject
+                });
             });
         },
 
@@ -43,14 +43,14 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * @param {Boolean} [express] - PayPal express payment
          * @return {Promise}
          */
-        executeOrder: function (orderHash, express) {
-            return new Promise(function (resolve, reject) {
+        executeOrder: function(orderHash, express) {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_executeOrder', resolve, {
                     'package': pkg,
                     orderHash: orderHash,
-                    express  : express ? 1 : 0,
-                    onError  : reject
-                })
+                    express: express ? 1 : 0,
+                    onError: reject
+                });
             });
         },
 
@@ -60,13 +60,13 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * @param {String} orderHash - Unique order hash
          * @return {Promise}
          */
-        createBillingAgreement: function (orderHash) {
-            return new Promise(function (resolve, reject) {
+        createBillingAgreement: function(orderHash) {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_recurring_createBillingAgreement', resolve, {
                     'package': pkg,
                     orderHash: orderHash,
-                    onError  : reject
-                })
+                    onError: reject
+                });
             });
         },
 
@@ -76,13 +76,13 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * @param {Object} SearchParams - Grid search params
          * @return {Promise}
          */
-        getBillingPlans: function (SearchParams) {
-            return new Promise(function (resolve, reject) {
+        getBillingPlans: function(SearchParams) {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.get('package_quiqqer_payment-paypal_ajax_recurring_getBillingPlans', resolve, {
-                    'package'   : pkg,
+                    'package': pkg,
                     searchParams: JSON.encode(SearchParams),
-                    onError     : reject
-                })
+                    onError: reject
+                });
             });
         },
 
@@ -92,13 +92,13 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * @param {String} billingPlanId - PayPal Billing Plan ID
          * @return {Promise}
          */
-        deleteBillingPlan: function (billingPlanId) {
-            return new Promise(function (resolve, reject) {
+        deleteBillingPlan: function(billingPlanId) {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_recurring_deleteBillingPlan', resolve, {
-                    'package'    : pkg,
+                    'package': pkg,
                     billingPlanId: billingPlanId,
-                    onError      : reject
-                })
+                    onError: reject
+                });
             });
         },
 
@@ -108,13 +108,13 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * @param {String} billingAgreementId - PayPal Billing Agreement ID
          * @return {Promise}
          */
-        getBillingAgreement: function (billingAgreementId) {
-            return new Promise(function (resolve, reject) {
+        getBillingAgreement: function(billingAgreementId) {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.get('package_quiqqer_payment-paypal_ajax_recurring_getBillingAgreement', resolve, {
-                    'package'         : pkg,
+                    'package': pkg,
                     billingAgreementId: billingAgreementId,
-                    onError           : reject
-                })
+                    onError: reject
+                });
             });
         },
 
@@ -124,13 +124,13 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * @param {Object} SearchParams - Grid search params
          * @return {Promise}
          */
-        getBillingAgreementList: function (SearchParams) {
-            return new Promise(function (resolve, reject) {
+        getBillingAgreementList: function(SearchParams) {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.get('package_quiqqer_payment-paypal_ajax_recurring_getBillingAgreementList', resolve, {
-                    'package'   : pkg,
+                    'package': pkg,
                     searchParams: JSON.encode(SearchParams),
-                    onError     : reject
-                })
+                    onError: reject
+                });
             });
         },
 
@@ -140,13 +140,13 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          * @param {String} billingAgreementId - PayPal Billing Agreement ID
          * @return {Promise}
          */
-        cancelBillingAgreement: function (billingAgreementId) {
-            return new Promise(function (resolve, reject) {
+        cancelBillingAgreement: function(billingAgreementId) {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_recurring_cancelBillingAgreement', resolve, {
-                    'package'         : pkg,
+                    'package': pkg,
                     billingAgreementId: billingAgreementId,
-                    onError           : reject
-                })
+                    onError: reject
+                });
             });
         },
 
@@ -155,12 +155,12 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          *
          * @return {Promise}
          */
-        getClientId: function () {
-            return new Promise(function (resolve, reject) {
+        getClientId: function() {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.get('package_quiqqer_payment-paypal_ajax_getClientId', resolve, {
                     'package': pkg,
-                    onError  : reject
-                })
+                    onError: reject
+                });
             });
         },
 
@@ -169,12 +169,12 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
          *
          * @return {Promise}
          */
-        getOrderDetails: function () {
-            return new Promise(function (resolve, reject) {
+        getOrderDetails: function() {
+            return new Promise(function(resolve, reject) {
                 QUIAjax.get('package_quiqqer_payment-paypal_ajax_getOrderDetails', resolve, {
                     'package': pkg,
-                    onError  : reject
-                })
+                    onError: reject
+                });
             });
         }
     });
