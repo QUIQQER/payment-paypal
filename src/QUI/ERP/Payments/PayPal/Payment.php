@@ -149,7 +149,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @return string
      */
-    public function getIcon()
+    public function getIcon(): string
     {
         return Payments::getInstance()->getHost() .
             URL_OPT_DIR .
@@ -163,7 +163,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @param string $hash - Vorgangsnummer - hash number - procedure number
      * @return bool
      */
-    public function isSuccessful($hash)
+    public function isSuccessful($hash): bool
     {
         try {
             $Order = OrderHandler::getInstance()->getOrderByHash($hash);
@@ -176,7 +176,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             return false;
         }
 
-        return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL);
+        return (bool)$Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL);
     }
 
     /**
@@ -184,7 +184,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @return bool
      */
-    public function isGateway()
+    public function isGateway(): bool
     {
         return true;
     }
@@ -192,7 +192,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * @return bool
      */
-    public function refundSupport()
+    public function refundSupport(): bool
     {
         return true;
     }

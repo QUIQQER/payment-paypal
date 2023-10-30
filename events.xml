@@ -5,6 +5,12 @@
     <event on="onPaymentsCanUsedInOrder" fire="\QUI\ERP\Payments\PayPal\Events::onPaymentsCanUsedInOrder"/>
 
     <!-- Template events -->
-    <event on="onQuiqqer::order::orderProcessBasketEnd" fire="\QUI\ERP\Payments\PayPal\Events::templateOrderProcessBasketEnd"/>
-    <event on="onQuiqqer::order::basketSmall::end" fire="\QUI\ERP\Payments\PayPal\Events::templateOrderBasketSmallEnd"/>
+    <event on="onQuiqqer::order::simple::expressButtons"
+           fire="\QUI\ERP\Payments\PayPal\Events::templateOrderSimpleExpressButtons"/>
+
+    <event on="onQuiqqer::order::orderProcessBasketEnd"
+           fire="\QUI\ERP\Payments\PayPal\Events::templateOrderProcessBasketEnd"/>
+
+    <event on="onQuiqqer::order::basketSmall::end"
+           fire="\QUI\ERP\Payments\PayPal\Events::templateOrderBasketSmallEnd"/>
 </events>
