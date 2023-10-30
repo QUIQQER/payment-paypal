@@ -13,7 +13,7 @@ use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Payments\PayPal\Payment as PayPalPayment;
 use QUI\ERP\Plans\Utils as ERPPlansUtils;
 use QUI\ERP\Plans\Utils as ErpPlanUtils;
-use QUI\Smarty\Collector;
+use Quiqqer\Engine\Collector;
 
 /**
  * Class Events
