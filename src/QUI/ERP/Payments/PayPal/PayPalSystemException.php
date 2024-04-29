@@ -2,9 +2,11 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use QUI\ERP\Accounting\Payments\Exception;
+
 /**
- * PayPal exception intenden for *internal* system use.
+ * PayPal exception intended for *internal* system use.
  */
-class PayPalSystemException extends \QUI\ERP\Accounting\Payments\Exception
+class PayPalSystemException extends Exception
 {
 }

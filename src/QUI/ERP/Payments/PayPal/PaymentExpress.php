@@ -2,9 +2,12 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use Exception;
 use QUI;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\Users\User as QUIQQERUser;
+
+use function mb_strtoupper;
 
 class PaymentExpress extends Payment
 {
@@ -17,7 +20,7 @@ class PaymentExpress extends Payment
     /**
      * @return string
      */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->getLocale()->get('quiqqer/payment-paypal', 'payment_express.title');
     }
@@ -25,7 +28,7 @@ class PaymentExpress extends Payment
     /**
      * @return string
      */
-    public function getDescription()
+    public function getDescription(): string
     {
         return $this->getLocale()->get('quiqqer/payment-paypal', 'payment_express.description');
     }
@@ -37,7 +40,7 @@ class PaymentExpress extends Payment
      * @param AbstractOrder $Order
      * @return bool
      */
-    public function isVisible(AbstractOrder $Order)
+    public function isVisible(AbstractOrder $Order): bool
     {
         $Payment = $Order->getPayment();
 
@@ -47,7 +50,7 @@ class PaymentExpress extends Payment
 
         try {
             $PaymentType = $Payment->getPaymentType();
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
@@ -60,7 +63,7 @@ class PaymentExpress extends Payment
      *
      * @return bool
      */
-    public function isUnique()
+    public function isUnique(): bool
     {
         return true;
     }
@@ -74,7 +77,7 @@ class PaymentExpress extends Payment
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public function setDefaultShipping(AbstractOrder $Order)
+    public function setDefaultShipping(AbstractOrder $Order): void
     {
         // Shipping address not required of shipping module not installed
         if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
@@ -100,7 +103,7 @@ class PaymentExpress extends Payment
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public function executePayPalOrder(AbstractOrder $Order)
+    public function executePayPalOrder(AbstractOrder $Order): void
     {
         $payPalOrder = $this->getPayPalOrderDetails($Order);
 
@@ -141,7 +144,7 @@ class PaymentExpress extends Payment
         }
 
         $Customer = $Order->getCustomer();
-        $CustomerQuiqqerUser = QUI::getUsers()->get($Customer->getId());
+        $CustomerQuiqqerUser = QUI::getUsers()->get($Customer->getUUID());
 
         $InvoiceAddress = false;
         $PayPalQuiqqerAddress = $this->getQuiqqerAddressFromPayPalOrder($payPalOrder, $CustomerQuiqqerUser);
@@ -150,7 +153,7 @@ class PaymentExpress extends Payment
         /** @var QUI\Users\Address $Address */
         foreach ($CustomerQuiqqerUser->getAddressList() as $Address) {
             if (
-                $Address->getId() !== $PayPalQuiqqerAddress->getId() &&
+                $Address->getUUID() !== $PayPalQuiqqerAddress->getUUID() &&
                 $Address->equals($PayPalQuiqqerAddress)
             ) {
                 $InvoiceAddress = $Address;
@@ -211,15 +214,15 @@ class PaymentExpress extends Payment
                         $InvoiceAddress = $StandardAddress;
                     }
                 }
-            } catch (QUI\Users\Exception $Exception) {
+            } catch (QUI\Users\Exception) {
                 // nothing, no default address set
-            } catch (\Exception $Exception) {
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
             }
 
             // Set the PayPal address as default address if no default address previously set
             if (!$StandardAddress) {
-                $CustomerQuiqqerUser->setAttribute('address', $InvoiceAddress->getId());
+                $CustomerQuiqqerUser->setAttribute('address', $InvoiceAddress->getUUID());
                 $CustomerQuiqqerUser->save($SystemUser);
 
                 $Order->addHistory('PayPal Express :: PayPal QUIQQER Address set as default address');
@@ -233,7 +236,7 @@ class PaymentExpress extends Payment
         $Order->setDeliveryAddress($ShippingAddress);
 
         $Order->addHistory(
-            'PayPal Express :: Order invoice address set (QUIQQER address ID: #' . $InvoiceAddress->getId() . ')'
+            'PayPal Express :: Order invoice address set (QUIQQER address ID: #' . $InvoiceAddress->getUUID() . ')'
         );
 
         $this->saveOrder($Order);
@@ -255,7 +258,7 @@ class PaymentExpress extends Payment
      *
      * @throws QUI\Exception
      */
-    protected function getQuiqqerAddressFromPayPalOrder($payPalOrder, QUIQQERUser $QuiqqerUser)
+    protected function getQuiqqerAddressFromPayPalOrder(array $payPalOrder, QUIQQERUser $QuiqqerUser): QUI\Users\Address
     {
         $SystemUser = QUI::getUsers()->getSystemUser();
 
@@ -283,7 +286,7 @@ class PaymentExpress extends Payment
             'street_no' => implode(' ', $streetParts),
             'zip' => !empty($shipping['address']['postal_code']) ? $shipping['address']['postal_code'] : '',
             'city' => $city,
-            'country' => !empty($shipping['address']['country_code']) ? \mb_strtoupper(
+            'country' => !empty($shipping['address']['country_code']) ? mb_strtoupper(
                 $shipping['address']['country_code']
             ) : ''
         ], $SystemUser);
@@ -292,18 +295,11 @@ class PaymentExpress extends Payment
             $Address->addMail($payPalOrder['payer']['email_address']);
         }
 
-//        if (!empty($payPalAddressData['phone'])) {
-//            $Address->addPhone([
-//                'type' => 'tel',
-//                'no'   => $payPalAddressData['phone']
-//            ]);
-//        }
-
         $Address->setCustomDataEntry('source', 'PayPal');
         $Address->save($SystemUser);
 
         // reload Address from DB to set correct attributes
-        return new QUI\Users\Address($QuiqqerUser, $Address->getId());
+        return new QUI\Users\Address($QuiqqerUser, $Address->getUUID());
     }
 
     /**
@@ -313,9 +309,9 @@ class PaymentExpress extends Payment
      * @param QUI\ERP\Order\Controls\OrderProcess\Processing $Step
      * @return string
      *
-     * @throws QUI\Exception
+     * @throws QUI\Exception|Exception
      */
-    public function getGatewayDisplay(AbstractOrder $Order, $Step = null)
+    public function getGatewayDisplay(AbstractOrder $Order, $Step = null): string
     {
         $Control = new ExpressPaymentDisplay();
         $Control->setAttribute('Order', $Order);

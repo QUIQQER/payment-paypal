@@ -60,7 +60,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * @return string
      */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->getLocale()->get('quiqqer/payment-paypal', 'payment.recurring.title');
     }
@@ -68,7 +68,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * @return string
      */
-    public function getDescription()
+    public function getDescription(): string
     {
         return $this->getLocale()->get('quiqqer/payment-paypal', 'payment.recurring.description');
     }
@@ -78,7 +78,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      *
      * @return bool
      */
-    public function supportsRecurringPaymentsOnly()
+    public function supportsRecurringPaymentsOnly(): bool
     {
         return true;
     }
@@ -93,7 +93,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @throws QUI\Exception
      * @throws \Exception
      */
-    public function createSubscription(AbstractOrder $Order)
+    public function createSubscription(AbstractOrder $Order): string
     {
         return BillingAgreements::createBillingAgreement($Order);
     }
@@ -180,7 +180,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      *
      * @throws QUI\Exception
      */
-    public function getGatewayDisplay(AbstractOrder $Order, $Step = null)
+    public function getGatewayDisplay(AbstractOrder $Order, $Step = null): string
     {
         $Control = new PaymentDisplay();
         $Control->setAttribute('Order', $Order);
@@ -229,7 +229,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @return void
      * @throws PayPalException
      */
-    public function cancelSubscription($subscriptionId, $reason = '')
+    public function cancelSubscription(int|string $subscriptionId, string $reason = '')
     {
         BillingAgreements::cancelBillingAgreement($subscriptionId, $reason);
     }
@@ -243,7 +243,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param string $note (optional) - Suspension note
      * @return void
      */
-    public function suspendSubscription($subscriptionId, string $note = null)
+    public function suspendSubscription(int|string $subscriptionId, string $note = null)
     {
         BillingAgreements::suspendBillingAgreement($subscriptionId, $note);
     }
@@ -257,7 +257,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param string $note (optional) - Resume note
      * @return void
      */
-    public function resumeSubscription($subscriptionId, string $note = null)
+    public function resumeSubscription(int|string $subscriptionId, string $note = null)
     {
         BillingAgreements::resumeSubscription($subscriptionId, $note);
     }
@@ -268,7 +268,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param int|string $subscriptionId
      * @return bool
      */
-    public function isSuspended($subscriptionId)
+    public function isSuspended(int|string $subscriptionId)
     {
         return BillingAgreements::isSuspended($subscriptionId);
     }
@@ -293,7 +293,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param QUI\ERP\Accounting\Invoice\Invoice|QUI\ERP\Accounting\Invoice\InvoiceTemporary|QUI\ERP\Accounting\Invoice\InvoiceView $Invoice
      * @return mixed
      */
-    public function getInvoiceInformationText($Invoice)
+    public function getInvoiceInformationText($Invoice): string
     {
         try {
             return $Invoice->getCustomer()->getLocale()->get(
@@ -318,7 +318,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public function refundPayment(Transaction $Transaction, $refundHash, $amount, $reason = '')
+    public function refundPayment(Transaction $Transaction, $refundHash, $amount, $reason = ''): void
     {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
         $Process->addHistory('PayPal :: Start Billing Agreement refund for transaction #' . $Transaction->getTxId());
@@ -418,10 +418,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * Checks if the subscription is active at the payment provider side
      *
-     * @param string|int $subscriptionId
+     * @param int|string $subscriptionId
      * @return bool
      */
-    public function isSubscriptionActiveAtPaymentProvider($subscriptionId)
+    public function isSubscriptionActiveAtPaymentProvider(int|string $subscriptionId)
     {
         try {
             $billingAgreement = BillingAgreements::getBillingAgreementDetails($subscriptionId);
@@ -447,10 +447,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * Checks if the subscription is active at QUIQQER
      *
-     * @param string|int $subscriptionId - Payment provider subscription ID
+     * @param int|string $subscriptionId - Payment provider subscription ID
      * @return bool
      */
-    public function isSubscriptionActiveAtQuiqqer($subscriptionId)
+    public function isSubscriptionActiveAtQuiqqer(int|string $subscriptionId)
     {
         try {
             $result = QUI::getDataBase()->fetch([
@@ -478,7 +478,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param bool $includeInactive (optional) - Include inactive subscriptions [default: false]
      * @return int[]
      */
-    public function getSubscriptionIds($includeInactive = false)
+    public function getSubscriptionIds(bool $includeInactive = false)
     {
         $where = [];
 
@@ -503,10 +503,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * Get global processing ID of a subscription
      *
-     * @param string|int $subscriptionId
+     * @param int|string $subscriptionId
      * @return string|false
      */
-    public function getSubscriptionGlobalProcessingId($subscriptionId)
+    public function getSubscriptionGlobalProcessingId(int|string $subscriptionId)
     {
         $data = BillingAgreements::getBillingAgreementData($subscriptionId);
 

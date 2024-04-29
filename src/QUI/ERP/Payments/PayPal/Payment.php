@@ -2,6 +2,7 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use Exception;
 use PayPalCheckoutSdk\Core\PayPalHttpClient as PayPalClientV2;
 use PayPalCheckoutSdk\Core\ProductionEnvironment as PayPalProductionEnvironmentV2;
 use PayPalCheckoutSdk\Core\SandboxEnvironment as PayPalSandboxEnvironmentV2;
@@ -41,6 +42,7 @@ use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Utils\User as ERPUserUtils;
 
 use function is_array;
+use function json_encode;
 use function json_last_error;
 
 use const JSON_ERROR_NONE;
@@ -116,21 +118,21 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * PayPal PHP REST Client (v1)
      *
-     * @var PayPalClient
+     * @var PayPalClient|null
      */
-    protected $PayPalClient = null;
+    protected ?PayPalClient $PayPalClient = null;
 
     /**
      * PayPal PHP REST Client (v2)
      *
-     * @var PayPalClientV2
+     * @var PayPalClientV2|null
      */
-    protected $PayPalClientV2 = null;
+    protected ?PayPalClientV2 $PayPalClientV2 = null;
 
     /**
      * @return string
      */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->getLocale()->get('quiqqer/payment-paypal', 'payment.title');
     }
@@ -138,7 +140,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * @return string
      */
-    public function getDescription()
+    public function getDescription(): string
     {
         return $this->getLocale()->get('quiqqer/payment-paypal', 'payment.description');
     }
@@ -167,7 +169,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     {
         try {
             $Order = OrderHandler::getInstance()->getOrderByHash($hash);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::addError(
                 'PayPal :: Cannot check if payment process for Order #' . $hash . ' is successful'
                 . ' -> ' . $Exception->getMessage()
@@ -211,7 +213,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $amount,
         $message = '',
         $hash = false
-    ) {
+    ): void {
         try {
             if ($hash === false) {
                 $hash = $Transaction->getHash();
@@ -225,7 +227,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 'quiqqer/payment-paypal',
                 'exception.Payment.refund_error'
             ]);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
             throw new QUI\ERP\Accounting\Payments\Transactions\RefundException([
@@ -242,9 +244,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @param QUI\ERP\Order\Controls\OrderProcess\Processing $Step
      * @return string
      *
-     * @throws QUI\Exception
+     * @throws QUI\Exception|Exception
      */
-    public function getGatewayDisplay(AbstractOrder $Order, $Step = null)
+    public function getGatewayDisplay(AbstractOrder $Order, $Step = null): string
     {
         $Control = new PaymentDisplay();
         $Control->setAttribute('Order', $Order);
@@ -322,7 +324,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $body = [
             [
                 'op' => 'replace',
-                'path' => '/purchase_units/@reference_id==\'' . $Order->getHash() . '\'',
+                'path' => '/purchase_units/@reference_id==\'' . $Order->getUUID() . '\'',
                 'value' => $purchaseUnit
             ]
         ];
@@ -495,7 +497,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $captureFailReason = '';
 
             if (!empty($payPalOrderData['purchase_units'][0]['payments']['captures'][0]['status_details'])) {
-                $captureFailReason = \json_encode(
+                $captureFailReason = json_encode(
                     $payPalOrderData['purchase_units'][0]['payments']['captures'][0]['status_details']
                 );
             }
@@ -591,7 +593,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public function refundPayment(Transaction $Transaction, $refundHash, $amount, $reason = '')
+    public function refundPayment(Transaction $Transaction, $refundHash, $amount, $reason = ''): void
     {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
         $Process->addHistory('PayPal :: Start refund for transaction #' . $Transaction->getTxId());
@@ -869,7 +871,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             try {
                 $ShippingCountry = $DeliveryAddress->getCountry();
                 $shippingAddress['country_code'] = $ShippingCountry->getCode();
-            } catch (\Exception $Exception) {
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeDebugException($Exception);
             }
 
@@ -1244,7 +1246,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             } else {
                 $Response = $this->getPayPalClient()->execute($Request);
             }
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             $message = $Exception->getCode() . " :: \n\n";
             $message .= $Exception->getMessage() . "\n";
             $message .= $Exception->getTraceAsString();
@@ -1377,7 +1379,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     ]
                 ]
             ]);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return;
         }
@@ -1468,7 +1470,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     'PayPal :: Pending order capture was completed. Transaction ' . $Transaction->getTxId() . ' added.'
                 );
                 $this->saveOrder($Order);
-            } catch (\Exception $Exception) {
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
             }
         }

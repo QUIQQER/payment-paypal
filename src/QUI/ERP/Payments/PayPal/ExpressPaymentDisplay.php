@@ -24,7 +24,6 @@ class ExpressPaymentDisplay extends QUI\Control
     {
         parent::__construct($attributes);
 
-//        $this->addCSSFile(dirname(__FILE__) . '/ExpressPaymentDisplay.css');
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay');
     }
 
@@ -35,7 +34,7 @@ class ExpressPaymentDisplay extends QUI\Control
      * @return string
      * @throws QUI\Exception
      */
-    public function getBody()
+    public function getBody(): string
     {
         $Engine = QUI::getTemplateManager()->getEngine();
         $Order = $this->getAttribute('Order');

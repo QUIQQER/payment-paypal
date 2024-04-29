@@ -11,9 +11,10 @@ use QUI\ERP\Order\Controls\OrderProcess\Checkout as CheckoutStep;
 use QUI\ERP\Order\OrderInterface;
 use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Payments\PayPal\Payment as PayPalPayment;
-use QUI\ERP\Plans\Utils as ERPPlansUtils;
 use QUI\ERP\Plans\Utils as ErpPlanUtils;
-use Quiqqer\Engine\Collector;
+use QUI\Smarty\Collector;
+
+use function class_exists;
 
 /**
  * Class Events
@@ -32,10 +33,10 @@ class Events
      *
      * @throws QUI\Exception
      */
-    public static function templateOrderProcessBasketEnd(Collector $Collector, $Basket, $Order)
+    public static function templateOrderProcessBasketEnd(Collector $Collector, $Basket, $Order): void
     {
         // Check if order is a plan order
-        if (\class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
+        if (class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
             return;
         }
 
@@ -90,9 +91,9 @@ class Events
     public static function templateOrderSimpleExpressButtons(
         Collector $Collector,
         QUI\ERP\Order\AbstractOrder $Order
-    ) {
+    ): void {
         // Check if order is a plan order
-        if (\class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
+        if (class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
             return;
         }
 
@@ -109,7 +110,7 @@ class Events
         $Project = QUI::getProjectManager()->getStandard();
         $CheckoutStep = new CheckoutStep();
         $checkout = 0;
-        $orderHash = $Order->getHash();
+        $orderHash = $Order->getUUID();
         $Payment = $Order->getPayment();
 
         if (
@@ -162,7 +163,7 @@ class Events
             return;
         }
 
-        if (\class_exists('\\QUI\\ERP\\Plans\\Utils')) {
+        if (class_exists('\\QUI\\ERP\\Plans\\Utils')) {
             try {
                 $Basket->updateOrder();
                 $Order = $Basket->getOrder();

@@ -26,10 +26,6 @@ class Utils
         $amount = $AmountValue->get();
         $formattedAmount = sprintf("%.2F", $amount);
 
-//        if (mb_strpos($formattedAmount, '.00') !== false) {
-//            return (string)(float)$formattedAmount;
-//        }
-
         return $formattedAmount;
     }
 
