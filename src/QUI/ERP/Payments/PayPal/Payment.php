@@ -40,7 +40,6 @@ use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\PaymentExecuteRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\SaleRefundRequest;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Utils\User as ERPUserUtils;
-
 use QUI\ExceptionStack;
 
 use function boolval;
@@ -48,10 +47,8 @@ use function is_array;
 use function json_decode;
 use function json_encode;
 use function json_last_error;
-
 use function mb_strlen;
 use function mb_substr;
-
 use function rtrim;
 
 use const JSON_ERROR_NONE;

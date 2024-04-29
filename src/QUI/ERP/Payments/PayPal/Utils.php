@@ -7,6 +7,7 @@ use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Shipping\Shipping;
 use QUI\Exception;
+use QUI\ERP\Products\Interfaces\PriceFactorInterface;
 
 use function mb_strtoupper;
 
@@ -126,10 +127,10 @@ class Utils
      * Get shipping costs by order
      *
      * @param AbstractOrder $Order
-     * @return QUI\ERP\Products\Interfaces\PriceFactorInterface|false - Shipping cost (2 digit precision) or false if costs cannot be determined
+     * @return PriceFactorInterface|false - Shipping cost (2 digit precision) or false if costs cannot be determined
      */
-    public static function getShippingCostsByOrder(AbstractOrder $Order
-    ): bool|QUI\ERP\Products\Interfaces\PriceFactorInterface {
+    public static function getShippingCostsByOrder(AbstractOrder $Order): bool|PriceFactorInterface
+    {
         if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
             return false;
         }
