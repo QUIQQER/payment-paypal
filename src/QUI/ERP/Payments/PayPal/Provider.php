@@ -117,7 +117,7 @@ class Provider extends AbstractPaymentProvider
         try {
             $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
             $apiSettings = $Conf->getSection('api');
-        } catch (QUI\Exception $Exception) {
+        } catch (QUI\Exception) {
             return false;
         }
 

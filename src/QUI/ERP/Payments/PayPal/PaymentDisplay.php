@@ -19,7 +19,6 @@ class PaymentDisplay extends QUI\Control
      * Constructor
      *
      * @param array $attributes
-     * @throws QUI\ERP\Order\ProcessingException
      */
     public function __construct(array $attributes = [])
     {
@@ -62,7 +61,7 @@ class PaymentDisplay extends QUI\Control
             'btn_shape' => Provider::getWidgetsSetting('btn_shape')
         ]);
 
-        $this->setJavaScriptControlOption('orderhash', $Order->getHash());
+        $this->setJavaScriptControlOption('orderhash', $Order->getUUID());
 
         // Check if an PayPal authorization already exists (i.e. Order is successful / can be processed)
         $this->setJavaScriptControlOption('successful', $Order->isSuccessful());

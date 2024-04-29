@@ -7,6 +7,7 @@ use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\PayPalSystemException;
 use QUI\ERP\Payments\PayPal\Provider;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Payments\PayPal\Utils;
@@ -27,9 +28,9 @@ class BillingPlans
     const TBL_BILLING_PLANS = 'paypal_billing_plans';
 
     /**
-     * @var QUI\ERP\Payments\PayPal\Payment
+     * @var ?QUI\ERP\Payments\PayPal\Payment
      */
-    protected static $Payment = null;
+    protected static ?QUI\ERP\Payments\PayPal\Payment $Payment = null;
 
     /**
      * @param AbstractOrder $Order
@@ -52,7 +53,7 @@ class BillingPlans
 
         if (!ErpPlansUtils::isPlanOrder($Order)) {
             throw new QUI\ERP\Accounting\Payments\Exception(
-                'Order #' . $Order->getHash() . ' contains no plan products.'
+                'Order #' . $Order->getUUID() . ' contains no plan products.'
             );
         }
 
@@ -136,7 +137,7 @@ class BillingPlans
      * @return void
      * @throws PayPalException
      */
-    public static function activateBillingPlan($billingPlanId)
+    public static function activateBillingPlan(string $billingPlanId): void
     {
         self::payPalApiRequest(
             RecurringPayment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN,
@@ -162,7 +163,7 @@ class BillingPlans
      * @return void
      * @throws PayPalException
      */
-    public static function deleteBillingPlan($billingPlanId)
+    public static function deleteBillingPlan(string $billingPlanId): void
     {
         self::payPalApiRequest(
             RecurringPayment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN,
@@ -189,7 +190,7 @@ class BillingPlans
      * @return array
      * @throws PayPalException
      */
-    public static function getBillingPlanList($page = 0, $pageSize = 10)
+    public static function getBillingPlanList(int $page = 0, int $pageSize = 10): bool|array
     {
         if ($page < 0) {
             $page = 0;
@@ -383,14 +384,18 @@ class BillingPlans
      *
      * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
      * @param array $body - Request data
-     * @param AbstractOrder|Transaction|array $TransactionObj - Object that contains necessary request data
+     * @param array|AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
      * @return array|false - Response body or false on error
      *
      * @throws PayPalException
+     * @throws PayPalSystemException
      */
-    protected static function payPalApiRequest($request, $body, $TransactionObj)
-    {
+    protected static function payPalApiRequest(
+        string $request,
+        array $body,
+        Transaction|AbstractOrder|array $TransactionObj
+    ): bool|array {
         if (is_null(self::$Payment)) {
             self::$Payment = new QUI\ERP\Payments\PayPal\Payment();
         }

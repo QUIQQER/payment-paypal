@@ -33,7 +33,7 @@ QUI::$Ajax->registerFunction(
 
         try {
             $list = BillingPlans::getBillingPlanList($page, $perPage);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeDebugException($Exception);
         }
 

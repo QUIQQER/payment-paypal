@@ -318,7 +318,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public function refundPayment(Transaction $Transaction, $refundHash, $amount, $reason = ''): void
+    public function refundPayment(Transaction $Transaction, string $refundHash, float $amount, string $reason = ''): void
     {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
         $Process->addHistory('PayPal :: Start Billing Agreement refund for transaction #' . $Transaction->getTxId());

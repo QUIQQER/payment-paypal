@@ -2,12 +2,16 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use DateInterval;
 use QUI;
 use QUI\ERP\Accounting\Payments\Exceptions\PaymentCanNotBeUsed;
 use QUI\ERP\Accounting\Payments\Types\Payment;
+use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Order\Basket\Basket;
 use QUI\ERP\Order\Basket\BasketGuest;
+use QUI\ERP\Order\Basket\BasketOrder;
 use QUI\ERP\Order\Controls\OrderProcess\Checkout as CheckoutStep;
+use QUI\ERP\Order\Exception;
 use QUI\ERP\Order\OrderInterface;
 use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Payments\PayPal\Payment as PayPalPayment;
@@ -27,14 +31,20 @@ class Events
      * Template event quiqqer/order: onQuiqqer::order::orderProcessBasketEnd
      *
      * @param Collector $Collector
-     * @param BasketGuest $Basket
-     * @param QUI\ERP\Order\AbstractOrder $Order
+     * @param Basket|BasketGuest|BasketOrder $Basket
+     * @param AbstractOrder $Order
      * @return void
      *
+     * @throws Exception
+     * @throws QUI\Database\Exception
+     * @throws QUI\ERP\Accounting\Payments\Exception
      * @throws QUI\Exception
      */
-    public static function templateOrderProcessBasketEnd(Collector $Collector, $Basket, $Order): void
-    {
+    public static function templateOrderProcessBasketEnd(
+        Collector $Collector,
+        Basket|BasketGuest|BasketOrder $Basket,
+        QUI\ERP\Order\AbstractOrder $Order
+    ): void {
         // Check if order is a plan order
         if (class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
             return;
@@ -52,7 +62,8 @@ class Events
 
         if (
             !($Basket instanceof Basket)
-            && !($Basket instanceof QUI\ERP\Order\Basket\BasketOrder)
+            && !($Basket instanceof BasketOrder)
+            && !($Basket instanceof BasketGuest)
         ) {
             return;
         }
@@ -60,7 +71,7 @@ class Events
         $Project = QUI::getProjectManager()->getStandard();
         $CheckoutStep = new CheckoutStep();
         $checkout = 0;
-        $orderHash = $Order->getHash();
+        $orderHash = $Order->getUUID();
         $Payment = $Order->getPayment();
 
         if (
@@ -88,6 +99,12 @@ class Events
         );
     }
 
+    /**
+     * @throws Exception
+     * @throws QUI\Exception
+     * @throws QUI\ERP\Accounting\Payments\Exception
+     * @throws QUI\Database\Exception
+     */
     public static function templateOrderSimpleExpressButtons(
         Collector $Collector,
         QUI\ERP\Order\AbstractOrder $Order
@@ -126,7 +143,7 @@ class Events
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtn"
                   data-qui-options-context="simple-checkout"
-                  data-qui-options-orderid="' . $Order->getId() . '"
+                  data-qui-options-orderid="' . $Order->getUUID() . '"
                   data-qui-options-sandbox="' . $sandbox . '"
                   data-qui-options-orderhash="' . $orderHash . '"
                   data-qui-options-checkout="' . $checkout . '"
@@ -142,13 +159,18 @@ class Events
      * Template event quiqqer/order: onQuiqqer::order::basketSmall::end
      *
      * @param Collector $Collector
-     * @param Basket $Basket
+     * @param Basket|BasketOrder|BasketGuest $Basket $Basket
      * @return void
      *
+     * @throws Exception
+     * @throws QUI\Database\Exception
+     * @throws QUI\ERP\Accounting\Payments\Exception
      * @throws QUI\Exception
      */
-    public static function templateOrderBasketSmallEnd(Collector $Collector, $Basket)
-    {
+    public static function templateOrderBasketSmallEnd(
+        Collector $Collector,
+        Basket|BasketOrder|BasketGuest $Basket
+    ): void {
         if (!($Basket instanceof Basket)) {
             return;
         }
@@ -228,7 +250,7 @@ class Events
      * @return void
      * @throws QUI\ERP\Accounting\Payments\Exceptions\PaymentCanNotBeUsed
      */
-    public static function onPaymentsCreateBegin($paymentClass)
+    public static function onPaymentsCreateBegin(string $paymentClass): void
     {
         if (
             $paymentClass === QUI\ERP\Payments\PayPal\Recurring\Payment::class
@@ -253,7 +275,7 @@ class Events
      * @param OrderInterface $Order
      * @throws QUI\ERP\Accounting\Payments\Exceptions\PaymentCanNotBeUsed
      */
-    public static function onPaymentsCanUsedInOrder(Payment $Payment, OrderInterface $Order)
+    public static function onPaymentsCanUsedInOrder(Payment $Payment, OrderInterface $Order): void
     {
         if (!QUI::getPackageManager()->isInstalled('quiqqer/erp-plans')) {
             return;
@@ -282,7 +304,7 @@ class Events
                 $planDetails['invoice_interval']
             );
 
-            $OneYearInterval = new \DateInterval('P1Y');
+            $OneYearInterval = new DateInterval('P1Y');
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 

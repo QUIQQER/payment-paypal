@@ -2,6 +2,7 @@
 
 namespace QUI\ERP\Payments\PayPal\Recurring;
 
+use DateInterval;
 use DateTime;
 use Exception;
 use PDO;
@@ -49,12 +50,12 @@ class BillingAgreements
      *
      * @var array
      */
-    protected static $transactionsRefreshed = [];
+    protected static array $transactionsRefreshed = [];
 
     /**
-     * @var QUI\ERP\Payments\PayPal\Payment
+     * @var ?QUI\ERP\Payments\PayPal\Payment
      */
-    protected static $Payment = null;
+    protected static ?BasePayment $Payment = null;
 
     /**
      * Create a PayPal Billing Agreement based on a Billing Plan
@@ -66,7 +67,7 @@ class BillingAgreements
      * @throws QUI\Exception
      * @throws Exception
      */
-    public static function createBillingAgreement(AbstractOrder $Order)
+    public static function createBillingAgreement(AbstractOrder $Order): string
     {
         $billingPlanId = BillingPlans::createBillingPlanFromOrder($Order);
 
@@ -202,7 +203,7 @@ class BillingAgreements
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public static function billBillingAgreementBalance(Invoice $Invoice)
+    public static function billBillingAgreementBalance(Invoice $Invoice): void
     {
         $billingAgreementId = $Invoice->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
 
@@ -284,7 +285,7 @@ class BillingAgreements
                 $InvoiceTransaction = TransactionFactory::createPaymentTransaction(
                     $amount,
                     $Invoice->getCurrency(),
-                    $Invoice->getHash(),
+                    $Invoice->getUUID(),
                     $Payment->getName(),
                     [
                         RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID => $transaction['transaction_id']
@@ -327,8 +328,9 @@ class BillingAgreements
      * @param array $searchParams
      * @param bool $countOnly (optional) - Return count of all results
      * @return array|int
+     * @throws QUI\Exception
      */
-    public static function getBillingAgreementList($searchParams, $countOnly = false)
+    public static function getBillingAgreementList(array $searchParams, bool $countOnly = false): array|int
     {
         $Grid = new QUI\Utils\Grid($searchParams);
         $gridParams = $Grid->parseDBParams($searchParams);
@@ -377,7 +379,7 @@ class BillingAgreements
             $sql .= " LIMIT " . $gridParams['limit'];
         } else {
             if (!$countOnly) {
-                $sql .= " LIMIT " . (int)20;
+                $sql .= " LIMIT " . 20;
             }
         }
 
@@ -410,17 +412,15 @@ class BillingAgreements
      * Get details of a Billing Agreement (PayPal data)
      *
      * @param string $billingAgreementId
-     * @return array
-     * @throws PayPalException
+     * @return bool|array
+     * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
-    public static function getBillingAgreementDetails($billingAgreementId)
+    public static function getBillingAgreementDetails(string $billingAgreementId): bool|array
     {
         return self::payPalApiRequest(
             RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT,
             [],
-            [
-                RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
-            ]
+            [RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId]
         );
     }
 
@@ -428,17 +428,17 @@ class BillingAgreements
      * Get transaction list for a Billing Agreement
      *
      * @param string $billingAgreementId
-     * @param DateTime $Start (optional)
-     * @param DateTime $End (optional)
+     * @param DateTime|null $Start (optional)
+     * @param DateTime|null $End (optional)
      * @return array
      * @throws PayPalException
      * @throws Exception
      */
     public static function getBillingAgreementTransactions(
-        $billingAgreementId,
+        string $billingAgreementId,
         DateTime $Start = null,
         DateTime $End = null
-    ) {
+    ): array {
         $data = [
             RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
         ];
@@ -449,14 +449,14 @@ class BillingAgreements
 
         if (is_null($End)) {
             $End = clone $Start;
-            $End->add(new \DateInterval('P1M')); // Start + 1 month as default time period
+            $End->add(new DateInterval('P1M')); // Start + 1 month as default time period
         }
 
         $data['start_date'] = $Start->format('Y-m-d');
 
         if ($End < $Start || $Start->format('Y-m-d') === $End->format('Y-m-d')) {
             $End = clone $Start;
-            $End->add(\date_interval_create_from_date_string('1 day'));
+            $End->add(date_interval_create_from_date_string('1 day'));
         }
 
         $data['end_date'] = $End->format('Y-m-d');
@@ -477,9 +477,8 @@ class BillingAgreements
      * @param string $reason (optional) - The reason why the billing agreement is being cancelled
      * @return void
      * @throws PayPalException
-     * @throws QUI\Database\Exception
      */
-    public static function cancelBillingAgreement($billingAgreementId, $reason = '')
+    public static function cancelBillingAgreement(int|string $billingAgreementId, string $reason = ''): void
     {
         $data = self::getBillingAgreementData($billingAgreementId);
 
@@ -541,10 +540,11 @@ class BillingAgreements
      * This *temporarily* suspends the automated collection of payments until explicitly resumed.
      *
      * @param int|string $billingAgreementId
-     * @param string $note (optional) - Suspension note
+     * @param string|null $note (optional) - Suspension note
      * @return void
+     * @throws PayPalException
      */
-    public static function suspendBillingAgreement($billingAgreementId, string $note = null)
+    public static function suspendBillingAgreement(int|string $billingAgreementId, string $note = null): void
     {
         $data = self::getBillingAgreementData($billingAgreementId);
 
@@ -601,13 +601,14 @@ class BillingAgreements
     /**
      * Resume a suspended Subscription
      *
-     * This resumes automated collection of payments of a previously supsendes Subscription.
+     * This resumes automated collection of payments of a previously suspends Subscription.
      *
      * @param int|string $billingAgreementId
-     * @param string $note (optional) - Resume note
+     * @param string|null $note (optional) - Resume note
      * @return void
+     * @throws PayPalException
      */
-    public static function resumeSubscription($billingAgreementId, string $note = null)
+    public static function resumeSubscription(int|string $billingAgreementId, string $note = null): void
     {
         $data = self::getBillingAgreementData($billingAgreementId);
 
@@ -666,8 +667,9 @@ class BillingAgreements
      *
      * @param int|string $billingAgreementId
      * @return bool
+     * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
-    public static function isSuspended($billingAgreementId)
+    public static function isSuspended(int|string $billingAgreementId): bool
     {
         $data = self::getBillingAgreementDetails($billingAgreementId);
 
@@ -684,17 +686,13 @@ class BillingAgreements
      * @param int|string $billingAgreementId
      * @return void
      */
-    public static function setBillingAgreementAsInactive($billingAgreementId)
+    public static function setBillingAgreementAsInactive(int|string $billingAgreementId): void
     {
         try {
             QUI::getDataBase()->update(
                 self::getBillingAgreementsTable(),
-                [
-                    'active' => 0
-                ],
-                [
-                    'paypal_agreement_id' => $billingAgreementId
-                ]
+                ['active' => 0],
+                ['paypal_agreement_id' => $billingAgreementId]
             );
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
@@ -707,9 +705,9 @@ class BillingAgreements
      * @param AbstractOrder $Order
      * @param string $agreementToken
      * @return void
-     * @throws PayPalException
+     * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
-    public static function executeBillingAgreement(AbstractOrder $Order, string $agreementToken)
+    public static function executeBillingAgreement(AbstractOrder $Order, string $agreementToken): void
     {
         if (!empty($Order->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID))) {
             return;
@@ -759,7 +757,7 @@ class BillingAgreements
                     ),
                     'paypal_plan_id' => $Order->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID),
                     'customer' => json_encode($Order->getCustomer()->getAttributes()),
-                    'global_process_id' => $Order->getHash(),
+                    'global_process_id' => $Order->getUUID(),
                     'active' => 1
                 ]
             );
@@ -776,11 +774,12 @@ class BillingAgreements
     }
 
     /**
-     * Process all unpaid Invoices of Billing Agreements
+     * Process all unpaid Invoices for Billing Agreements
      *
      * @return void
+     * @throws QUI\DataBase\Exception
      */
-    public static function processUnpaidInvoices()
+    public static function processUnpaidInvoices(): void
     {
         $Invoices = InvoiceHandler::getInstance();
 
@@ -808,14 +807,14 @@ class BillingAgreements
             'select' => ['id', 'global_process_id'],
             'where' => [
                 'paid_status' => 0,
-                'type' => InvoiceHandler::TYPE_INVOICE,
+                'type' => QUI\ERP\Constants::TYPE_INVOICE,
                 'payment_method' => [
                     'type' => 'IN',
                     'value' => $paymentTypeIds
                 ]
             ],
             'order' => 'date ASC',
-            'limit' => 99999 // yes, i hate this too
+            'limit' => 99999 // yes, I hate this too
         ]);
 
         $invoiceIds = [];
@@ -882,7 +881,7 @@ class BillingAgreements
      * @param Invoice $Invoice
      * @return void
      */
-    public static function processDeniedTransactions(Invoice $Invoice)
+    public static function processDeniedTransactions(Invoice $Invoice): void
     {
         $billingAgreementId = $Invoice->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
 
@@ -936,7 +935,7 @@ class BillingAgreements
                 $InvoiceTransaction = TransactionFactory::createPaymentTransaction(
                     $amount,
                     $Invoice->getCurrency(),
-                    $Invoice->getHash(),
+                    $Invoice->getUUID(),
                     $Payment->getName(),
                     [],
                     null,
@@ -980,7 +979,7 @@ class BillingAgreements
      * @throws QUI\Database\Exception
      * @throws Exception
      */
-    protected static function refreshTransactionList($billingAgreementId)
+    protected static function refreshTransactionList(string $billingAgreementId): void
     {
         if (isset(self::$transactionsRefreshed[$billingAgreementId])) {
             return;
@@ -1091,9 +1090,9 @@ class BillingAgreements
      * @throws Exception
      */
     protected static function getUnprocessedTransactions(
-        $billingAgreementId,
-        $status = self::TRANSACTION_STATE_COMPLETED
-    ) {
+        string $billingAgreementId,
+        string $status = self::TRANSACTION_STATE_COMPLETED
+    ): array {
         $result = QUI::getDataBase()->fetch([
             'select' => ['paypal_transaction_data'],
             'from' => self::getBillingAgreementTransactionsTable(),
@@ -1137,14 +1136,17 @@ class BillingAgreements
      *
      * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
      * @param array $body - Request data
-     * @param AbstractOrder|Transaction|array $TransactionObj - Object that contains necessary request data
+     * @param array|AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
      * @return array|false - Response body or false on error
      *
-     * @throws PayPalException
+     * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
-    protected static function payPalApiRequest($request, $body, $TransactionObj)
-    {
+    protected static function payPalApiRequest(
+        string $request,
+        array $body,
+        Transaction|AbstractOrder|array $TransactionObj
+    ): bool|array {
         if (is_null(self::$Payment)) {
             self::$Payment = new QUI\ERP\Payments\PayPal\Payment();
         }
@@ -1158,7 +1160,7 @@ class BillingAgreements
      * @param string $billingAgreementId - PayPal Billing Agreement ID
      * @return array|false
      */
-    public static function getBillingAgreementData($billingAgreementId)
+    public static function getBillingAgreementData(string $billingAgreementId): bool|array
     {
         try {
             $result = QUI::getDataBase()->fetch([
@@ -1179,7 +1181,7 @@ class BillingAgreements
         $data = current($result);
 
         return [
-            'active' => !empty($data['active']) ? true : false,
+            'active' => !empty($data['active']),
             'globalProcessId' => $data['global_process_id'],
             'customer' => json_decode($data['customer'], true),
         ];
@@ -1188,7 +1190,7 @@ class BillingAgreements
     /**
      * @return string
      */
-    public static function getBillingAgreementsTable()
+    public static function getBillingAgreementsTable(): string
     {
         return QUI::getDBTableName(self::TBL_BILLING_AGREEMENTS);
     }
@@ -1196,7 +1198,7 @@ class BillingAgreements
     /**
      * @return string
      */
-    public static function getBillingAgreementTransactionsTable()
+    public static function getBillingAgreementTransactionsTable(): string
     {
         return QUI::getDBTableName(self::TBL_BILLING_AGREEMENT_TRANSACTIONS);
     }

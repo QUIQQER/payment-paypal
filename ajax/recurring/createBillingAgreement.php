@@ -24,14 +24,14 @@ QUI::$Ajax->registerFunction(
             $approvalUrl = $Payment->createSubscription($Order);
         } catch (PayPalException $Exception) {
             throw $Exception;
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
 
         return [
             'approvalUrl' => $approvalUrl,
-            'hash' => $Order->getHash()
+            'hash' => $Order->getUUID()
         ];
     },
     ['orderHash']

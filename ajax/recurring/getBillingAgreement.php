@@ -4,7 +4,7 @@
  * Get details of a PayPal Billing Agreement
  *
  * @param string $billingAgreementId - PayPal Billing Agreement ID
- * @return array|false- Billing Agreement data
+ * @return array|false Billing Agreement data
  * @throws PayPalException
  */
 
@@ -19,7 +19,7 @@ QUI::$Ajax->registerFunction(
             $billingAgreement['quiqqer_data'] = BillingAgreements::getBillingAgreementData($billingAgreementId);
 
             return $billingAgreement;
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeDebugException($Exception);
             return false;
         }
