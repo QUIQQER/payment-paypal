@@ -1,5 +1,5 @@
 {
-  "name": "quiqqer\/payment-paypal",
+  "name": "quiqqer/payment-paypal",
   "type": "quiqqer-module",
   "description": "PayPal - Payment method for QUIQQER ERP stack",
   "license": [
@@ -10,25 +10,26 @@
     {
       "name": "Patrick M\u00fcller",
       "email": "p.mueller@pcsg.de",
-      "homepage": "https:\/\/www.pcsg.de",
+      "homepage": "https://www.pcsg.de",
       "role": "Developer"
     }
   ],
   "support": {
     "email": "support@pcsg.de",
-    "url": "https:\/\/www.pcsg.de"
+    "url": "https://www.pcsg.de"
   },
   "require": {
-    "quiqqer\/payments": "^2|^1.1|dev-master|dev-dev",
-    "paypal\/paypal-checkout-sdk": "^1.0.1",
+    "quiqqer/core": "^2",
+    "quiqqer/payments": "^3",
+    "paypal/paypal-checkout-sdk": "^1.0.1",
     "quiqqer/paypal-rest-api-sdk-php": "^1|dev-master"
   },
   "suggest": {
-    "quiqqer\/erp-plans": "Allows handling of orders that require automated recurring payments"
+    "quiqqer/erp-plans": "Allows handling of orders that require automated recurring payments"
   },
   "autoload": {
     "psr-4": {
-      "QUI\\ERP\\Payments\\PayPal\\": "src\/QUI\/ERP\/Payments\/PayPal"
+      "QUI\\ERP\\Payments\\PayPal\\": "src/QUI/ERP/Payments/PayPal"
     }
   }
 }
