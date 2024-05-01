@@ -2,6 +2,9 @@
 
 namespace QUI\ERP\Payments\PayPal\Recurring;
 
+use DateInterval;
+use DateTime;
+use Exception;
 use QUI;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
@@ -11,9 +14,11 @@ use QUI\ERP\Payments\PayPal\PayPalSystemException;
 use QUI\ERP\Payments\PayPal\Provider;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Payments\PayPal\Utils;
-use QUI\ERP\Plans\Utils as ErpPlansUtils;
 use QUI\ERP\Products\Handler\Products as ProductsHandler;
 use QUI\ERP\Products\Product\Product;
+
+use function class_exists;
+use function rtrim;
 
 /**
  * Class BillingPlans
@@ -39,7 +44,7 @@ class BillingPlans
      * @throws QUI\ERP\Payments\PayPal\PayPalException
      * @throws QUI\Exception
      */
-    public static function createBillingPlanFromOrder(AbstractOrder $Order)
+    public static function createBillingPlanFromOrder(AbstractOrder $Order): string
     {
         if ($Order->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)) {
             return $Order->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID);
@@ -51,7 +56,13 @@ class BillingPlans
             return $billingPlanId;
         }
 
-        if (!ErpPlansUtils::isPlanOrder($Order)) {
+        if (!class_exists('QUI\ERP\Plans\Utils')) {
+            throw new QUI\ERP\Accounting\Payments\Exception(
+                'Plans is not installed'
+            );
+        }
+
+        if (!QUI\ERP\Plans\Utils::isPlanOrder($Order)) {
             throw new QUI\ERP\Accounting\Payments\Exception(
                 'Order #' . $Order->getUUID() . ' contains no plan products.'
             );
@@ -62,7 +73,7 @@ class BillingPlans
 
         /** @var QUI\ERP\Accounting\Article $Article */
         foreach ($Order->getArticles() as $Article) {
-            if ($PlanProduct === false && ErpPlansUtils::isPlanArticle($Article)) {
+            if ($PlanProduct === false && QUI\ERP\Plans\Utils::isPlanArticle($Article)) {
                 $PlanProduct = ProductsHandler::getProduct($Article->getId());
             }
         }
@@ -83,7 +94,7 @@ class BillingPlans
         ];
 
         // Parse billing plan details from order
-        $planDetails = ErpPlansUtils::getPlanDetailsFromOrder($Order);
+        $planDetails = QUI\ERP\Plans\Utils::getPlanDetailsFromOrder($Order);
 
         // Determine plan type
         $autoExtend = !empty($planDetails['auto_extend']);
@@ -97,8 +108,8 @@ class BillingPlans
         $Gateway->setOrder($Order);
 
         $body['merchant_preferences'] = [
-            'cancel_url' => \rtrim($Gateway->getCancelUrl(), '?'),
-            'return_url' => \rtrim($Gateway->getSuccessUrl(), '?')
+            'cancel_url' => rtrim($Gateway->getCancelUrl(), '?'),
+            'return_url' => rtrim($Gateway->getSuccessUrl(), '?')
         ];
 
         // Create Billing Plan
@@ -135,7 +146,7 @@ class BillingPlans
      *
      * @param string $billingPlanId
      * @return void
-     * @throws PayPalException
+     * @throws PayPalException|PayPalSystemException
      */
     public static function activateBillingPlan(string $billingPlanId): void
     {
@@ -161,7 +172,7 @@ class BillingPlans
      *
      * @param string $billingPlanId
      * @return void
-     * @throws PayPalException
+     * @throws PayPalException|PayPalSystemException
      */
     public static function deleteBillingPlan(string $billingPlanId): void
     {
@@ -187,8 +198,9 @@ class BillingPlans
      *
      * @param int $page (optional) - Start page of list [min: 0]
      * @param int $pageSize (optional) - Number of plans per page [range: 1 to 20]
-     * @return array
+     * @return bool|array
      * @throws PayPalException
+     * @throws PayPalSystemException
      */
     public static function getBillingPlanList(int $page = 0, int $pageSize = 10): bool|array
     {
@@ -220,7 +232,7 @@ class BillingPlans
      * @param AbstractOrder $Order
      * @return string|false - ID or false if no Billing Plan exists
      */
-    protected static function getBillingPlanIdByOrder(AbstractOrder $Order)
+    protected static function getBillingPlanIdByOrder(AbstractOrder $Order): bool|string
     {
         try {
             $result = QUI::getDataBase()->fetch([
@@ -230,7 +242,7 @@ class BillingPlans
                     'identification_hash' => self::getIdentificationHash($Order)
                 ]
             ]);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
@@ -249,7 +261,7 @@ class BillingPlans
      * @return string
      * @throws QUI\Exception
      */
-    protected static function getIdentificationHash(AbstractOrder $Order)
+    protected static function getIdentificationHash(AbstractOrder $Order): string
     {
         $productIds = [];
 
@@ -282,14 +294,21 @@ class BillingPlans
      * @param AbstractOrder $Order
      * @param Product $PlanProduct - Product that contains plan information
      * @return array
+     *
      * @throws QUI\ERP\Payments\PayPal\PayPalException
      * @throws QUI\ERP\Exception
      * @throws QUI\Exception
      */
-    protected static function parsePaymentDefinitionsFromOrder(AbstractOrder $Order, Product $PlanProduct)
+    protected static function parsePaymentDefinitionsFromOrder(AbstractOrder $Order, Product $PlanProduct): array
     {
+        if (!class_exists('QUI\ERP\Plans\Utils')) {
+            throw new QUI\ERP\Payments\PayPal\PayPalException(
+                'Plans is not installed'
+            );
+        }
+
         $paymentDefinitions = [];
-        $planDetails = ErpPlansUtils::getPlanDetailsFromProduct($PlanProduct);
+        $planDetails = QUI\ERP\Plans\Utils::getPlanDetailsFromProduct($PlanProduct);
         $invoiceIntervalParts = explode('-', $planDetails['invoice_interval']);
 
         $paymentDefinition = [
@@ -313,13 +332,13 @@ class BillingPlans
             $paymentDefinition['cycles'] = 0;
         } else {
             try {
-                $DurationInterval = ErpPlansUtils::parseIntervalFromDuration($planDetails['duration_interval']);
-                $InvoiceInterval = ErpPlansUtils::parseIntervalFromDuration($planDetails['invoice_interval']);
+                $DurationInterval = QUI\ERP\Plans\Utils::parseIntervalFromDuration($planDetails['duration_interval']);
+                $InvoiceInterval = QUI\ERP\Plans\Utils::parseIntervalFromDuration($planDetails['invoice_interval']);
 
-                $Start = new \DateTime();
+                $Start = new DateTime();
                 $End = clone $Start;
-                $End->add($DurationInterval)->sub(new \DateInterval('P1D'));
-            } catch (\Exception $Exception) {
+                $End->add($DurationInterval)->sub(new DateInterval('P1D'));
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
 
                 throw new QUI\ERP\Payments\PayPal\PayPalException(
@@ -374,7 +393,7 @@ class BillingPlans
     /**
      * @return string
      */
-    public static function getBillingPlansTable()
+    public static function getBillingPlansTable(): string
     {
         return QUI::getDBTableName(self::TBL_BILLING_PLANS);
     }
