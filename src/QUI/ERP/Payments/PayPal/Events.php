@@ -15,7 +15,6 @@ use QUI\ERP\Order\Exception;
 use QUI\ERP\Order\OrderInterface;
 use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Payments\PayPal\Payment as PayPalPayment;
-use QUI\ERP\Plans\Utils as ErpPlanUtils;
 use QUI\Smarty\Collector;
 
 use function class_exists;
@@ -46,7 +45,7 @@ class Events
         QUI\ERP\Order\AbstractOrder $Order
     ): void {
         // Check if order is a plan order
-        if (class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
+        if (class_exists('QUI\ERP\Plans\Utils') && QUI\ERP\Plans\Utils::isPlanOrder($Order)) {
             return;
         }
 
@@ -110,7 +109,7 @@ class Events
         QUI\ERP\Order\AbstractOrder $Order
     ): void {
         // Check if order is a plan order
-        if (class_exists('\\QUI\\ERP\\Plans\\Utils') && ERPPlansUtils::isPlanOrder($Order)) {
+        if (class_exists('QUI\ERP\Plans\Utils') && QUI\ERP\Plans\Utils::isPlanOrder($Order)) {
             return;
         }
 
@@ -185,7 +184,7 @@ class Events
             return;
         }
 
-        if (class_exists('\\QUI\\ERP\\Plans\\Utils')) {
+        if (class_exists('QUI\ERP\Plans\Utils')) {
             try {
                 $Basket->updateOrder();
                 $Order = $Basket->getOrder();
@@ -195,7 +194,7 @@ class Events
                 return;
             }
 
-            if (ErpPlanUtils::isPlanOrder($Order)) {
+            if (QUI\ERP\Plans\Utils::isPlanOrder($Order)) {
                 return;
             }
         }
@@ -281,6 +280,10 @@ class Events
             return;
         }
 
+        if (!class_exists('QUI\ERP\Plans\Utils')) {
+            return;
+        }
+
         try {
             $PaymentType = $Payment->getPaymentType();
         } catch (\Exception $Exception) {
@@ -293,14 +296,14 @@ class Events
             return;
         }
 
-        $planDetails = ErpPlanUtils::getPlanDetailsFromOrder($Order);
+        $planDetails = QUI\ERP\Plans\Utils::getPlanDetailsFromOrder($Order);
 
         if (empty($planDetails['invoice_interval'])) {
             return;
         }
 
         try {
-            $InvoiceInterval = ErpPlanUtils::parseIntervalFromDuration(
+            $InvoiceInterval = QUI\ERP\Plans\Utils::parseIntervalFromDuration(
                 $planDetails['invoice_interval']
             );
 
@@ -311,7 +314,7 @@ class Events
             return;
         }
 
-        if (ErpPlanUtils::compareDateIntervals($InvoiceInterval, $OneYearInterval) === 1) {
+        if (QUI\ERP\Plans\Utils::compareDateIntervals($InvoiceInterval, $OneYearInterval) === 1) {
             throw new PaymentCanNotBeUsed();
         }
     }
