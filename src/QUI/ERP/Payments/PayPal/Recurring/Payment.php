@@ -5,6 +5,8 @@ namespace QUI\ERP\Payments\PayPal\Recurring;
 use QUI;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Accounting\Invoice\InvoiceView;
+use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Accounting\Payments\Order\Payment as OrderProcessStepPayments;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
@@ -12,9 +14,14 @@ use QUI\ERP\Accounting\Payments\Types\RecurringPaymentInterface;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\PayPalSystemException;
 use QUI\ERP\Payments\PayPal\Utils;
+use QUI\Exception;
+use QUI\ExceptionStack;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
+
+use function array_column;
 
 /**
  * Class Payment
@@ -104,8 +111,9 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param Invoice $Invoice
      * @return void
      * @throws PayPalException
+     * @throws Exception
      */
-    public function captureSubscription(Invoice $Invoice)
+    public function captureSubscription(Invoice $Invoice): void
     {
         BillingAgreements::billBillingAgreementBalance($Invoice);
     }
@@ -118,11 +126,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @throws QUI\ERP\Order\Basket\Exception
      * @throws QUI\Exception
      */
-    public function executeGatewayPayment(QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway)
+    public function executeGatewayPayment(QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway): void
     {
         $Order = $Gateway->getOrder();
         $OrderProcess = new QUI\ERP\Order\OrderProcess([
-            'orderHash' => $Order->getHash()
+            'orderHash' => $Order->getUUID()
         ]);
 
         $goToBasket = false;
@@ -139,7 +147,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                     ]);
 
                     $Gateway->getOrder()->setSuccessfulStatus();
-                } catch (PayPalException $Exception) {
+                } catch (PayPalException) {
                     $goToBasket = true;
                 } catch (\Exception $Exception) {
                     QUI\System\Log::writeException($Exception);
@@ -160,7 +168,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             ]);
         }
 
-        $processingUrl = $OrderProcess->getStepUrl($GoToStep->getName());
+        if (!isset($GoToStep)) {
+            $processingUrl = '/';
+        } else {
+            $processingUrl = $OrderProcess->getStepUrl($GoToStep->getName());
+        }
 
         // Umleitung zur Bestellung
         $Redirect = new RedirectResponse($processingUrl);
@@ -178,7 +190,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param QUI\ERP\Order\Controls\OrderProcess\Processing $Step
      * @return string
      *
-     * @throws QUI\Exception
+     * @throws QUI\Exception|\Exception
      */
     public function getGatewayDisplay(AbstractOrder $Order, $Step = null): string
     {
@@ -204,7 +216,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      *
      * @return bool
      */
-    public function isSubscriptionEditable()
+    public function isSubscriptionEditable(): bool
     {
         return false;
     }
@@ -216,7 +228,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param AbstractOrder $Order
      * @return int|string|false - ID or false of no ID associated
      */
-    public function getSubscriptionIdByOrder(AbstractOrder $Order)
+    public function getSubscriptionIdByOrder(AbstractOrder $Order): bool|int|string
     {
         return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
     }
@@ -229,7 +241,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @return void
      * @throws PayPalException
      */
-    public function cancelSubscription(int|string $subscriptionId, string $reason = '')
+    public function cancelSubscription(int|string $subscriptionId, string $reason = ''): void
     {
         BillingAgreements::cancelBillingAgreement($subscriptionId, $reason);
     }
@@ -240,10 +252,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * This *temporarily* suspends the automated collection of payments until explicitly resumed.
      *
      * @param int|string $subscriptionId
-     * @param string $note (optional) - Suspension note
+     * @param string|null $note (optional) - Suspension note
      * @return void
+     * @throws PayPalException
      */
-    public function suspendSubscription(int|string $subscriptionId, string $note = null)
+    public function suspendSubscription(int|string $subscriptionId, string $note = null): void
     {
         BillingAgreements::suspendBillingAgreement($subscriptionId, $note);
     }
@@ -254,10 +267,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * This resumes automated collection of payments of a previously supsendes Subscription.
      *
      * @param int|string $subscriptionId
-     * @param string $note (optional) - Resume note
+     * @param string|null $note (optional) - Resume note
      * @return void
+     * @throws PayPalException
      */
-    public function resumeSubscription(int|string $subscriptionId, string $note = null)
+    public function resumeSubscription(int|string $subscriptionId, string $note = null): void
     {
         BillingAgreements::resumeSubscription($subscriptionId, $note);
     }
@@ -267,8 +281,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      *
      * @param int|string $subscriptionId
      * @return bool
+     *
+     * @throws PayPalException
+     * @throws PayPalSystemException
      */
-    public function isSuspended(int|string $subscriptionId)
+    public function isSuspended(int|string $subscriptionId): bool
     {
         return BillingAgreements::isSuspended($subscriptionId);
     }
@@ -282,7 +299,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param $subscriptionId
      * @return void
      */
-    public function setSubscriptionAsInactive($subscriptionId)
+    public function setSubscriptionAsInactive($subscriptionId): void
     {
         BillingAgreements::setBillingAgreementAsInactive($subscriptionId);
     }
@@ -290,10 +307,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * Return the extra text for the invoice
      *
-     * @param QUI\ERP\Accounting\Invoice\Invoice|QUI\ERP\Accounting\Invoice\InvoiceTemporary|QUI\ERP\Accounting\Invoice\InvoiceView $Invoice
+     * @param Invoice|InvoiceTemporary|InvoiceView $Invoice
      * @return mixed
      */
-    public function getInvoiceInformationText($Invoice): string
+    public function getInvoiceInformationText(Invoice|InvoiceTemporary|InvoiceView $Invoice): string
     {
         try {
             return $Invoice->getCustomer()->getLocale()->get(
@@ -309,17 +326,24 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     /**
      * Refund partial or full payment of an Order
      *
-     * @param QUI\ERP\Accounting\Payments\Transactions\Transaction $Transaction
+     * @param Transaction $Transaction
      * @param string $refundHash - Hash of the refund Transaction
-     * @param float $amount - The amount to be refunden
+     * @param float|int $amount - The amount to be refunded
      * @param string $reason (optional) - The reason for the refund [default: none; max. 255 characters]
      * @return void
      *
      * @throws PayPalException
-     * @throws QUI\Exception
+     * @throws PayPalSystemException
+     * @throws QUI\Database\Exception
+     * @throws QUI\ERP\Accounting\Payments\Transactions\Exception
+     * @throws ExceptionStack
      */
-    public function refundPayment(Transaction $Transaction, string $refundHash, float $amount, string $reason = ''): void
-    {
+    public function refundPayment(
+        Transaction $Transaction,
+        string $refundHash,
+        float|int $amount,
+        string $reason = ''
+    ): void {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
         $Process->addHistory('PayPal :: Start Billing Agreement refund for transaction #' . $Transaction->getTxId());
 
@@ -327,8 +351,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             $Process->addHistory(
                 'PayPal :: Transaction cannot be refunded because it is not a PayPal Billing Agreement transaction.'
             );
+
             $this->throwPayPalException(self::PAYPAL_ERROR_NO_BILLING_AGREEMENT_TRANSACTION);
-            return;
         }
 
         // create a refund transaction
@@ -421,7 +445,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param int|string $subscriptionId
      * @return bool
      */
-    public function isSubscriptionActiveAtPaymentProvider(int|string $subscriptionId)
+    public function isSubscriptionActiveAtPaymentProvider(int|string $subscriptionId): bool
     {
         try {
             $billingAgreement = BillingAgreements::getBillingAgreementDetails($subscriptionId);
@@ -434,14 +458,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             return false;
         }
 
-        switch ($billingAgreement['state']) {
-            case BillingAgreements::BILLING_AGREEMENT_STATE_ACTIVE:
-            case BillingAgreements::BILLING_AGREEMENT_STATE_SUSPENDED:
-                return true;
-
-            default:
-                return false;
-        }
+        return match ($billingAgreement['state']) {
+            BillingAgreements::BILLING_AGREEMENT_STATE_ACTIVE,
+            BillingAgreements::BILLING_AGREEMENT_STATE_SUSPENDED => true,
+            default => false,
+        };
     }
 
     /**
@@ -450,7 +471,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param int|string $subscriptionId - Payment provider subscription ID
      * @return bool
      */
-    public function isSubscriptionActiveAtQuiqqer(int|string $subscriptionId)
+    public function isSubscriptionActiveAtQuiqqer(int|string $subscriptionId): bool
     {
         try {
             $result = QUI::getDataBase()->fetch([
@@ -478,7 +499,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param bool $includeInactive (optional) - Include inactive subscriptions [default: false]
      * @return int[]
      */
-    public function getSubscriptionIds(bool $includeInactive = false)
+    public function getSubscriptionIds(bool $includeInactive = false): array
     {
         $where = [];
 
@@ -497,7 +518,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             return [];
         }
 
-        return \array_column($result, 'paypal_agreement_id');
+        return array_column($result, 'paypal_agreement_id');
     }
 
     /**
@@ -506,7 +527,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param int|string $subscriptionId
      * @return string|false
      */
-    public function getSubscriptionGlobalProcessingId(int|string $subscriptionId)
+    public function getSubscriptionGlobalProcessingId(int|string $subscriptionId): bool|string
     {
         $data = BillingAgreements::getBillingAgreementData($subscriptionId);
 
