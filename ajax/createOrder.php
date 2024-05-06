@@ -38,14 +38,14 @@ QUI::$Ajax->registerFunction(
             $Payment->createPayPalOrder($Order);
         } catch (PayPalException $Exception) {
             throw $Exception;
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
 
         return [
             'payPalOrderId' => $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_ID),
-            'hash' => $Order->getHash()
+            'hash' => $Order->getUUID()
         ];
     },
     ['orderHash', 'basketId']
