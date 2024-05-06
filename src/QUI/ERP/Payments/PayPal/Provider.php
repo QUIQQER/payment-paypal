@@ -6,6 +6,7 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use Exception;
 use QUI;
 use QUI\ERP\Accounting\Payments\Api\AbstractPaymentProvider;
 use QUI\ERP\Accounting\Payments\Types\Factory as PaymentsFactory;
@@ -21,7 +22,7 @@ class Provider extends AbstractPaymentProvider
     /**
      * @return array
      */
-    public function getPaymentTypes()
+    public function getPaymentTypes(): array
     {
         return [
             Payment::class,
@@ -34,13 +35,13 @@ class Provider extends AbstractPaymentProvider
      * Get API setting
      *
      * @param string $setting - Setting name
-     * @return string|number|false
+     * @return bool|string
      */
-    public static function getApiSetting($setting)
+    public static function getApiSetting(string $setting): bool|string
     {
         try {
             $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
             return false;
@@ -53,13 +54,13 @@ class Provider extends AbstractPaymentProvider
      * Get Payment setting
      *
      * @param string $setting - Setting name
-     * @return string|number|false
+     * @return bool|string
      */
-    public static function getPaymentSetting($setting)
+    public static function getPaymentSetting(string $setting): bool|string
     {
         try {
             $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
             return false;
@@ -72,13 +73,13 @@ class Provider extends AbstractPaymentProvider
      * Get Widgets setting
      *
      * @param string $setting - Setting name
-     * @return string|number|false
+     * @return array|bool|string
      */
-    public static function getWidgetsSetting($setting)
+    public static function getWidgetsSetting(string $setting): bool|array|string
     {
         try {
             $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
             return false;
@@ -91,8 +92,9 @@ class Provider extends AbstractPaymentProvider
      * Get PayPal Express payment
      *
      * @return QUI\ERP\Accounting\Payments\Types\Payment|false
+     * @throws QUI\Database\Exception
      */
-    public static function getPayPalExpressPayment()
+    public static function getPayPalExpressPayment(): QUI\ERP\Accounting\Payments\Types\Payment|bool
     {
         $payments = PaymentsFactory::getInstance()->getChildren([
             'where' => ['payment_type' => PaymentExpress::class]
@@ -110,12 +112,12 @@ class Provider extends AbstractPaymentProvider
      *
      * @return bool
      */
-    public static function isApiSetUp()
+    public static function isApiSetUp(): bool
     {
         try {
             $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
             $apiSettings = $Conf->getSection('api');
-        } catch (QUI\Exception $Exception) {
+        } catch (QUI\Exception) {
             return false;
         }
 

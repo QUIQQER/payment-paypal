@@ -2,6 +2,8 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
-class PayPalException extends \QUI\ERP\Accounting\Payments\Exception
+use QUI\ERP\Accounting\Payments\Exception;
+
+class PayPalException extends Exception
 {
 }
