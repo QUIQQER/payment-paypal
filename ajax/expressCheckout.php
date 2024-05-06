@@ -25,7 +25,7 @@ QUI::$Ajax->registerFunction(
             $Payment->capturePayPalOrder($Order);
         } catch (PayPalException $Exception) {
             throw $Exception;
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }

@@ -14,7 +14,7 @@ class Cron
      *
      * @return void
      */
-    public static function checkPendingCaptures()
+    public static function checkPendingCaptures(): void
     {
         $Payment = new Payment();
         $Payment->checkPendingCaptures();

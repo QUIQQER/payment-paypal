@@ -21,7 +21,6 @@ class PaymentDisplay extends QUI\Control
      * Constructor
      *
      * @param array $attributes
-     * @throws QUI\ERP\Order\ProcessingException
      */
     public function __construct(array $attributes = [])
     {
@@ -44,7 +43,7 @@ class PaymentDisplay extends QUI\Control
      * @return string
      * @throws QUI\Exception
      */
-    public function getBody()
+    public function getBody(): string
     {
         $Engine = QUI::getTemplateManager()->getEngine();
         $Order = $this->getAttribute('Order');

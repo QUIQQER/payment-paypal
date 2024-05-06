@@ -2,6 +2,7 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use Exception;
 use PayPalCheckoutSdk\Core\PayPalHttpClient as PayPalClientV2;
 use PayPalCheckoutSdk\Core\ProductionEnvironment as PayPalProductionEnvironmentV2;
 use PayPalCheckoutSdk\Core\SandboxEnvironment as PayPalSandboxEnvironmentV2;
@@ -39,9 +40,16 @@ use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\PaymentExecuteRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\SaleRefundRequest;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Utils\User as ERPUserUtils;
+use QUI\ExceptionStack;
 
+use function boolval;
 use function is_array;
+use function json_decode;
+use function json_encode;
 use function json_last_error;
+use function mb_strlen;
+use function mb_substr;
+use function rtrim;
 
 use const JSON_ERROR_NONE;
 
@@ -116,21 +124,21 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * PayPal PHP REST Client (v1)
      *
-     * @var PayPalClient
+     * @var PayPalClient|null
      */
-    protected $PayPalClient = null;
+    protected ?PayPalClient $PayPalClient = null;
 
     /**
      * PayPal PHP REST Client (v2)
      *
-     * @var PayPalClientV2
+     * @var PayPalClientV2|null
      */
-    protected $PayPalClientV2 = null;
+    protected ?PayPalClientV2 $PayPalClientV2 = null;
 
     /**
      * @return string
      */
-    public function getTitle()
+    public function getTitle(): string
     {
         return $this->getLocale()->get('quiqqer/payment-paypal', 'payment.title');
     }
@@ -138,7 +146,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * @return string
      */
-    public function getDescription()
+    public function getDescription(): string
     {
         return $this->getLocale()->get('quiqqer/payment-paypal', 'payment.description');
     }
@@ -163,11 +171,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @param string $hash - Vorgangsnummer - hash number - procedure number
      * @return bool
      */
-    public function isSuccessful($hash): bool
+    public function isSuccessful(string $hash): bool
     {
         try {
             $Order = OrderHandler::getInstance()->getOrderByHash($hash);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::addError(
                 'PayPal :: Cannot check if payment process for Order #' . $hash . ' is successful'
                 . ' -> ' . $Exception->getMessage()
@@ -201,17 +209,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * Execute a refund
      *
      * @param QUI\ERP\Accounting\Payments\Transactions\Transaction $Transaction
-     * @param int|float $amount
+     * @param float|int $amount
      * @param string $message
      * @param false|string $hash - if a new hash will be used
      * @throws QUI\ERP\Accounting\Payments\Transactions\RefundException
      */
     public function refund(
         Transaction $Transaction,
-        $amount,
-        $message = '',
+        float|int $amount,
+        string $message = '',
         $hash = false
-    ) {
+    ): void {
         try {
             if ($hash === false) {
                 $hash = $Transaction->getHash();
@@ -225,7 +233,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 'quiqqer/payment-paypal',
                 'exception.Payment.refund_error'
             ]);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
             throw new QUI\ERP\Accounting\Payments\Transactions\RefundException([
@@ -242,9 +250,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @param QUI\ERP\Order\Controls\OrderProcess\Processing $Step
      * @return string
      *
-     * @throws QUI\Exception
+     * @throws QUI\Exception|Exception
      */
-    public function getGatewayDisplay(AbstractOrder $Order, $Step = null)
+    public function getGatewayDisplay(AbstractOrder $Order, $Step = null): string
     {
         $Control = new PaymentDisplay();
         $Control->setAttribute('Order', $Order);
@@ -273,7 +281,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @throws QUI\ERP\Exception
      * @throws QUI\Exception
      */
-    public function createPayPalOrder(AbstractOrder $Order)
+    public function createPayPalOrder(AbstractOrder $Order): void
     {
         $Order->addHistory('PayPal :: Create Order');
 
@@ -307,7 +315,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public function updatePayPalOrder(AbstractOrder $Order)
+    public function updatePayPalOrder(AbstractOrder $Order): void
     {
         $Order->addHistory('PayPal :: Update Order');
 
@@ -322,7 +330,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $body = [
             [
                 'op' => 'replace',
-                'path' => '/purchase_units/@reference_id==\'' . $Order->getHash() . '\'',
+                'path' => '/purchase_units/@reference_id==\'' . $Order->getUUID() . '\'',
                 'value' => $purchaseUnit
             ]
         ];
@@ -352,7 +360,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * Authorize a PayPal Order
      *
      */
-    public function authorizePayPalOrder(AbstractOrder $Order)
+    public function authorizePayPalOrder(AbstractOrder $Order): void
     {
         $Order->addHistory('PayPal :: Authorize Order');
 
@@ -419,7 +427,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @throws QUI\ERP\Exception
      * @throws QUI\Exception
      */
-    public function capturePayPalOrder(AbstractOrder $Order)
+    public function capturePayPalOrder(AbstractOrder $Order): void
     {
         $Order->addHistory('PayPal :: Capture Order');
 
@@ -472,7 +480,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             );
 
             $checkOrderCaptureStatus($response);
-        } catch (PayPalException $Exception) {
+        } catch (PayPalException) {
             $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
             $this->saveOrder($Order);
 
@@ -495,7 +503,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $captureFailReason = '';
 
             if (!empty($payPalOrderData['purchase_units'][0]['payments']['captures'][0]['status_details'])) {
-                $captureFailReason = \json_encode(
+                $captureFailReason = json_encode(
                     $payPalOrderData['purchase_units'][0]['payments']['captures'][0]['status_details']
                 );
             }
@@ -582,17 +590,24 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * Refund partial or full payment of an Order
      *
-     * @param QUI\ERP\Accounting\Payments\Transactions\Transaction $Transaction
+     * @param Transaction $Transaction
      * @param string $refundHash - Hash of the refund Transaction
-     * @param float $amount - The amount to be refunden
+     * @param float|int $amount - The amount to be refunded
      * @param string $reason (optional) - The reason for the refund [default: none; max. 255 characters]
      * @return void
      *
      * @throws PayPalException
-     * @throws QUI\Exception
+     * @throws PayPalSystemException
+     * @throws QUI\Database\Exception
+     * @throws QUI\ERP\Accounting\Payments\Transactions\Exception
+     * @throws ExceptionStack
      */
-    public function refundPayment(Transaction $Transaction, $refundHash, $amount, $reason = '')
-    {
+    public function refundPayment(
+        Transaction $Transaction,
+        string $refundHash,
+        float|int $amount,
+        string $reason = ''
+    ): void {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
         $Process->addHistory('PayPal :: Start refund for transaction #' . $Transaction->getTxId());
 
@@ -600,8 +615,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $Process->addHistory(
                 'PayPal :: Transaction cannot be refunded because it is not yet captured / completed.'
             );
+
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED_ORDER_NOT_CAPTURED);
-            return;
         }
 
         // create a refund transaction
@@ -693,14 +708,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @param AbstractOrder $Order
      * @return array
+     * @throws QUI\ERP\Exception
+     * @throws QUI\ERP\Order\Basket\Exception
+     * @throws QUI\Exception
      */
-    protected function getPayPalDataForOrder(AbstractOrder $Order)
+    protected function getPayPalDataForOrder(AbstractOrder $Order): array
     {
         $isNetto = ERPUserUtils::isNettoUser($Order->getCustomer());
 
         // Basic payment data
         $transactionData = [
-            'reference_id' => $Order->getHash(),
+            'reference_id' => $Order->getUUID(),
             'description' => $this->getLocale()->get(
                 'quiqqer/payment-paypal',
                 'Payment.order.create.description',
@@ -760,7 +778,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $amount['details'] = $amountDetails;
 
         // Article List
-        $displayItemList = \boolval(Provider::getPaymentSetting('display_paypal_basket'));
+        $displayItemList = boolval(Provider::getPaymentSetting('display_paypal_basket'));
 
         /** @var QUI\ERP\Products\Interfaces\PriceFactorInterface $PriceFactor */
         foreach ($Order->getArticles()->getPriceFactors() as $PriceFactor) {
@@ -770,7 +788,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             /**
              * If other price factors than the shipping cost price factor are found
-             * the detailled basket is NOT sent to PayPal since the exact category
+             * the detailed basket is NOT sent to PayPal since the exact category
              * of the price factor (e.g. article, tax, insurance etc.)
              * cannot be determined at the moment.
              */
@@ -782,7 +800,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         if ($displayItemList) {
             $items = [];
 
-            /** @var QUI\ERP\Accounting\Article $OrderArticle */
             foreach ($PriceCalculation->getArticles() as $OrderArticle) {
                 $articleData = $OrderArticle->toArray();
                 $calculated = $articleData['calculated'];
@@ -812,10 +829,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $description = $OrderArticle->getDescription();
 
                 if (!empty($description)) {
-                    $description = \mb_substr($description, 0, 127);
+                    $description = mb_substr($description, 0, 127);
 
-                    if (\mb_strlen($description) === 127) {
-                        $description = \mb_substr($description, 0, 124) . '...';
+                    if (mb_strlen($description) === 127) {
+                        $description = mb_substr($description, 0, 124) . '...';
                     }
 
                     $item['description'] = $description;
@@ -869,7 +886,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             try {
                 $ShippingCountry = $DeliveryAddress->getCountry();
                 $shippingAddress['country_code'] = $ShippingCountry->getCode();
-            } catch (\Exception $Exception) {
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeDebugException($Exception);
             }
 
@@ -902,8 +919,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             'payer' => $payer,
             'purchase_units' => [$transactionData],
             'redirect_urls' => [
-                'return_url' => \rtrim($Gateway->getSuccessUrl(), '?'),
-                'cancel_url' => \rtrim($Gateway->getCancelUrl(), '?')
+                'return_url' => rtrim($Gateway->getSuccessUrl(), '?'),
+                'cancel_url' => rtrim($Gateway->getCancelUrl(), '?')
             ]
         ];
     }
@@ -912,10 +929,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * Get details of a PayPal Order
      *
      * @param AbstractOrder $Order
-     * @return false|string - false if details cannot be fetched (e.g. if Order has not been created with PayPal);
+     * @return array|bool - false if details cannot be fetched (e.g. if Order has not been created with PayPal);
      * details otherwise
+     * @throws PayPalSystemException
      */
-    protected function getPayPalOrderDetails(AbstractOrder $Order)
+    protected function getPayPalOrderDetails(AbstractOrder $Order): bool|array
     {
         $payPalOrderId = $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID);
 
@@ -929,7 +947,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 [],
                 $Order
             );
-        } catch (PayPalException $Exception) {
+        } catch (PayPalException) {
             return false;
         }
 
@@ -942,9 +960,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @param AbstractOrder $Order
      * @return void
      *
-     * @throws PayPalException
+     * @throws PayPalException|QUI\Exception
      */
-    protected function voidPayPalOrder(AbstractOrder $Order)
+    protected function voidPayPalOrder(AbstractOrder $Order): void
     {
         $Order->addHistory('PayPal :: Void Order');
 
@@ -964,10 +982,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $this->saveOrder($Order);
 
-        return;
-
         /*
-         * PayPal Orders that are captured immediately and do not go with the authorize -> capture later
+         * PayPal Orders that are captured immediately and do not go with to authorize -> capture later
          * process cannot be voided directly.
          *
          * In this case it is ok to just leave the order be.
@@ -1016,12 +1032,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @param string $errorCode (optional) - default: general error message
      * @param array $exceptionAttributes (optional) - Additional Exception attributes that may be relevant for the Frontend
-     * @return string
+     * @return never
      *
      * @throws PayPalException
      */
-    protected function throwPayPalException($errorCode = self::PAYPAL_ERROR_GENERAL_ERROR, $exceptionAttributes = [])
-    {
+    protected function throwPayPalException(
+        string $errorCode = self::PAYPAL_ERROR_GENERAL_ERROR,
+        array $exceptionAttributes = []
+    ): never {
         $L = $this->getLocale();
         $lg = 'quiqqer/payment-paypal';
         $msg = $L->get($lg, 'payment.error_msg.' . $errorCode);
@@ -1037,8 +1055,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @param AbstractOrder $Order
      * @return void
+     * @throws QUI\Exception
      */
-    protected function saveOrder(AbstractOrder $Order)
+    protected function saveOrder(AbstractOrder $Order): void
     {
         $Order->update(QUI::getUsers()->getSystemUser());
     }
@@ -1048,7 +1067,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
      * @param array $body - Request data
-     * @param AbstractOrder|Transaction|array $TransactionObj - Object that contains necessary request data
+     * @param array|AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
      * @param bool $throwSystemException (optional) - API errors are thrown as special PayPalSystemException for *internal* handling
      *
@@ -1057,8 +1076,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * @throws PayPalException
      * @throws PayPalSystemException
      */
-    public function payPalApiRequest($request, $body, $TransactionObj, bool $throwSystemException = false)
-    {
+    public function payPalApiRequest(
+        string $request,
+        array $body,
+        Transaction|AbstractOrder|array $TransactionObj,
+        bool $throwSystemException = false
+    ): bool|array {
         $getData = function ($key) use ($TransactionObj) {
             if ($TransactionObj instanceof AbstractOrder) {
                 return $TransactionObj->getPaymentDataEntry($key);
@@ -1244,7 +1267,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             } else {
                 $Response = $this->getPayPalClient()->execute($Request);
             }
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             $message = $Exception->getCode() . " :: \n\n";
             $message .= $Exception->getMessage() . "\n";
             $message .= $Exception->getTraceAsString();
@@ -1276,9 +1299,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * Get PayPal Client for current payment process
      *
-     * @return PayPalClient
+     * @return PayPalClient|null
      */
-    protected function getPayPalClient()
+    protected function getPayPalClient(): ?PayPalClient
     {
         if (!is_null($this->PayPalClient)) {
             return $this->PayPalClient;
@@ -1304,9 +1327,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * Get PayPal Client for current payment process
      *
-     * @return PayPalClientV2
+     * @return PayPalClientV2|null
      */
-    protected function getPayPalClientV2()
+    protected function getPayPalClientV2(): ?PayPalClientV2
     {
         if (!is_null($this->PayPalClientV2)) {
             return $this->PayPalClientV2;
@@ -1336,7 +1359,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      *
      * @return void
      */
-    public function checkPendingCaptures()
+    public function checkPendingCaptures(): void
     {
         // Determine payment type IDs
         $payments = Payments::getInstance()->getPayments([
@@ -1377,7 +1400,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     ]
                 ]
             ]);
-        } catch (\Exception $Exception) {
+        } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return;
         }
@@ -1401,7 +1424,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 } catch (PayPalSystemException $Exception) {
                     // Check if Order does not exist anymore at PayPal
                     $exMsg = $Exception->getMessage();
-                    $exMsg = \json_decode($exMsg, true);
+                    $exMsg = json_decode($exMsg, true);
 
                     if (
                         is_array($exMsg) &&
@@ -1468,7 +1491,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     'PayPal :: Pending order capture was completed. Transaction ' . $Transaction->getTxId() . ' added.'
                 );
                 $this->saveOrder($Order);
-            } catch (\Exception $Exception) {
+            } catch (Exception $Exception) {
                 QUI\System\Log::writeException($Exception);
             }
         }
