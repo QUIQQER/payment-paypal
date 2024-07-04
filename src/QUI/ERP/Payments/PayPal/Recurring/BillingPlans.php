@@ -198,11 +198,11 @@ class BillingPlans
      *
      * @param int $page (optional) - Start page of list [min: 0]
      * @param int $pageSize (optional) - Number of plans per page [range: 1 to 20]
-     * @return bool|array
+     * @return bool|array|null
      * @throws PayPalException
      * @throws PayPalSystemException
      */
-    public static function getBillingPlanList(int $page = 0, int $pageSize = 10): bool|array
+    public static function getBillingPlanList(int $page = 0, int $pageSize = 10): bool|array|null
     {
         if ($page < 0) {
             $page = 0;
@@ -405,7 +405,7 @@ class BillingPlans
      * @param array $body - Request data
      * @param array|AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
-     * @return array|false - Response body or false on error
+     * @return bool|array|null - Response body or false on error
      *
      * @throws PayPalException
      * @throws PayPalSystemException
@@ -414,7 +414,7 @@ class BillingPlans
         string $request,
         array $body,
         Transaction|AbstractOrder|array $TransactionObj
-    ): bool|array {
+    ): bool|array|null {
         if (is_null(self::$Payment)) {
             self::$Payment = new QUI\ERP\Payments\PayPal\Payment();
         }

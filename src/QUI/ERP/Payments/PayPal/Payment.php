@@ -1071,7 +1071,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * ($Order has to have the required paymentData attributes for the given $request value!)
      * @param bool $throwSystemException (optional) - API errors are thrown as special PayPalSystemException for *internal* handling
      *
-     * @return array|false - Response body or false on error
+     * @return bool|array|null - Response body or false on error
      *
      * @throws PayPalException
      * @throws PayPalSystemException
@@ -1081,7 +1081,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         array $body,
         Transaction|AbstractOrder|array $TransactionObj,
         bool $throwSystemException = false
-    ): bool|array {
+    ): null|bool|array {
         $getData = function ($key) use ($TransactionObj) {
             if ($TransactionObj instanceof AbstractOrder) {
                 return $TransactionObj->getPaymentDataEntry($key);
