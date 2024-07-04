@@ -228,7 +228,7 @@ class Events
         }
 
         $Collector->append(
-            '<div data-qui="package / quiqqer / payment - paypal / bin / controls / ExpressBtnLoader"
+            '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="smallbasket"
                   data-qui-options-basketid="' . $Basket->getId() . '"
                   data-qui-options-checkout="' . $checkout . '"
