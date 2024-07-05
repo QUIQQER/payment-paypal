@@ -33,6 +33,10 @@ QUI::$Ajax->registerFunction(
 
         try {
             $list = BillingPlans::getBillingPlanList($page, $perPage);
+
+            if (!is_array($list)) {
+                $list = [];
+            }
         } catch (Exception $Exception) {
             QUI\System\Log::writeDebugException($Exception);
         }
