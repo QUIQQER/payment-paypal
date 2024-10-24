@@ -1138,7 +1138,7 @@ class BillingAgreements
      * @param array $body - Request data
      * @param array|AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
-     * @return array|false - Response body or false on error
+     * @return array|false|null - Response body or false on error
      *
      * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
@@ -1146,7 +1146,7 @@ class BillingAgreements
         string $request,
         array $body,
         Transaction|AbstractOrder|array $TransactionObj
-    ): bool|array {
+    ): bool|array|null {
         if (is_null(self::$Payment)) {
             self::$Payment = new QUI\ERP\Payments\PayPal\Payment();
         }
