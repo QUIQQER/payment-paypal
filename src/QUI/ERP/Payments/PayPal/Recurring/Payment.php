@@ -230,7 +230,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function getSubscriptionIdByOrder(AbstractOrder $Order): bool|int|string
     {
-        return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
+        return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID) ?? false;
     }
 
     /**
