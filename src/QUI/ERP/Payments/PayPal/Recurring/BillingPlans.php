@@ -19,6 +19,7 @@ use QUI\ERP\Products\Product\Product;
 
 use function class_exists;
 use function rtrim;
+use function substr;
 
 /**
  * Class BillingPlans
@@ -81,11 +82,22 @@ class BillingPlans
         // Read name and description from PlanProduct (= Product that contains subscription plan information)
         $Locale = $Order->getCustomer()->getLocale();
 
-        $name = $PlanProduct->getTitle($Locale);
+        $name = substr($PlanProduct->getTitle($Locale), 0, 127);
+
+        if (strlen($name) === 127) {
+            $name = substr($name, 0, 124) . '...';
+        }
+
         $description = $PlanProduct->getDescription($Locale);
 
         if (empty($description)) {
             $description = $name;
+        }
+
+        $description = substr($description, 0, 127);
+
+        if (strlen($description) === 127) {
+            $description = substr($description, 0, 124) . '...';
         }
 
         $body = [
