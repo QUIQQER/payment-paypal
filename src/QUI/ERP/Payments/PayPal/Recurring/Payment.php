@@ -178,7 +178,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         //$Redirect = new RedirectResponse($processingUrl);
 
         $url = QUI::getRewrite()->getProject()->getVHost(true, true);
-        $url .= URL_OPT_DIR .'quiqqer/payment-paypal/bin/recurringReturn.php';
+        $url .= URL_OPT_DIR . 'quiqqer/payment-paypal/bin/recurringReturn.php';
 
         $Redirect = new RedirectResponse($url);
         $Redirect->setStatusCode(Response::HTTP_SEE_OTHER);
@@ -233,7 +233,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param AbstractOrder $Order
      * @return int|string|false - ID or false of no ID associated
      */
-    public function getSubscriptionIdByOrder(AbstractOrder $Order): bool|int|string
+    public function getSubscriptionIdByOrder(AbstractOrder $Order): bool | int | string
     {
         return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID) ?? false;
     }
@@ -246,7 +246,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @return void
      * @throws PayPalException
      */
-    public function cancelSubscription(int|string $subscriptionId, string $reason = ''): void
+    public function cancelSubscription(int | string $subscriptionId, string $reason = ''): void
     {
         BillingAgreements::cancelBillingAgreement($subscriptionId, $reason);
     }
@@ -261,7 +261,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @return void
      * @throws PayPalException
      */
-    public function suspendSubscription(int|string $subscriptionId, string $note = null): void
+    public function suspendSubscription(int | string $subscriptionId, string $note = null): void
     {
         BillingAgreements::suspendBillingAgreement($subscriptionId, $note);
     }
@@ -276,7 +276,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @return void
      * @throws PayPalException
      */
-    public function resumeSubscription(int|string $subscriptionId, string $note = null): void
+    public function resumeSubscription(int | string $subscriptionId, string $note = null): void
     {
         BillingAgreements::resumeSubscription($subscriptionId, $note);
     }
@@ -290,7 +290,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @throws PayPalException
      * @throws PayPalSystemException
      */
-    public function isSuspended(int|string $subscriptionId): bool
+    public function isSuspended(int | string $subscriptionId): bool
     {
         return BillingAgreements::isSuspended($subscriptionId);
     }
@@ -315,7 +315,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param Invoice|InvoiceTemporary|InvoiceView $Invoice
      * @return mixed
      */
-    public function getInvoiceInformationText(Invoice|InvoiceTemporary|InvoiceView $Invoice): string
+    public function getInvoiceInformationText(Invoice | InvoiceTemporary | InvoiceView $Invoice): string
     {
         try {
             return $Invoice->getCustomer()->getLocale()->get(
@@ -346,7 +346,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     public function refundPayment(
         Transaction $Transaction,
         string $refundHash,
-        float|int $amount,
+        float | int $amount,
         string $reason = ''
     ): void {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
@@ -450,7 +450,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param int|string $subscriptionId
      * @return bool
      */
-    public function isSubscriptionActiveAtPaymentProvider(int|string $subscriptionId): bool
+    public function isSubscriptionActiveAtPaymentProvider(int | string $subscriptionId): bool
     {
         try {
             $billingAgreement = BillingAgreements::getBillingAgreementDetails($subscriptionId);
@@ -476,7 +476,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param int|string $subscriptionId - Payment provider subscription ID
      * @return bool
      */
-    public function isSubscriptionActiveAtQuiqqer(int|string $subscriptionId): bool
+    public function isSubscriptionActiveAtQuiqqer(int | string $subscriptionId): bool
     {
         try {
             $result = QUI::getDataBase()->fetch([
@@ -532,7 +532,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @param int|string $subscriptionId
      * @return string|false
      */
-    public function getSubscriptionGlobalProcessingId(int|string $subscriptionId): bool|string
+    public function getSubscriptionGlobalProcessingId(int | string $subscriptionId): bool | string
     {
         $data = BillingAgreements::getBillingAgreementData($subscriptionId);
 
