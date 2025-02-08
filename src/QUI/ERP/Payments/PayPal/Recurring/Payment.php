@@ -174,8 +174,13 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             $processingUrl = $OrderProcess->getStepUrl($GoToStep->getName());
         }
 
-        // Umleitung zur Bestellung
-        $Redirect = new RedirectResponse($processingUrl);
+        // Umleitung zur recurring return php
+        //$Redirect = new RedirectResponse($processingUrl);
+
+        $url = QUI::getRewrite()->getProject()->getVHost(true, true);
+        $url .= URL_OPT_DIR .'quiqqer/payment-paypal/bin/recurringReturn.php';
+
+        $Redirect = new RedirectResponse($url);
         $Redirect->setStatusCode(Response::HTTP_SEE_OTHER);
 
         echo $Redirect->getContent();

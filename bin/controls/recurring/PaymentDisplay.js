@@ -5,6 +5,7 @@
  */
 define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
 
+    'qui/QUI',
     'qui/controls/Control',
     'qui/controls/buttons/Button',
 
@@ -16,15 +17,15 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
 
     'css!package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay.css'
 
-], function (QUIControl, QUIButton, QUIControlUtils, PayPal, QUIAjax, QUILocale) {
+], function (QUI, QUIControl, QUIButton, QUIControlUtils, PayPal, QUIAjax, QUILocale) {
     "use strict";
 
-    var lg = 'quiqqer/payment-paypal';
+    const lg = 'quiqqer/payment-paypal';
 
     return new Class({
 
         Extends: QUIControl,
-        Type   : 'package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay',
+        Type: 'package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay',
 
         Binds: [
             '$onImport',
@@ -34,14 +35,14 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
         ],
 
         options: {
-            orderhash : '',
+            orderhash: '',
             successful: false
         },
 
         initialize: function (options) {
             this.parent(options);
 
-            this.$MsgElm       = null;
+            this.$MsgElm = null;
             this.$OrderProcess = null;
 
             this.addEvents({
@@ -54,13 +55,13 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
          */
         $onImport: function () {
             var self = this;
-            var Elm  = this.getElm();
+            var Elm = this.getElm();
 
             if (!Elm.getElement('.quiqqer-payment-paypal-content')) {
                 return;
             }
 
-            this.$MsgElm  = Elm.getElement('.quiqqer-payment-paypal-message');
+            this.$MsgElm = Elm.getElement('.quiqqer-payment-paypal-message');
             this.$Content = Elm.getElement('.quiqqer-payment-paypal-content');
 
             this.$showMsg(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.PaymentDisplay.info'));
@@ -85,15 +86,29 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
         $loadBillingAgreementButton: function () {
             var self = this;
 
+            window.addEventListener("message", function(event) {
+                if (event.data.status === "paypal-success") {
+                    console.log("Zahlung erfolgreich!");
+
+                    const orderProcessNode = document.getElm().getParent(
+                        '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess]'
+                    );
+
+                    if (orderProcessNode) {
+                        QUI.Controls.getById(orderProcessNode.get('data-quiid')).next();
+                    }
+                }
+            });
+
             var PayPalButton = new QUIButton({
-                'class'  : 'btn-primary button quiqqer-payment-paypal-recurring-paymentdisplay-btn',
-                disabled : true,
-                text     : QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text_create'),
+                'class': 'btn-primary button quiqqer-payment-paypal-recurring-paymentdisplay-btn',
+                disabled: true,
+                text: QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text_create'),
                 textimage: 'fa fa-spinner fa-spin',
-                events   : {
+                events: {
                     onClick: function (Btn) {
                         Btn.disable();
-                        window.location = Btn.getAttribute('approvalUrl');
+                        window.open(Btn.getAttribute('approvalUrl'), 'paypalWindow', 'width=600,height=800');
                     }
                 }
             }).inject(this.$Content);

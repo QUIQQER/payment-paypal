@@ -89,6 +89,11 @@ class BillingAgreements
         $Gateway = new Gateway();
         $Gateway->setOrder($Order);
 
+        $host = QUI::getRewrite()->getProject()->getVHost(true, true);
+
+        $returnUrl = $host . URL_OPT_DIR .'quiqqer/payment-paypal/bin/recurringReturn.php';
+        $cancelUrl = $host . URL_OPT_DIR .'quiqqer/payment-paypal/bin/recurringReturn.php';
+
         $body = [
             'name' => QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
@@ -117,8 +122,11 @@ class BillingAgreements
                 'id' => $Order->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID)
             ],
             'override_merchant_preferences' => [
-                'return_url' => rtrim($Gateway->getSuccessUrl(), '?'),
+                'return_url' => $returnUrl,
                 'cancel_url' => rtrim($Gateway->getCancelUrl(), '?')
+
+                //'return_url' => rtrim($Gateway->getSuccessUrl(), '?'),
+                //'cancel_url' => rtrim($Gateway->getCancelUrl(), '?')
             ]
         ];
 
