@@ -90,8 +90,8 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
                 if (event.data.status === "paypal-success") {
                     console.log("Zahlung erfolgreich!");
 
-                    const orderProcessNode = document.getElm().getParent(
-                        '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess]'
+                    const orderProcessNode = document.querySelector(
+                        '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]'
                     );
 
                     if (orderProcessNode) {
