@@ -95,7 +95,13 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
                     );
 
                     if (orderProcessNode) {
-                        QUI.Controls.getById(orderProcessNode.get('data-quiid')).next();
+                        const Order = QUI.Controls.getById(orderProcessNode.get('data-quiid'));
+
+                        if (Order) {
+                            Order.next();
+                        }
+                    } else {
+                        window.location.reload();
                     }
                 }
             });

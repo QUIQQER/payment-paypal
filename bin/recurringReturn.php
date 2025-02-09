@@ -1,7 +1,5 @@
 <?php
 
-//var_dump($_REQUEST);
-
 ?>
 <html lang="">
 <head>
@@ -10,10 +8,10 @@
 <body>
 
 <script>
-    window.onload = function() {
+    window.onload = function () {
         // Wenn das Fenster als Popup geöffnet wurde, schließen
         if (window.opener) {
-            window.opener.postMessage({ status: "paypal-success" }, "*");
+            window.opener.postMessage({status: "paypal-success"}, "*");
             window.close();
         }
     };
