@@ -89,6 +89,11 @@ class BillingAgreements
         $Gateway = new Gateway();
         $Gateway->setOrder($Order);
 
+        $host = QUI::getRewrite()->getProject()->getVHost(true, true);
+
+        $returnUrl = $host . URL_OPT_DIR . 'quiqqer/payment-paypal/bin/recurringReturn.php';
+        $cancelUrl = $host . URL_OPT_DIR . 'quiqqer/payment-paypal/bin/recurringReturn.php';
+
         $body = [
             'name' => QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
@@ -330,7 +335,7 @@ class BillingAgreements
      * @return array|int
      * @throws QUI\Exception
      */
-    public static function getBillingAgreementList(array $searchParams, bool $countOnly = false): array|int
+    public static function getBillingAgreementList(array $searchParams, bool $countOnly = false): array | int
     {
         $Grid = new QUI\Utils\Grid($searchParams);
         $gridParams = $Grid->parseDBParams($searchParams);
@@ -415,7 +420,7 @@ class BillingAgreements
      * @return bool|array
      * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
-    public static function getBillingAgreementDetails(string $billingAgreementId): bool|array
+    public static function getBillingAgreementDetails(string $billingAgreementId): bool | array
     {
         return self::payPalApiRequest(
             RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT,
@@ -478,7 +483,7 @@ class BillingAgreements
      * @return void
      * @throws PayPalException
      */
-    public static function cancelBillingAgreement(int|string $billingAgreementId, string $reason = ''): void
+    public static function cancelBillingAgreement(int | string $billingAgreementId, string $reason = ''): void
     {
         $data = self::getBillingAgreementData($billingAgreementId);
 
@@ -544,7 +549,7 @@ class BillingAgreements
      * @return void
      * @throws PayPalException
      */
-    public static function suspendBillingAgreement(int|string $billingAgreementId, string $note = null): void
+    public static function suspendBillingAgreement(int | string $billingAgreementId, string $note = null): void
     {
         $data = self::getBillingAgreementData($billingAgreementId);
 
@@ -608,7 +613,7 @@ class BillingAgreements
      * @return void
      * @throws PayPalException
      */
-    public static function resumeSubscription(int|string $billingAgreementId, string $note = null): void
+    public static function resumeSubscription(int | string $billingAgreementId, string $note = null): void
     {
         $data = self::getBillingAgreementData($billingAgreementId);
 
@@ -669,7 +674,7 @@ class BillingAgreements
      * @return bool
      * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
-    public static function isSuspended(int|string $billingAgreementId): bool
+    public static function isSuspended(int | string $billingAgreementId): bool
     {
         $data = self::getBillingAgreementDetails($billingAgreementId);
 
@@ -686,7 +691,7 @@ class BillingAgreements
      * @param int|string $billingAgreementId
      * @return void
      */
-    public static function setBillingAgreementAsInactive(int|string $billingAgreementId): void
+    public static function setBillingAgreementAsInactive(int | string $billingAgreementId): void
     {
         try {
             QUI::getDataBase()->update(
@@ -1138,15 +1143,15 @@ class BillingAgreements
      * @param array $body - Request data
      * @param array|AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
-     * @return array|false - Response body or false on error
+     * @return array|false|null - Response body or false on error
      *
      * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
     protected static function payPalApiRequest(
         string $request,
         array $body,
-        Transaction|AbstractOrder|array $TransactionObj
-    ): bool|array {
+        Transaction | AbstractOrder | array $TransactionObj
+    ): bool | array | null {
         if (is_null(self::$Payment)) {
             self::$Payment = new QUI\ERP\Payments\PayPal\Payment();
         }
@@ -1160,7 +1165,7 @@ class BillingAgreements
      * @param string $billingAgreementId - PayPal Billing Agreement ID
      * @return array|false
      */
-    public static function getBillingAgreementData(string $billingAgreementId): bool|array
+    public static function getBillingAgreementData(string $billingAgreementId): bool | array
     {
         try {
             $result = QUI::getDataBase()->fetch([

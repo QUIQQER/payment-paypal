@@ -16,6 +16,13 @@ use QUI\Utils\Security\Orthos;
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_createBillingAgreement',
     function ($orderHash) {
+        if (!class_exists('QUI\ERP\Order\Handler')) {
+            return [
+                'approvalUrl' => '',
+                'hash' => ''
+            ];
+        }
+
         try {
             $orderHash = Orthos::clear($orderHash);
             $Order = Handler::getInstance()->getOrderByHash($orderHash);

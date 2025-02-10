@@ -4,6 +4,7 @@ namespace QUI\ERP\Payments\PayPal;
 
 use QUI;
 use QUI\ERP\Accounting\CalculationValue;
+use QUI\ERP\Accounting\PriceFactors\Factor as ErpPriceFactor;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Shipping\Shipping;
 use QUI\Exception;
@@ -127,12 +128,12 @@ class Utils
      * Get shipping costs by order
      *
      * @param AbstractOrder $Order
-     * @return PriceFactorInterface|false - Shipping cost (2 digit precision) or false if costs cannot be determined
+     * @return ErpPriceFactor|PriceFactorInterface|null - Shipping cost (2 digit precision) or false if costs cannot be determined
      */
-    public static function getShippingCostsByOrder(AbstractOrder $Order): bool|PriceFactorInterface
+    public static function getShippingCostsByOrder(AbstractOrder $Order): ErpPriceFactor|PriceFactorInterface|null
     {
         if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
-            return false;
+            return null;
         }
 
         return Shipping::getInstance()->getShippingPriceFactor($Order);
