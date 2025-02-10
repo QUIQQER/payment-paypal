@@ -1,7 +1,5 @@
 /**
  * PaymentDisplay for PayPal
- *
- * @author Patrick Müller (www.pcsg.de)
  */
 define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
 
@@ -54,8 +52,7 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
          * Event: onImport
          */
         $onImport: function () {
-            var self = this;
-            var Elm = this.getElm();
+            const Elm = this.getElm();
 
             if (!Elm.getElement('.quiqqer-payment-paypal-content')) {
                 return;
@@ -68,15 +65,15 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
 
             QUIControlUtils.getControlByElement(
                 Elm.getParent('[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]')
-            ).then(function (OrderProcess) {
-                self.$OrderProcess = OrderProcess;
+            ).then((OrderProcess) => {
+                this.$OrderProcess = OrderProcess;
 
-                if (self.getAttribute('successful')) {
+                if (this.getAttribute('successful')) {
                     OrderProcess.next();
                     return;
                 }
 
-                self.$loadBillingAgreementButton();
+                this.$loadBillingAgreementButton();
             });
         },
 
@@ -84,9 +81,7 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
          * Load PayPal Pay widgets
          */
         $loadBillingAgreementButton: function () {
-            var self = this;
-
-            window.addEventListener("message", function(event) {
+            window.addEventListener("message", function (event) {
                 if (event.data.status === "paypal-success") {
                     console.log("Zahlung erfolgreich!");
 
@@ -106,23 +101,40 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
                 }
             });
 
-            var PayPalButton = new QUIButton({
-                'class': 'btn-primary button quiqqer-payment-paypal-recurring-paymentdisplay-btn',
+            const PayPalButton = new QUIButton({
+                'class': 'btn btn-primary button quiqqer-payment-paypal-recurring-paymentdisplay-btn',
                 disabled: true,
                 text: QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text_create'),
                 textimage: 'fa fa-spinner fa-spin',
                 events: {
-                    onClick: function (Btn) {
+                    onClick:  (Btn) => {
                         Btn.disable();
-                        window.open(Btn.getAttribute('approvalUrl'), 'paypalWindow', 'width=600,height=800');
+                        let popup = window.open(Btn.getAttribute('approvalUrl'), 'paypalWindow', 'width=600,height=800');
+
+                        this.$Content.querySelectorAll('.content-message-error').forEach((node) => {
+                            node.parentNode.removeChild(node);
+                        });
+
+                        if (!popup) {
+                            Btn.enable();
+
+                            new Element('div', {
+                                'class': 'content-message-error',
+                                html: QUILocale.get(lg, 'controls.recurring.PaymentDisplay.popup.open.error'),
+                            }).inject(this.$Content);
+
+                            return;
+                        }
                     }
                 }
             }).inject(this.$Content);
 
+            PayPalButton.getElm().classList.remove('qui-button'); // workaround -> nice button
+
             this.$OrderProcess.Loader.show(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.Loader.create_billing_agreement'));
 
-            PayPal.createBillingAgreement(this.getAttribute('orderhash')).then(function (Data) {
-                self.$OrderProcess.Loader.hide();
+            PayPal.createBillingAgreement(this.getAttribute('orderhash')).then((Data) => {
+                this.$OrderProcess.Loader.hide();
 
                 PayPalButton.setAttribute(
                     'text',
@@ -132,10 +144,10 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
                 PayPalButton.setAttribute('textimage', 'fa fa-paypal');
                 PayPalButton.setAttribute('approvalUrl', Data.approvalUrl);
                 PayPalButton.enable();
-            }, function () {
+            }, () => {
                 PayPalButton.destroy();
-                self.$showErrorMsg(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.error'));
-                self.fireEvent('processingError', [self]);
+                this.$showErrorMsg(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.error'));
+                this.fireEvent('processingError', [this]);
             });
         },
 
