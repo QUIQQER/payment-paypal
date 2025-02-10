@@ -628,6 +628,10 @@
             <de><![CDATA[Das Popup-Fenster konnte nicht geöffnet werden. Bitte überprüfen Sie Ihre Browsereinstellungen und erlauben Sie Popups für diese Seite.]]></de>
             <en><![CDATA[The pop-up window could not be opened. Please check your browser settings and allow pop-ups for this page.]]></en>
         </locale>
+        <locale name="controls.recurring.PaymentDisplay.popup.payment.error">
+            <de><![CDATA[Leider ist während der Bezahlung ein Fehler aufgetreten. Bitte versuche es noch einmal oder kontaktiere den Administrator für Unterstützung.]]></de>
+            <en><![CDATA[Unfortunately, an error occurred during payment. Please try again or contact the administrator for support.]]></en>
+        </locale>
 
         <!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans -->
         <locale name="controls.backend.BillingPlans.tbl.btn.delete">
