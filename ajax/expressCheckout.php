@@ -16,6 +16,10 @@ use QUI\Utils\Security\Orthos;
 QUI::$Ajax->registerFunction(
     'package_quiqqer_payment-paypal_ajax_expressCheckout',
     function ($orderHash) {
+        if (!class_exists('QUI\ERP\Order\Handler')) {
+            return false;
+        }
+
         $orderHash = Orthos::clear($orderHash);
 
         try {

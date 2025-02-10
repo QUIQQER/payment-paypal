@@ -4,7 +4,25 @@
 
 .quiqqer-payment-paypal-recurring-paymentdisplay-btn {
     background: #ffc439;
+    border-color: #ffc439;
+    border-radius: 4px;
     color: #111;
+    text-align: center;
+}
+
+.quiqqer-payment-paypal-recurring-paymentdisplay-btn:hover {
+    box-shadow: inset 0 0 100px 100px rgba(0, 0, 0, 0.05);
+
+    background: #ffc439;
+    border-color: #ffc439;
+    border-radius: 4px;
+    color: #111;
+}
+
+.quiqqer-payment-paypal-recurring-paymentdisplay-btn img {
+    float: left;
+    height: 20px;
+    margin: 0;
 }
 
 .fa-paypal {
@@ -13,4 +31,27 @@
 
 .fa-paypal:before {
     content: "\f1ed";
+}
+
+.quiqqer-payment-paypal-buttonText {
+
+}
+
+.quiqqer-payment-paypal-content {
+    width: 100%;
+}
+
+.quiqqer-payment-paypal-content .quiqqer-payment-paypal-recurring-paymentdisplay-btn {
+    float: none;
+    display: block;
+    margin: 1rem auto 0;
+    padding: 0.5rem 1.5rem 0.5rem 2rem;
+    text-align: center;
+}
+
+.quiqqer-payment-paypal-buttonText {
+    font-size: 12px;
+    text-align: center;
+    margin-bottom: 1rem;
+    width: 100%;
 }
