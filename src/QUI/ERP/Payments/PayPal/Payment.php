@@ -1278,7 +1278,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 QUI\System\Log::LEVEL_WARNING,
                 [
                     'paypalRequestClass' => get_class($Request),
-                    'requestBody' => $Request->body
+                    'requestBody' => $Request->body,
+                    'transactionObject' => get_class($TransactionObj)
                 ],
                 'paypal_api'
             );
