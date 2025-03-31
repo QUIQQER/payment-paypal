@@ -43,6 +43,7 @@ use QUI\ERP\Utils\User as ERPUserUtils;
 use QUI\ExceptionStack;
 
 use function boolval;
+use function get_class;
 use function is_array;
 use function json_decode;
 use function json_encode;
@@ -1275,7 +1276,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             QUI\System\Log::write(
                 $message,
                 QUI\System\Log::LEVEL_WARNING,
-                [],
+                [
+                    'paypalRequestClass' => get_class($Request),
+                    'requestBody' => $Request->body
+                ],
                 'paypal_api'
             );
 
