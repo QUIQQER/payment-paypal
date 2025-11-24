@@ -579,7 +579,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             );
 
             // so we get the new order status if transaction change stuff
-            $Order->refresh();
+            try {
+                $Order->refresh();
+            } catch (QUI\Exception) {
+                $Order = OrderHandler::getInstance()->getOrderByHash($Order->getUUID());
+            }
         } else {
             $Order->addHistory(
                 'PayPal :: Order capture was not completed immediately.'
