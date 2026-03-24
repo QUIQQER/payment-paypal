@@ -25,7 +25,7 @@ class Utils
      * @param float|int $amount
      * @return string - Amount with trailing zeroes
      */
-    public static function formatPrice(float|int $amount): string
+    public static function formatPrice(float | int $amount): string
     {
         $AmountValue = new CalculationValue($amount, null, 2);
         $amount = $AmountValue->get();
@@ -79,9 +79,12 @@ class Utils
      * @param AbstractOrder $Order
      * @return array|false - Shipping address data as array or false if shipping address cannot be determined
      */
-    public static function getPayPalShippingAddressDataByOrder(AbstractOrder $Order): bool|array
+    public static function getPayPalShippingAddressDataByOrder(AbstractOrder $Order): bool | array
     {
-        if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
+        if (
+            !QUI::getPackageManager()->isInstalled('quiqqer/shipping')
+            || !class_exists('QUI\ERP\Shipping\Shipping')
+        ) {
             return false;
         }
 
@@ -130,9 +133,12 @@ class Utils
      * @param AbstractOrder $Order
      * @return ErpPriceFactor|PriceFactorInterface|null - Shipping cost (2 digit precision) or false if costs cannot be determined
      */
-    public static function getShippingCostsByOrder(AbstractOrder $Order): ErpPriceFactor|PriceFactorInterface|null
+    public static function getShippingCostsByOrder(AbstractOrder $Order): ErpPriceFactor | PriceFactorInterface | null
     {
-        if (!QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
+        if (
+            !QUI::getPackageManager()->isInstalled('quiqqer/shipping')
+            || !class_exists('QUI\ERP\Shipping\Shipping')
+        ) {
             return null;
         }
 
@@ -144,9 +150,15 @@ class Utils
      *
      * @param AbstractOrder $Order
      * @return QUI\ERP\Shipping\Types\ShippingEntry|false
+     *
+     * @phpstan-ignore class.notFound
      */
-    public static function getDefaultExpressShipping(AbstractOrder $Order): QUI\ERP\Shipping\Types\ShippingEntry|bool
+    public static function getDefaultExpressShipping(AbstractOrder $Order): QUI\ERP\Shipping\Types\ShippingEntry | bool
     {
+        if (!class_exists('QUI\ERP\Shipping\Shipping')) {
+            return false;
+        }
+
         $shippingEntries = Shipping::getInstance()->getValidShippingEntries($Order);
 
         if (empty($shippingEntries)) {

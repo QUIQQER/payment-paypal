@@ -261,7 +261,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @return void
      * @throws PayPalException
      */
-    public function suspendSubscription(int | string $subscriptionId, string $note = null): void
+    public function suspendSubscription(int | string $subscriptionId, ?string $note = null): void
     {
         BillingAgreements::suspendBillingAgreement($subscriptionId, $note);
     }
@@ -276,7 +276,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * @return void
      * @throws PayPalException
      */
-    public function resumeSubscription(int | string $subscriptionId, string $note = null): void
+    public function resumeSubscription(int | string $subscriptionId, ?string $note = null): void
     {
         BillingAgreements::resumeSubscription($subscriptionId, $note);
     }

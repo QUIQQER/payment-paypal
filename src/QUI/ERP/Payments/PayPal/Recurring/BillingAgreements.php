@@ -441,8 +441,8 @@ class BillingAgreements
      */
     public static function getBillingAgreementTransactions(
         string $billingAgreementId,
-        DateTime $Start = null,
-        DateTime $End = null
+        ?DateTime $Start = null,
+        ?DateTime $End = null
     ): array {
         $data = [
             RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID => $billingAgreementId
@@ -549,7 +549,7 @@ class BillingAgreements
      * @return void
      * @throws PayPalException
      */
-    public static function suspendBillingAgreement(int | string $billingAgreementId, string $note = null): void
+    public static function suspendBillingAgreement(int | string $billingAgreementId, ?string $note = null): void
     {
         $data = self::getBillingAgreementData($billingAgreementId);
 
@@ -613,7 +613,7 @@ class BillingAgreements
      * @return void
      * @throws PayPalException
      */
-    public static function resumeSubscription(int | string $billingAgreementId, string $note = null): void
+    public static function resumeSubscription(int | string $billingAgreementId, ?string $note = null): void
     {
         $data = self::getBillingAgreementData($billingAgreementId);
 
