@@ -503,9 +503,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         if (!$captured) {
             $captureFailReason = '';
 
-            if (!empty($payPalOrderData['purchase_units'][0]['payments']['captures'][0]['status_details'])) {
+            if (!empty($orderDetails['purchase_units'][0]['payments']['captures'][0]['status_details'])) {
                 $captureFailReason = json_encode(
-                    $payPalOrderData['purchase_units'][0]['payments']['captures'][0]['status_details']
+                    $orderDetails['purchase_units'][0]['payments']['captures'][0]['status_details']
                 );
             }
 
