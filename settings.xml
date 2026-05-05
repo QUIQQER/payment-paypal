@@ -21,6 +21,9 @@
                     <type><![CDATA[boolean]]></type>
                     <defaultvalue>1</defaultvalue>
                 </conf>
+                <conf name="webhook_id">
+                    <type><![CDATA[string]]></type>
+                </conf>
             </section>
 
             <section name="payment">
@@ -43,6 +46,10 @@
                 <conf name="instant_purchase">
                     <type><![CDATA[boolean]]></type>
                     <defaultvalue>0</defaultvalue>
+                </conf>
+                <conf name="recurring_api_mode">
+                    <type><![CDATA[string]]></type>
+                    <defaultvalue><![CDATA[subscriptions]]></defaultvalue>
                 </conf>
             </section>
 
@@ -144,6 +151,15 @@
                             </description>
                         </input>
 
+                        <input conf="api.webhook_id" type="text">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.webhook_id.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.webhook_id.description"/>
+                            </description>
+                        </input>
+
                     </settings>
                 </category>
 
@@ -203,6 +219,18 @@
                                 <!--<locale group="quiqqer/payment-paypal" var="settings.payment.display_express_product.description"/>-->
                             <!--</description>-->
                         <!--</input>-->
+
+                        <select conf="payment.recurring_api_mode">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.payment.recurring_api_mode.title"/>
+                            </text>
+                            <option value="legacy">
+                                <locale group="quiqqer/payment-paypal" var="settings.payment.recurring_api_mode.options.legacy"/>
+                            </option>
+                            <option value="subscriptions">
+                                <locale group="quiqqer/payment-paypal" var="settings.payment.recurring_api_mode.options.subscriptions"/>
+                            </option>
+                        </select>
 
                     </settings>
 

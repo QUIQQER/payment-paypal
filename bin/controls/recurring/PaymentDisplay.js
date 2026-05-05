@@ -83,26 +83,41 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
         $loadBillingAgreementButton: function () {
             let popupClosedByScript = false;
 
-            window.addEventListener("message", function (event) {
-                if (event.data.status === "paypal-success") {
-                    console.log("Zahlung erfolgreich!");
+            window.addEventListener("message", (event) => {
+                if (event.origin !== window.location.origin) {
+                    return;
+                }
 
-                    popupClosedByScript = true;
+                if (
+                    !event.data ||
+                    event.data.source !== "quiqqer-payment-paypal-recurring" ||
+                    event.data.orderHash !== this.getAttribute('orderhash')
+                ) {
+                    return;
+                }
 
-                    const orderProcessNode = document.querySelector(
-                        '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]'
-                    );
+                popupClosedByScript = true;
 
-                    if (orderProcessNode) {
-                        const Order = QUI.Controls.getById(orderProcessNode.get('data-quiid'));
+                if (event.data.status !== "success") {
+                    this.$showErrorMsg(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.popup.payment.error'));
+                    PayPalButton.enable();
+                    return;
+                }
 
-                        if (Order) {
-                            Order.next();
-                        }
-                    } else {
-                        window.location.reload();
+                const orderProcessNode = document.querySelector(
+                    '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]'
+                );
+
+                if (orderProcessNode) {
+                    const Order = QUI.Controls.getById(orderProcessNode.get('data-quiid'));
+
+                    if (Order) {
+                        Order.next();
+                        return;
                     }
                 }
+
+                window.location.reload();
             });
 
             const imageUrl = URL_OPT_DIR + 'quiqqer/payment-paypal/bin/images/';

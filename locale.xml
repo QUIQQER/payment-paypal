@@ -109,6 +109,14 @@
             <de><![CDATA[Sandbox-Modus aktivieren (Zahlungen werden nicht tatsächlich durchgeführt sondern nur über eine Testumgebung; nur aktivieren, wenn der Zahlungsprozess mit PayPal getestet werden soll!). <b>Setzt voraus</b>, dass Client ID und Secret für die Sandbox konfiguriert sind.]]></de>
             <en><![CDATA[Enable sandbox mode (payments are not actually made but only through a test environment, only enable to test the payment process with PayPal!). <b>Requires</b> that sandbox Client ID and Secret are configured.]]></en>
         </locale>
+        <locale name="settings.api.webhook_id.title">
+            <de><![CDATA[Webhook ID]]></de>
+            <en><![CDATA[Webhook ID]]></en>
+        </locale>
+        <locale name="settings.api.webhook_id.description" html="true">
+            <de><![CDATA[PayPal Webhook ID für die Signaturprüfung von Subscription-Webhooks.]]></de>
+            <en><![CDATA[PayPal webhook ID used to verify subscription webhook signatures.]]></en>
+        </locale>
         <locale name="settings.category.payment.title">
             <de><![CDATA[Zahlungsprozess]]></de>
             <en><![CDATA[Payment process]]></en>
@@ -152,6 +160,18 @@
                 <![CDATA[<b>PayPal Express</b> Button auf <b>Produkt-Seiten</b> anzeigen (ermöglicht den Express-Kauf einzelner Produkte direkt von der Produkt-Seite aus)]]></de>
             <en>
                 <![CDATA[Display <b>PayPal Express</b> button on <b>Product pages</b> (offers express checkout of single products directly from the product page)]]></en>
+        </locale>
+        <locale name="settings.payment.recurring_api_mode.title">
+            <de><![CDATA[Recurring-API für neue Verträge]]></de>
+            <en><![CDATA[Recurring API for new contracts]]></en>
+        </locale>
+        <locale name="settings.payment.recurring_api_mode.options.legacy">
+            <de><![CDATA[Legacy Billing Agreements]]></de>
+            <en><![CDATA[Legacy Billing Agreements]]></en>
+        </locale>
+        <locale name="settings.payment.recurring_api_mode.options.subscriptions">
+            <de><![CDATA[PayPal Subscriptions]]></de>
+            <en><![CDATA[PayPal Subscriptions]]></en>
         </locale>
         <locale name="settings.widgets.title">
             <de><![CDATA[Darstellung]]></de>
@@ -418,6 +438,14 @@
             <de><![CDATA[Für alle offenen Rechnungen mit wiederkehrenden Zahlungen die passenden PayPal-Transaktionen finden und intern buchen.]]></de>
             <en><![CDATA[For all open invoices with recurring payments, find the matching PayPal transactions and book them internally.]]></en>
         </locale>
+        <locale name="cron.processSubscriptionUnpaidInvoices.title">
+            <de><![CDATA[PayPal - Subscription-Rechnungen abarbeiten]]></de>
+            <en><![CDATA[PayPal - Process subscription invoices]]></en>
+        </locale>
+        <locale name="cron.processSubscriptionUnpaidInvoices.description">
+            <de><![CDATA[Für offene Rechnungen mit PayPal Subscriptions passende Webhook-Zahlungen finden und intern buchen.]]></de>
+            <en><![CDATA[Find matching webhook payments for open PayPal subscription invoices and book them internally.]]></en>
+        </locale>
         <locale name="cron.checkPendingCaptures.title">
             <de><![CDATA[PayPal - Ausstehende Zahlungen prüfen]]></de>
             <en><![CDATA[PayPal - Check pending payments]]></en>
@@ -492,6 +520,10 @@
         <locale name="exception.Recurring.order.error">
             <de><![CDATA[Bei der Bearbeitung Ihrer Bestellung mit PayPal ist ein Fehler aufgetreten. Bitte wählen Sie eine andere Zahlungsart.]]></de>
             <en><![CDATA[An error occurred while processing your order with PayPal. Please choose another payment method.]]></en>
+        </locale>
+        <locale name="exception.Recurring.subscription.capture_not_implemented">
+            <de><![CDATA[Die automatische Verbuchung für PayPal-Subscriptions ist in diesem Stand noch nicht vollständig implementiert. Bitte den Legacy-Recurring-Pfad verwenden oder die nächste Ausbaustufe abschließen.]]></de>
+            <en><![CDATA[Automatic booking for PayPal subscriptions is not fully implemented in this revision yet. Please use the legacy recurring path for now or complete the next implementation step.]]></en>
         </locale>
         <locale name="recurring.payment_definition.name">
             <de><![CDATA[Ihre Rechnung für [planTitle] auf [url]]]></de>
