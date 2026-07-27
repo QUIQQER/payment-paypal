@@ -19,6 +19,7 @@
     "url": "https://www.pcsg.de"
   },
   "require": {
+    "php": "^8.2",
     "quiqqer/core": "^2",
     "quiqqer/payments": "^3",
     "paypal/paypal-checkout-sdk": "^1.0.1",
