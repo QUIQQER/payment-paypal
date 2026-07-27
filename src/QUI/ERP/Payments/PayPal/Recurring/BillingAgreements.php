@@ -48,7 +48,7 @@ class BillingAgreements
      *
      * Prevents multiple unnecessary API calls.
      *
-     * @var array
+     * @var array<string, bool>
      */
     protected static array $transactionsRefreshed = [];
 
@@ -337,9 +337,9 @@ class BillingAgreements
     /**
      * Get data of all Billing Agreements (QUIQQER data only; no PayPal query performed!)
      *
-     * @param array $searchParams
+     * @param array<string, mixed> $searchParams
      * @param bool $countOnly (optional) - Return count of all results
-     * @return array|int
+     * @return array<int, array<string, mixed>>|int
      * @throws QUI\Exception
      */
     public static function getBillingAgreementList(array $searchParams, bool $countOnly = false): array | int
@@ -424,10 +424,10 @@ class BillingAgreements
      * Get details of a Billing Agreement (PayPal data)
      *
      * @param string $billingAgreementId
-     * @return bool|array
+     * @return array<string, mixed>|bool|null
      * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
-    public static function getBillingAgreementDetails(string $billingAgreementId): bool | array
+    public static function getBillingAgreementDetails(string $billingAgreementId): bool | array | null
     {
         return self::payPalApiRequest(
             RecurringPayment::PAYPAL_REQUEST_TYPE_GET_BILLING_AGREEMENT,
@@ -442,7 +442,7 @@ class BillingAgreements
      * @param string $billingAgreementId
      * @param DateTime|null $Start (optional)
      * @param DateTime|null $End (optional)
-     * @return array
+     * @return array<int, array<string, mixed>>
      * @throws PayPalException
      * @throws Exception
      */
@@ -849,6 +849,9 @@ class BillingAgreements
         return InvoiceHandler::getInstance();
     }
 
+    /**
+     * @return list<int|string>
+     */
     protected static function getRecurringPaymentTypeIds(): array
     {
         $payments = Payments::getInstance()->getPayments([
@@ -868,6 +871,10 @@ class BillingAgreements
         return $paymentTypeIds;
     }
 
+    /**
+     * @param list<int|string> $paymentTypeIds
+     * @return list<array<string, mixed>>
+     */
     protected static function searchUnpaidInvoiceRows(
         InvoiceHandler $Invoices,
         array $paymentTypeIds
@@ -887,6 +894,10 @@ class BillingAgreements
         ]);
     }
 
+    /**
+     * @param list<string> $globalProcessIds
+     * @return array<int, array{global_process_id: string}>
+     */
     protected static function getAgreementProcessRows(
         array $globalProcessIds
     ): array {
@@ -1134,7 +1145,7 @@ class BillingAgreements
      *
      * @param string $billingAgreementId
      * @param string $status (optional) - Get transactions with this PayPal transaction status [default: "Completed"]
-     * @return array
+     * @return list<array<string, mixed>>
      * @throws QUI\Database\Exception
      * @throws PayPalException
      * @throws Exception
@@ -1185,10 +1196,10 @@ class BillingAgreements
      * Make a PayPal REST API request
      *
      * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
-     * @param array $body - Request data
-     * @param array|AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
+     * @param array<mixed> $body Request data
+     * @param array<mixed>|AbstractOrder|Transaction $TransactionObj Object containing the request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
-     * @return array|false|null - Response body or false on error
+     * @return array<string, mixed>|bool|null Response body or false on error
      *
      * @throws PayPalException|QUI\ERP\Payments\PayPal\PayPalSystemException
      */
@@ -1208,7 +1219,11 @@ class BillingAgreements
      * Get available data by Billing Agreement ID (QUIQQER data)
      *
      * @param string $billingAgreementId - PayPal Billing Agreement ID
-     * @return array|false
+     * @return array{
+     *     active: bool,
+     *     globalProcessId: string|null,
+     *     customer: array<string, mixed>|null
+     * }|false
      */
     public static function getBillingAgreementData(string $billingAgreementId): bool | array
     {

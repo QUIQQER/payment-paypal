@@ -264,7 +264,7 @@ class Subscriptions
 
     /**
      * @param string $subscriptionId
-     * @return array
+     * @return array<string, mixed>
      * @throws PayPalException
      */
     public static function getSubscriptionDetails(string $subscriptionId): array
@@ -321,7 +321,7 @@ class Subscriptions
 
     /**
      * @param bool $includeInactive
-     * @return array
+     * @return list<string>
      */
     public static function getSubscriptionIds(bool $includeInactive = false): array
     {
@@ -364,7 +364,13 @@ class Subscriptions
 
     /**
      * @param string $subscriptionId
-     * @return array|false
+     * @return array{
+     *     active: bool,
+     *     globalProcessId: string|null,
+     *     customer: array<string, mixed>|null,
+     *     subscriptionData: array<string, mixed>|null,
+     *     planId: string
+     * }|false
      */
     public static function getSubscriptionData(string $subscriptionId): array|false
     {
@@ -625,6 +631,9 @@ class Subscriptions
         return InvoiceHandler::getInstance();
     }
 
+    /**
+     * @return list<int|string>
+     */
     protected static function getRecurringPaymentTypeIds(): array
     {
         $payments = Payments::getInstance()->getPayments([
@@ -643,6 +652,10 @@ class Subscriptions
         return $paymentTypeIds;
     }
 
+    /**
+     * @param list<int|string> $paymentTypeIds
+     * @return list<array<string, mixed>>
+     */
     protected static function searchUnpaidInvoiceRows(
         InvoiceHandler $Invoices,
         array $paymentTypeIds
@@ -662,6 +675,10 @@ class Subscriptions
         ]);
     }
 
+    /**
+     * @param list<string> $globalProcessIds
+     * @return array<int, array{global_process_id: string}>
+     */
     protected static function getSubscriptionProcessRows(
         array $globalProcessIds
     ): array {
@@ -702,7 +719,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $headers
+     * @param array<string, string> $headers
      * @param string $rawBody
      * @return bool
      */
@@ -746,7 +763,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $event
+     * @param array<string, mixed> $event
      * @return bool|null - true if persisted, false if already known, null on database error
      */
     protected static function persistWebhookEvent(array $event): ?bool
@@ -779,7 +796,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $event
+     * @param array<string, mixed> $event
      * @return void
      */
     protected static function processWebhookEvent(array $event): void
@@ -814,7 +831,7 @@ class Subscriptions
 
     /**
      * @param string $subscriptionId
-     * @param array $resource
+     * @param array<string, mixed> $resource
      * @return void
      */
     protected static function processSubscriptionLifecycleEvent(string $subscriptionId, array $resource): void
@@ -843,7 +860,7 @@ class Subscriptions
 
     /**
      * @param string $subscriptionId
-     * @param array $resource
+     * @param array<string, mixed> $resource
      * @param string $eventType
      * @return void
      */
@@ -898,7 +915,7 @@ class Subscriptions
     /**
      * @param string $subscriptionId
      * @param string $status
-     * @return array
+     * @return list<array<string, mixed>>
      * @throws QUI\Database\Exception
      */
     protected static function getUnprocessedTransactions(
@@ -1018,7 +1035,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $resource
+     * @param array<string, mixed> $resource
      * @return string
      */
     protected static function getSubscriptionIdFromResource(array $resource): string
@@ -1030,7 +1047,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $transaction
+     * @param array<string, mixed> $transaction
      * @return string
      */
     protected static function getTransactionId(array $transaction): string
@@ -1039,7 +1056,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $transaction
+     * @param array<string, mixed> $transaction
      * @return float
      */
     protected static function getTransactionAmount(array $transaction): float
@@ -1051,7 +1068,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $transaction
+     * @param array<string, mixed> $transaction
      * @return string
      */
     protected static function getTransactionCurrency(array $transaction): string
@@ -1063,7 +1080,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $transaction
+     * @param array<string, mixed> $transaction
      * @return string
      */
     protected static function getTransactionTime(array $transaction): string
@@ -1075,7 +1092,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $transaction
+     * @param array<string, mixed> $transaction
      * @param string $eventType
      * @return string
      */
@@ -1115,7 +1132,7 @@ class Subscriptions
 
     /**
      * @param AbstractOrder $Order
-     * @return array
+     * @return array{string, string}
      * @throws PayPalException
      * @throws QUI\Exception
      */
@@ -1191,7 +1208,7 @@ class Subscriptions
      * @param AbstractOrder $Order
      * @param Product $PlanProduct
      * @param string $productId
-     * @return array
+     * @return array<string, mixed>
      * @throws PayPalException
      * @throws QUI\Exception
      */
@@ -1230,7 +1247,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $planDetails
+     * @param array<string, mixed> $planDetails
      * @return int
      * @throws PayPalException
      */
@@ -1296,7 +1313,7 @@ class Subscriptions
 
     /**
      * @param AbstractOrder $Order
-     * @return array|false
+     * @return array{paypal_product_id: string, paypal_plan_id: string}|false
      * @throws QUI\Exception
      */
     protected static function getPlanByOrder(AbstractOrder $Order): array|false
@@ -1324,9 +1341,9 @@ class Subscriptions
     /**
      * @param string $subscriptionId
      * @param string $planId
-     * @param array $customer
+     * @param array<string, mixed> $customer
      * @param string|null $globalProcessId
-     * @param array $subscriptionData
+     * @param array<string, mixed> $subscriptionData
      * @param bool $active
      * @return void
      */
@@ -1374,7 +1391,7 @@ class Subscriptions
     }
 
     /**
-     * @param array $response
+     * @param array<string, mixed> $response
      * @return string
      */
     protected static function getApprovalUrl(array $response): string

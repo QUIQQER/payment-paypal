@@ -266,7 +266,7 @@ class PaymentExpress extends Payment
      * User address in the database. If you do not need the address this method returns later on,
      * delete it by calling $Address->delete()
      *
-     * @param array $payPalOrder
+     * @param array<string, mixed> $payPalOrder
      * @param QUIQQERUser $QuiqqerUser
      * @return QUI\Users\Address
      *

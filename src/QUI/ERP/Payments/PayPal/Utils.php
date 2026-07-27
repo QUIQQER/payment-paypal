@@ -65,7 +65,7 @@ class Utils
      * Get translated history text
      *
      * @param string $context
-     * @param array $data (optional) - Additional data for translation
+     * @param array<string, mixed> $data (optional) - Additional data for translation
      * @return string
      */
     public static function getHistoryText(string $context, array $data = []): string
@@ -77,7 +77,7 @@ class Utils
      * Get shipping address data by order that is used in the PayPal API workflow.
      *
      * @param AbstractOrder $Order
-     * @return array|false - Shipping address data as array or false if shipping address cannot be determined
+     * @return array<string, mixed>|false
      */
     public static function getPayPalShippingAddressDataByOrder(AbstractOrder $Order): bool | array
     {
@@ -150,8 +150,6 @@ class Utils
      *
      * @param AbstractOrder $Order
      * @return QUI\ERP\Shipping\Types\ShippingEntry|false
-     *
-     * @phpstan-ignore class.notFound
      */
     public static function getDefaultExpressShipping(AbstractOrder $Order): QUI\ERP\Shipping\Types\ShippingEntry | bool
     {

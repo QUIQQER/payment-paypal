@@ -323,6 +323,9 @@ class Events
         return QUI\ERP\Plans\Utils::isPlanOrder($Order);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected static function getPlanDetailsFromOrder(
         OrderInterface $Order
     ): array {

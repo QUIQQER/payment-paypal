@@ -159,6 +159,9 @@ class BillingPlans
         );
     }
 
+    /**
+     * @return array<string, mixed>
+     */
     protected static function getPlanDetailsFromOrder(
         AbstractOrder $Order
     ): array {
@@ -174,7 +177,7 @@ class BillingPlans
         return $Gateway;
     }
 
-    public static function updateBillingPlan(AbstractOrder $Order)
+    public static function updateBillingPlan(AbstractOrder $Order): void
     {
         // todo
     }
@@ -236,7 +239,7 @@ class BillingPlans
      *
      * @param int $page (optional) - Start page of list [min: 0]
      * @param int $pageSize (optional) - Number of plans per page [range: 1 to 20]
-     * @return bool|array|null
+     * @return array<string, mixed>|bool|null
      * @throws PayPalException
      * @throws PayPalSystemException
      */
@@ -331,7 +334,7 @@ class BillingPlans
      *
      * @param AbstractOrder $Order
      * @param Product $PlanProduct - Product that contains plan information
-     * @return array
+     * @return list<array<string, mixed>>
      *
      * @throws QUI\ERP\Payments\PayPal\PayPalException
      * @throws QUI\ERP\Exception
@@ -440,10 +443,10 @@ class BillingPlans
      * Make a PayPal REST API request
      *
      * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
-     * @param array $body - Request data
-     * @param array|AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
+     * @param array<mixed> $body Request data
+     * @param array<mixed>|AbstractOrder|Transaction $TransactionObj Object containing the request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
-     * @return bool|array|null - Response body or false on error
+     * @return array<string, mixed>|bool|null Response body or false on error
      *
      * @throws PayPalException
      * @throws PayPalSystemException

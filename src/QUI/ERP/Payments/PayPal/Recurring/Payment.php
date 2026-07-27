@@ -369,7 +369,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * Return the extra text for the invoice
      *
      * @param Invoice|InvoiceTemporary|InvoiceView $Invoice
-     * @return mixed
+     * @return string
      */
     public function getInvoiceInformationText(Invoice | InvoiceTemporary | InvoiceView $Invoice): string
     {

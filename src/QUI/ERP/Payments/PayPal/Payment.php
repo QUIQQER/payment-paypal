@@ -956,11 +956,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * Get details of a PayPal Order
      *
      * @param AbstractOrder $Order
-     * @return array|bool - false if details cannot be fetched (e.g. if Order has not been created with PayPal);
+     * @return array<string, mixed>|bool|null
      * details otherwise
      * @throws PayPalSystemException
      */
-    protected function getPayPalOrderDetails(AbstractOrder $Order): bool|array
+    protected function getPayPalOrderDetails(AbstractOrder $Order): bool|array|null
     {
         $payPalOrderId = $Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID);
 
@@ -1058,7 +1058,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * Throw PayPalException for specific PayPal API Error
      *
      * @param string $errorCode (optional) - default: general error message
-     * @param array $exceptionAttributes (optional) - Additional Exception attributes that may be relevant for the Frontend
+     * @param array<string, mixed> $exceptionAttributes Additional exception attributes for the frontend
      * @return never
      *
      * @throws PayPalException
@@ -1093,12 +1093,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * Make a PayPal REST API request
      *
      * @param string $request - Request type (see self::PAYPAL_REQUEST_TYPE_*)
-     * @param array $body - Request data
-     * @param array|AbstractOrder|Transaction $TransactionObj - Object that contains necessary request data
+     * @param array<mixed> $body Request data
+     * @param array<mixed>|AbstractOrder|Transaction $TransactionObj Object containing the request data
      * ($Order has to have the required paymentData attributes for the given $request value!)
      * @param bool $throwSystemException (optional) - API errors are thrown as special PayPalSystemException for *internal* handling
      *
-     * @return bool|array|null - Response body or false on error
+     * @return array<string, mixed>|bool|null Response body or false on error
      *
      * @throws PayPalException
      * @throws PayPalSystemException
@@ -1298,6 +1298,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
     /**
      * Execute an Orders v2 or Payments v2 request through the current PayPal Server SDK.
+     *
+     * @param array<mixed> $body
+     * @param array<mixed>|AbstractOrder|Transaction $TransactionObj
+     * @return array<string, mixed>|null
      *
      * @throws PayPalException
      * @throws PayPalSystemException
