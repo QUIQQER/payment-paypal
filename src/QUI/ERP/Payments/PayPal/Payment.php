@@ -710,7 +710,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      * Prepare order data to be sent to PayPal API (create/update)
      *
      * @param AbstractOrder $Order
-     * @return array
+     * @return array<string, mixed>
      * @throws QUI\ERP\Exception
      * @throws QUI\ERP\Order\Basket\Exception
      * @throws QUI\Exception
@@ -864,18 +864,20 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $transactionData['amount'] = $amount;
 
         // Return URLs
-        $Gateway = new Gateway();
-        $Gateway->setOrder($Order);
+        $Gateway = $this->createGatewayForOrder($Order);
 
-        // Payer data
-        $payer = [
-            'payment_method' => 'paypal'
+        // PayPal wallet data
+        $paypalWallet = [
+            'experience_context' => [
+                'return_url' => rtrim($Gateway->getSuccessUrl(), '?'),
+                'cancel_url' => rtrim($Gateway->getCancelUrl(), '?')
+            ]
         ];
 
         if (QUI::getPackageManager()->isInstalled('quiqqer/shipping')) {
             $DeliveryAddress = $Order->getDeliveryAddress();
 
-            $payer['name'] = [
+            $paypalWallet['name'] = [
                 'given_name' => $DeliveryAddress->getAttribute('firstname'),
                 'surname' => $DeliveryAddress->getAttribute('lastname') ?: ''
             ];
@@ -919,13 +921,23 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         return [
             'intent' => 'CAPTURE',
-            'payer' => $payer,
-            'purchase_units' => [$transactionData],
-            'redirect_urls' => [
-                'return_url' => rtrim($Gateway->getSuccessUrl(), '?'),
-                'cancel_url' => rtrim($Gateway->getCancelUrl(), '?')
-            ]
+            'payment_source' => [
+                'paypal' => $paypalWallet
+            ],
+            'purchase_units' => [$transactionData]
         ];
+    }
+
+    /**
+     * @param AbstractOrder $Order
+     * @return Gateway
+     */
+    protected function createGatewayForOrder(AbstractOrder $Order): Gateway
+    {
+        $Gateway = new Gateway();
+        $Gateway->setOrder($Order);
+
+        return $Gateway;
     }
 
     /**
