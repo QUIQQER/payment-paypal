@@ -15,6 +15,20 @@
         </autocreate>
     </cron>
 
+    <cron exec="\QUI\ERP\Payments\PayPal\Recurring\Subscriptions::processUnpaidInvoices">
+        <title>
+            <locale group="quiqqer/payment-paypal" var="cron.processSubscriptionUnpaidInvoices.title"/>
+        </title>
+        <description>
+            <locale group="quiqqer/payment-paypal" var="cron.processSubscriptionUnpaidInvoices.description"/>
+        </description>
+
+        <autocreate>
+            <interval>5 * * * *</interval>
+            <active>1</active>
+        </autocreate>
+    </cron>
+
     <cron exec="\QUI\ERP\Payments\PayPal\Cron::checkPendingCaptures">
         <title>
             <locale group="quiqqer/payment-paypal" var="cron.checkPendingCaptures.title"/>

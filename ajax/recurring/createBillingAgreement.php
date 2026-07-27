@@ -13,7 +13,7 @@ use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\Utils\Security\Orthos;
 
-QUI::$Ajax->registerFunction(
+QUI::getAjax()->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_createBillingAgreement',
     function ($orderHash) {
         if (!class_exists('QUI\ERP\Order\Handler')) {

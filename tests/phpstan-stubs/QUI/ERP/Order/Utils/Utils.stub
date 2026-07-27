@@ -1,0 +1,13 @@
+<?php
+
+namespace QUI\ERP\Order\Utils;
+
+class Utils
+{
+    /**
+     * @param object $Project
+     * @param object|null $Step
+     * @return string|null
+     */
+    public static function getOrderProcessUrl($Project, $Step = null);
+}

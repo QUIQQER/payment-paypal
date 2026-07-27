@@ -1,5 +1,12 @@
 <?php
 
+$status = $_GET['status'] ?? 'error';
+$orderHash = $_GET['orderHash'] ?? '';
+$redirect = $_GET['redirect'] ?? '/';
+
+if ($status !== 'success') {
+    $status = 'error';
+}
 ?>
 <html lang="">
 <head>
@@ -9,11 +16,20 @@
 
 <script>
     window.onload = function () {
-        // Wenn das Fenster als Popup geöffnet wurde, schließen
+        const payload = {
+            source: "quiqqer-payment-paypal-recurring",
+            status: <?php echo json_encode($status); ?>,
+            orderHash: <?php echo json_encode($orderHash); ?>,
+            redirect: <?php echo json_encode($redirect); ?>
+        };
+
         if (window.opener) {
-            window.opener.postMessage({status: "paypal-success"}, "*");
+            window.opener.postMessage(payload, window.location.origin);
             window.close();
+            return;
         }
+
+        window.location.href = payload.redirect;
     };
 </script>
 

@@ -11,11 +11,16 @@
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
 
-QUI::$Ajax->registerFunction(
+QUI::getAjax()->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_getBillingAgreement',
     function ($billingAgreementId) {
         try {
             $billingAgreement = BillingAgreements::getBillingAgreementDetails($billingAgreementId);
+
+            if (!is_array($billingAgreement)) {
+                return false;
+            }
+
             $billingAgreement['quiqqer_data'] = BillingAgreements::getBillingAgreementData($billingAgreementId);
 
             return $billingAgreement;

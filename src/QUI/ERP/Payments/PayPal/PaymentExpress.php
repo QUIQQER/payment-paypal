@@ -7,6 +7,8 @@ use QUI;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\Users\User as QUIQQERUser;
 
+use function array_replace_recursive;
+use function is_array;
 use function mb_strtoupper;
 
 class PaymentExpress extends Payment
@@ -112,7 +114,7 @@ class PaymentExpress extends Payment
          */
         $Order->addHistory('PayPal Express :: Set Order Payment');
 
-        $Payment = Provider::getPayPalExpressPayment();
+        $Payment = $this->getExpressPayment();
 
         if (!$Payment) {
             $Order->addHistory(
@@ -144,7 +146,9 @@ class PaymentExpress extends Payment
         }
 
         $Customer = $Order->getCustomer();
-        $CustomerQuiqqerUser = QUI::getUsers()->get($Customer->getUUID());
+        $CustomerQuiqqerUser = $this->getQuiqqerUser(
+            $Customer->getUUID()
+        );
 
         $InvoiceAddress = false;
         $PayPalQuiqqerAddress = $this->getQuiqqerAddressFromPayPalOrder($payPalOrder, $CustomerQuiqqerUser);
@@ -180,6 +184,7 @@ class PaymentExpress extends Payment
                  * address data is empty, then set PayPal address data to standard address.
                  */
                 if (
+                    $StandardAddress instanceof QUI\Users\Address &&
                     $StandardAddress->getAttribute('firstname') === $PayPalQuiqqerAddress->getAttribute('firstname') &&
                     $StandardAddress->getAttribute('lastname') === $PayPalQuiqqerAddress->getAttribute('lastname')
                 ) {
@@ -221,7 +226,7 @@ class PaymentExpress extends Payment
             }
 
             // Set the PayPal address as default address if no default address previously set
-            if (!$StandardAddress) {
+            if (!$StandardAddress instanceof QUI\Users\Address) {
                 $CustomerQuiqqerUser->setAttribute('address', $InvoiceAddress->getUUID());
                 $CustomerQuiqqerUser->save($SystemUser);
 
@@ -245,6 +250,22 @@ class PaymentExpress extends Payment
         $this->updatePayPalOrder($Order);
     }
 
+    protected function getExpressPayment(): false|QUI\ERP\Accounting\Payments\Types\Payment
+    {
+        return Provider::getPayPalExpressPayment();
+    }
+
+    protected function getQuiqqerUser(string|int $userId): QUIQQERUser
+    {
+        $User = QUI::getUsers()->get($userId);
+
+        if (!$User instanceof QUIQQERUser) {
+            throw new QUI\Exception('PayPal Express requires a persistent QUIQQER user.');
+        }
+
+        return $User;
+    }
+
     /**
      * Parse a QUIQQER Address from PayPal payer info
      *
@@ -252,7 +273,7 @@ class PaymentExpress extends Payment
      * User address in the database. If you do not need the address this method returns later on,
      * delete it by calling $Address->delete()
      *
-     * @param array $payPalOrder
+     * @param array<string, mixed> $payPalOrder
      * @param QUIQQERUser $QuiqqerUser
      * @return QUI\Users\Address
      *
@@ -261,6 +282,7 @@ class PaymentExpress extends Payment
     protected function getQuiqqerAddressFromPayPalOrder(array $payPalOrder, QUIQQERUser $QuiqqerUser): QUI\Users\Address
     {
         $SystemUser = QUI::getUsers()->getSystemUser();
+        $payer = $this->getPayerDataFromPayPalOrder($payPalOrder);
 
         // Create Address
         $shipping = $payPalOrder['purchase_units'][0]['shipping'];
@@ -281,8 +303,8 @@ class PaymentExpress extends Payment
         }
 
         $Address = $QuiqqerUser->addAddress([
-            'firstname' => !empty($payPalOrder['payer']['name']['given_name']) ? $payPalOrder['payer']['name']['given_name'] : '',
-            'lastname' => !empty($payPalOrder['payer']['name']['surname']) ? $payPalOrder['payer']['name']['surname'] : '',
+            'firstname' => !empty($payer['name']['given_name']) ? $payer['name']['given_name'] : '',
+            'lastname' => !empty($payer['name']['surname']) ? $payer['name']['surname'] : '',
             'street_no' => implode(' ', $streetParts),
             'zip' => !empty($shipping['address']['postal_code']) ? $shipping['address']['postal_code'] : '',
             'city' => $city,
@@ -291,15 +313,50 @@ class PaymentExpress extends Payment
             ) : ''
         ], $SystemUser);
 
-        if (!empty($payPalOrder['payer']['email_address'])) {
-            $Address->addMail($payPalOrder['payer']['email_address']);
+        if (!empty($payer['email_address'])) {
+            $Address->addMail($payer['email_address']);
         }
 
         $Address->setCustomDataEntry('source', 'PayPal');
         $Address->save($SystemUser);
 
         // reload Address from DB to set correct attributes
-        return new QUI\Users\Address($QuiqqerUser, $Address->getUUID());
+        $addressId = $Address->getUUID();
+
+        if ($addressId === null) {
+            throw new QUI\Exception('The PayPal invoice address has no UUID.');
+        }
+
+        return $this->reloadQuiqqerAddress($QuiqqerUser, $addressId);
+    }
+
+    protected function reloadQuiqqerAddress(
+        QUIQQERUser $QuiqqerUser,
+        string|int $addressId
+    ): QUI\Users\Address {
+        return new QUI\Users\Address($QuiqqerUser, $addressId);
+    }
+
+    /**
+     * Read buyer data from an Orders v2 response while supporting legacy responses.
+     *
+     * @param array<string, mixed> $payPalOrder
+     * @return array<string, mixed>
+     */
+    protected function getPayerDataFromPayPalOrder(array $payPalOrder): array
+    {
+        $legacyPayer = $payPalOrder['payer'] ?? [];
+        $paypalWallet = $payPalOrder['payment_source']['paypal'] ?? [];
+
+        if (!is_array($legacyPayer)) {
+            $legacyPayer = [];
+        }
+
+        if (!is_array($paypalWallet)) {
+            $paypalWallet = [];
+        }
+
+        return array_replace_recursive($legacyPayer, $paypalWallet);
     }
 
     /**
@@ -316,7 +373,7 @@ class PaymentExpress extends Payment
         $Control = new ExpressPaymentDisplay();
         $Control->setAttribute('Order', $Order);
 
-        $Step->setTitle(
+        $Step?->setTitle(
             QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
                 'payment.step.title'
@@ -324,7 +381,7 @@ class PaymentExpress extends Payment
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
+        $Step?->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
 
         return $Control->create();
     }

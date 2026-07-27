@@ -10,6 +10,8 @@ use QUI\ERP\Shipping\Shipping;
 use QUI\Exception;
 use QUI\ERP\Products\Interfaces\PriceFactorInterface;
 
+use function array_key_exists;
+use function is_array;
 use function mb_strtoupper;
 
 /**
@@ -19,6 +21,45 @@ use function mb_strtoupper;
  */
 class Utils
 {
+    /**
+     * @param mixed $response
+     * @param list<string> $requiredFields
+     * @return array<string, mixed>
+     * @throws PayPalException
+     */
+    public static function requireApiResponse(mixed $response, array $requiredFields = []): array
+    {
+        if (!is_array($response)) {
+            self::throwInvalidApiResponse();
+        }
+
+        foreach ($requiredFields as $field) {
+            if (
+                !array_key_exists($field, $response)
+                || $response[$field] === null
+                || $response[$field] === ''
+            ) {
+                self::throwInvalidApiResponse();
+            }
+        }
+
+        return $response;
+    }
+
+    /**
+     * @return never
+     * @throws PayPalException
+     */
+    public static function throwInvalidApiResponse(): never
+    {
+        throw new PayPalException(
+            QUI::getLocale()->get(
+                'quiqqer/payment-paypal',
+                'payment.error_msg.general_error'
+            )
+        );
+    }
+
     /**
      * Format a price for PayPal API use
      *
@@ -41,7 +82,13 @@ class Utils
     public static function getProjectUrl(): string
     {
         try {
-            $url = QUI::getRewrite()->getProject()->get(1)->getUrlRewrittenWithHost();
+            $Project = QUI::getRewrite()->getProject();
+
+            if ($Project === null) {
+                return '';
+            }
+
+            $url = $Project->get(1)->getUrlRewrittenWithHost();
             return rtrim($url, '/');
         } catch (\Exception $Exception) {
             QUI\System\Log::writeDebugException($Exception);
@@ -65,7 +112,7 @@ class Utils
      * Get translated history text
      *
      * @param string $context
-     * @param array $data (optional) - Additional data for translation
+     * @param array<string, mixed> $data (optional) - Additional data for translation
      * @return string
      */
     public static function getHistoryText(string $context, array $data = []): string
@@ -77,7 +124,7 @@ class Utils
      * Get shipping address data by order that is used in the PayPal API workflow.
      *
      * @param AbstractOrder $Order
-     * @return array|false - Shipping address data as array or false if shipping address cannot be determined
+     * @return array<string, mixed>|false
      */
     public static function getPayPalShippingAddressDataByOrder(AbstractOrder $Order): bool | array
     {
@@ -90,7 +137,7 @@ class Utils
 
         $Shipping = Shipping::getInstance()->getShippingByObject($Order);
 
-        if (!$Shipping || $Shipping->getAddress()) {
+        if (!$Shipping || !$Shipping->getAddress()) {
             return false;
         }
 
@@ -150,8 +197,6 @@ class Utils
      *
      * @param AbstractOrder $Order
      * @return QUI\ERP\Shipping\Types\ShippingEntry|false
-     *
-     * @phpstan-ignore class.notFound
      */
     public static function getDefaultExpressShipping(AbstractOrder $Order): QUI\ERP\Shipping\Types\ShippingEntry | bool
     {

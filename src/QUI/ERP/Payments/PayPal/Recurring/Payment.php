@@ -20,8 +20,7 @@ use QUI\Exception;
 use QUI\ExceptionStack;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
-
-use function array_column;
+use QUI\Utils\Doctrine;
 
 /**
  * Class Payment
@@ -38,6 +37,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     const ATTR_PAYPAL_BILLING_AGREEMENT_TOKEN = 'paypal-BillingAgreementToken';
     const ATTR_PAYPAL_BILLING_AGREEMENT_APPROVAL_URL = 'paypal-BillingAgreementApprovalUrl';
     const ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID = 'paypal-BillingAgreementTransactionId';
+    const ATTR_PAYPAL_SUBSCRIPTION_PRODUCT_ID = 'paypal-SubscriptionProductId';
+    const ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID = 'paypal-SubscriptionPlanId';
+    const ATTR_PAYPAL_SUBSCRIPTION_ID = 'paypal-SubscriptionId';
+    const ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL = 'paypal-SubscriptionApprovalUrl';
 
     /**
      * PayPal REST API request types for Billing
@@ -91,7 +94,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     }
 
     /**
-     * Create a PayPal Billing Agreement based on a Billing Plan
+     * Create a PayPal Subscription
      *
      * @param AbstractOrder $Order
      * @return string - Approval URL
@@ -102,7 +105,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function createSubscription(AbstractOrder $Order): string
     {
-        return BillingAgreements::createBillingAgreement($Order);
+        return Subscriptions::createSubscription($Order);
     }
 
     /**
@@ -115,6 +118,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function captureSubscription(Invoice $Invoice): void
     {
+        if ($Invoice->getPaymentDataEntry(self::ATTR_PAYPAL_SUBSCRIPTION_ID)) {
+            Subscriptions::billSubscriptionInvoice($Invoice);
+            return;
+        }
+
         BillingAgreements::billBillingAgreementBalance($Invoice);
     }
 
@@ -129,6 +137,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     public function executeGatewayPayment(QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway): void
     {
         $Order = $Gateway->getOrder();
+
+        if (!$Order instanceof AbstractOrder) {
+            throw new QUI\Exception('The PayPal recurring gateway has no order.');
+        }
+
         $OrderProcess = new QUI\ERP\Order\OrderProcess([
             'orderHash' => $Order->getUUID()
         ]);
@@ -136,17 +149,32 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         $goToBasket = false;
 
         if ($Gateway->isSuccessRequest()) {
-            if (empty($_REQUEST['token'])) {
+            if (!empty($_REQUEST['subscription_id'])) {
+                try {
+                    Subscriptions::approveSubscription($Order, $_REQUEST['subscription_id']);
+
+                    $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Finish([
+                        'Order' => $Order
+                    ]);
+
+                    $Order->setSuccessfulStatus();
+                } catch (PayPalException) {
+                    $goToBasket = true;
+                } catch (\Exception $Exception) {
+                    QUI\System\Log::writeException($Exception);
+                    $goToBasket = true;
+                }
+            } elseif (empty($_REQUEST['token'])) {
                 $goToBasket = true;
             } else {
                 try {
                     BillingAgreements::executeBillingAgreement($Order, $_REQUEST['token']);
 
                     $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Finish([
-                        'Order' => $Gateway->getOrder()
+                        'Order' => $Order
                     ]);
 
-                    $Gateway->getOrder()->setSuccessfulStatus();
+                    $Order->setSuccessfulStatus();
                 } catch (PayPalException) {
                     $goToBasket = true;
                 } catch (\Exception $Exception) {
@@ -156,7 +184,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             }
         } elseif ($Gateway->isCancelRequest()) {
             $GoToStep = new OrderProcessStepPayments([
-                'Order' => $Gateway->getOrder()
+                'Order' => $Order
             ]);
         } else {
             $goToBasket = true;
@@ -164,7 +192,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
 
         if ($goToBasket) {
             $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Basket([
-                'Order' => $Gateway->getOrder()
+                'Order' => $Order
             ]);
         }
 
@@ -177,8 +205,18 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         // Umleitung zur recurring return php
         //$Redirect = new RedirectResponse($processingUrl);
 
-        $url = QUI::getRewrite()->getProject()->getVHost(true, true);
-        $url .= URL_OPT_DIR . 'quiqqer/payment-paypal/bin/recurringReturn.php?orderHash=' . $Order->getUUID();
+        $status = $goToBasket ? 'error' : 'success';
+        $Project = QUI::getRewrite()->getProject();
+
+        if ($Project === null) {
+            throw new QUI\Exception('Could not determine the project for the PayPal redirect.');
+        }
+
+        $url = $Project->getVHost(true, true);
+        $url .= URL_OPT_DIR . 'quiqqer/payment-paypal/bin/recurringReturn.php';
+        $url .= '?orderHash=' . urlencode($Order->getUUID());
+        $url .= '&status=' . $status;
+        $url .= '&redirect=' . urlencode($processingUrl);
 
         $Redirect = new RedirectResponse($url);
         $Redirect->setStatusCode(Response::HTTP_SEE_OTHER);
@@ -202,7 +240,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         $Control = new PaymentDisplay();
         $Control->setAttribute('Order', $Order);
 
-        $Step->setTitle(
+        $Step?->setTitle(
             QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
                 'payment.step.title'
@@ -210,7 +248,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__, 2) . '/PaymentDisplay.Header.html'));
+        $Step?->setContent($Engine->fetch(dirname(__FILE__, 2) . '/PaymentDisplay.Header.html'));
 
         return $Control->create();
     }
@@ -235,6 +273,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function getSubscriptionIdByOrder(AbstractOrder $Order): bool | int | string
     {
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_SUBSCRIPTION_ID)) {
+            return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_SUBSCRIPTION_ID);
+        }
+
         return $Order->getPaymentDataEntry(self::ATTR_PAYPAL_BILLING_AGREEMENT_ID) ?? false;
     }
 
@@ -248,6 +290,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function cancelSubscription(int | string $subscriptionId, string $reason = ''): void
     {
+        if (Subscriptions::exists((string)$subscriptionId)) {
+            Subscriptions::cancelSubscription((string)$subscriptionId, $reason);
+            return;
+        }
+
         BillingAgreements::cancelBillingAgreement($subscriptionId, $reason);
     }
 
@@ -263,6 +310,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function suspendSubscription(int | string $subscriptionId, ?string $note = null): void
     {
+        if (Subscriptions::exists((string)$subscriptionId)) {
+            Subscriptions::suspendSubscription((string)$subscriptionId, $note);
+            return;
+        }
+
         BillingAgreements::suspendBillingAgreement($subscriptionId, $note);
     }
 
@@ -278,6 +330,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function resumeSubscription(int | string $subscriptionId, ?string $note = null): void
     {
+        if (Subscriptions::exists((string)$subscriptionId)) {
+            Subscriptions::activateSubscription((string)$subscriptionId, $note);
+            return;
+        }
+
         BillingAgreements::resumeSubscription($subscriptionId, $note);
     }
 
@@ -292,6 +349,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function isSuspended(int | string $subscriptionId): bool
     {
+        if (Subscriptions::exists((string)$subscriptionId)) {
+            return Subscriptions::isSuspended((string)$subscriptionId);
+        }
+
         return BillingAgreements::isSuspended($subscriptionId);
     }
 
@@ -306,6 +367,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function setSubscriptionAsInactive($subscriptionId): void
     {
+        if (Subscriptions::exists((string)$subscriptionId)) {
+            Subscriptions::setSubscriptionAsInactive((string)$subscriptionId);
+            return;
+        }
+
         BillingAgreements::setBillingAgreementAsInactive($subscriptionId);
     }
 
@@ -313,12 +379,18 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      * Return the extra text for the invoice
      *
      * @param Invoice|InvoiceTemporary|InvoiceView $Invoice
-     * @return mixed
+     * @return string
      */
     public function getInvoiceInformationText(Invoice | InvoiceTemporary | InvoiceView $Invoice): string
     {
         try {
-            return $Invoice->getCustomer()->getLocale()->get(
+            $Customer = $Invoice->getCustomer();
+
+            if ($Customer === null) {
+                return '';
+            }
+
+            return $Customer->getLocale()->get(
                 'quiqqer/payment-paypal',
                 'recurring.additional_invoice_text'
             );
@@ -360,12 +432,18 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             $this->throwPayPalException(self::PAYPAL_ERROR_NO_BILLING_AGREEMENT_TRANSACTION);
         }
 
+        $Payment = $Transaction->getPayment();
+
+        if ($Payment === null) {
+            $this->throwPayPalException();
+        }
+
         // create a refund transaction
         $RefundTransaction = TransactionFactory::createPaymentRefundTransaction(
             $amount,
             $Transaction->getCurrency(),
             $refundHash,
-            $Transaction->getPayment()->getName(),
+            $Payment->getName(),
             [
                 'isRefund' => 1,
                 'message' => $reason
@@ -405,6 +483,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
 
             throw $Exception;
         }
+
+        $response = Utils::requireApiResponse($response, ['state']);
 
         switch ($response['state']) {
             // SUCCESS
@@ -452,8 +532,12 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function isSubscriptionActiveAtPaymentProvider(int | string $subscriptionId): bool
     {
+        if (Subscriptions::exists((string)$subscriptionId)) {
+            return Subscriptions::isSubscriptionActiveAtPaymentProvider((string)$subscriptionId);
+        }
+
         try {
-            $billingAgreement = BillingAgreements::getBillingAgreementDetails($subscriptionId);
+            $billingAgreement = BillingAgreements::getBillingAgreementDetails((string)$subscriptionId);
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return true;
@@ -478,24 +562,28 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function isSubscriptionActiveAtQuiqqer(int | string $subscriptionId): bool
     {
+        if (Subscriptions::exists((string)$subscriptionId)) {
+            return Subscriptions::isSubscriptionActiveAtQuiqqer((string)$subscriptionId);
+        }
+
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['active'],
-                'from' => BillingAgreements::getBillingAgreementsTable(),
-                'where' => [
-                    'paypal_agreement_id' => $subscriptionId
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('active'))
+                ->from(Doctrine::quoteIdentifier(BillingAgreements::getBillingAgreementsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_agreement_id') . ' = :subscriptionId')
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->executeQuery()
+                ->fetchOne();
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return true;
         }
 
-        if (empty($result)) {
+        if ($result === false) {
             return false;
         }
 
-        return !empty($result[0]['active']);
+        return !empty($result);
     }
 
     /**
@@ -506,24 +594,29 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function getSubscriptionIds(bool $includeInactive = false): array
     {
-        $where = [];
-
-        if (empty($includeInactive)) {
-            $where['active'] = 1;
-        }
-
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_agreement_id'],
-                'from' => BillingAgreements::getBillingAgreementsTable(),
-                'where' => $where
-            ]);
+            $QueryBuilder = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_agreement_id'))
+                ->from(Doctrine::quoteIdentifier(BillingAgreements::getBillingAgreementsTable()));
+
+            if (!$includeInactive) {
+                $QueryBuilder
+                    ->where(Doctrine::quoteIdentifier('active') . ' = :active')
+                    ->setParameter('active', 1);
+            }
+
+            $result = $QueryBuilder
+                ->executeQuery()
+                ->fetchFirstColumn();
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return [];
         }
 
-        return array_column($result, 'paypal_agreement_id');
+        return array_merge(
+            $result,
+            Subscriptions::getSubscriptionIds($includeInactive)
+        );
     }
 
     /**
@@ -534,12 +627,18 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function getSubscriptionGlobalProcessingId(int | string $subscriptionId): bool | string
     {
-        $data = BillingAgreements::getBillingAgreementData($subscriptionId);
+        $subscriptionData = Subscriptions::getSubscriptionData((string)$subscriptionId);
+
+        if (!empty($subscriptionData)) {
+            return $subscriptionData['globalProcessId'] ?: false;
+        }
+
+        $data = BillingAgreements::getBillingAgreementData((string)$subscriptionId);
 
         if (empty($data)) {
             return false;
         }
 
-        return $data['globalProcessId'];
+        return $data['globalProcessId'] ?: false;
     }
 }

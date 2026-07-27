@@ -13,13 +13,13 @@ use QUI\ERP\Payments\PayPal\Recurring\BillingPlans;
 use QUI\Utils\Grid;
 use QUI\Utils\Security\Orthos;
 
-QUI::$Ajax->registerFunction(
+QUI::getAjax()->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_getBillingPlans',
     function ($searchParams) {
         $searchParams = Orthos::clearArray(json_decode($searchParams, true));
 
         $page = 0;
-        $perPage = null;
+        $perPage = 10;
 
         if (!empty($searchParams['page'])) {
             $page = (int)$searchParams['page'] - 1;

@@ -9,7 +9,7 @@
 
 use QUI\ERP\Payments\PayPal\PayPalException;
 
-QUI::$Ajax->registerFunction(
+QUI::getAjax()->registerFunction(
     'package_quiqqer_payment-paypal_ajax_getOrderDetails',
     function () {
         return [

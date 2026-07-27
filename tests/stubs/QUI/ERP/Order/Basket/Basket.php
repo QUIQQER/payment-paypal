@@ -1,0 +1,40 @@
+<?php
+
+namespace QUI\ERP\Order\Basket;
+
+if (!class_exists(Basket::class, false)) {
+    class Basket
+    {
+        public function __construct(int $basketId = 0)
+        {
+        }
+
+        public function count(): int
+        {
+            return 0;
+        }
+
+        public function getId(): int
+        {
+            return 0;
+        }
+
+        public function getOrder(): \QUI\ERP\Order\AbstractOrder
+        {
+            throw new \LogicException('PHPStan stub');
+        }
+
+        public function hasOrder(): bool
+        {
+            return false;
+        }
+
+        public function toOrder(\QUI\ERP\Order\AbstractOrder $Order): void
+        {
+        }
+
+        public function updateOrder(): void
+        {
+        }
+    }
+}

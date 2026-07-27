@@ -2,27 +2,31 @@
   "name": "quiqqer/payment-paypal",
   "type": "quiqqer-module",
   "description": "PayPal - Payment method for QUIQQER ERP stack",
+  "homepage": "https://www.quiqqer.com/",
   "license": [
-    "GPL-3.0+",
+    "GPL-3.0-or-later",
     "PCSG QL-1.0"
   ],
   "authors": [
     {
-      "name": "Patrick Müller",
-      "email": "p.mueller@pcsg.de",
-      "homepage": "https://www.pcsg.de",
-      "role": "Developer"
+      "name": "PCSG - Computer & Internet Service OHG",
+      "email": "info@quiqqer.com",
+      "homepage": "https://www.quiqqer.com",
+      "role": "Maintainer"
     }
   ],
   "support": {
     "email": "support@pcsg.de",
-    "url": "https://www.pcsg.de"
+    "issues": "https://dev.quiqqer.com/quiqqer/payment-paypal/-/issues",
+    "source": "https://dev.quiqqer.com/quiqqer/payment-paypal"
   },
   "require": {
-    "quiqqer/core": "^2",
-    "quiqqer/payments": "^3",
-    "paypal/paypal-checkout-sdk": "^1.0.1",
-    "quiqqer/paypal-rest-api-sdk-php": "^1|dev-main"
+    "php": "^8.2",
+    "quiqqer/core": "^2.25.1",
+    "quiqqer/erp": "^4.0.1",
+    "quiqqer/payments": "^4.0.2",
+    "paypal/paypal-server-sdk": "^2.3",
+    "quiqqer/paypal-rest-api-sdk-php": "^1.0"
   },
   "suggest": {
     "quiqqer/erp-plans": "Allows handling of orders that require automated recurring payments"
@@ -30,6 +34,12 @@
   "autoload": {
     "psr-4": {
       "QUI\\ERP\\Payments\\PayPal\\": "src/QUI/ERP/Payments/PayPal"
+    }
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "QUITests\\ERP\\Payments\\PayPal\\Unit\\": "tests/unit",
+      "QUITests\\ERP\\Payments\\PayPal\\Integration\\": "tests/integration"
     }
   },
   "scripts": {

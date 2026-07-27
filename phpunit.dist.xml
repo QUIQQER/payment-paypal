@@ -1,8 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<phpunit bootstrap="tests/phpunit-bootstrap.php">
+<phpunit bootstrap="tests/phpunit-bootstrap.php" failOnEmptyTestSuite="true">
     <testsuites>
-        <testsuite name="Tests">
-            <directory>tests/</directory>
+        <testsuite name="Unit">
+            <directory>tests/unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory>tests/integration</directory>
         </testsuite>
     </testsuites>
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+            <directory suffix=".php">ajax</directory>
+            <file>bin/recurringReturn.php</file>
+        </include>
+    </source>
+    <coverage includeUncoveredFiles="true"/>
 </phpunit>

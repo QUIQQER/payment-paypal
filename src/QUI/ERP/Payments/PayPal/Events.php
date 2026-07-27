@@ -45,55 +45,46 @@ class Events
         QUI\ERP\Order\AbstractOrder $Order
     ): void {
         // Check if order is a plan order
-        if (class_exists('QUI\ERP\Plans\Utils') && QUI\ERP\Plans\Utils::isPlanOrder($Order)) {
+        if (class_exists('QUI\ERP\Plans\Utils') && static::isPlanOrder($Order)) {
             return;
         }
 
-        if (!Provider::getPaymentSetting('display_express_basket')) {
+        if (!static::getPaymentSetting('display_express_basket')) {
             return;
         }
 
-        $PaymentExpress = Provider::getPayPalExpressPayment();
+        $PaymentExpress = static::getPayPalExpressPayment();
 
         if (!$PaymentExpress || !$PaymentExpress->isActive()) {
             return;
         }
 
-        if (
-            !($Basket instanceof Basket)
-            && !($Basket instanceof BasketOrder)
-            && !($Basket instanceof BasketGuest)
-        ) {
-            return;
-        }
-
-        $Project = QUI::getProjectManager()->getStandard();
-        $CheckoutStep = new CheckoutStep();
         $checkout = 0;
         $orderHash = $Order->getUUID();
         $Payment = $Order->getPayment();
 
         if (
-            $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+            $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_ORDER_ID)
             && $Payment
             && $Payment->getPaymentType() instanceof PaymentExpress
         ) {
             $checkout = 1;
         }
 
-        $sandbox = Provider::getApiSetting('sandbox') ? 1 : 0;
+        $sandbox = static::getApiSetting('sandbox') ? 1 : 0;
+        $basketId = $Basket instanceof BasketGuest ? 0 : $Basket->getId();
 
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="basket"
-                  data-qui-options-basketid="' . $Basket->getId() . '"
+                  data-qui-options-basketid="' . $basketId . '"
                   data-qui-options-sandbox="' . $sandbox . '"
                   data-qui-options-orderhash="' . $orderHash . '"
                   data-qui-options-checkout="' . $checkout . '"
-                  data-qui-options-displaysize="' . Provider::getWidgetsSetting('btn_express_size') . '"
-                  data-qui-options-displaycolor="' . Provider::getWidgetsSetting('btn_express_color') . '"
-                  data-qui-options-displayshape="' . Provider::getWidgetsSetting('btn_express_shape') . '"
-                  data-qui-options-orderprocessurl="' . OrderUtils::getOrderProcessUrl($Project, $CheckoutStep) . '">
+                  data-qui-options-displaysize="' . static::getWidgetSetting('btn_express_size') . '"
+                  data-qui-options-displaycolor="' . static::getWidgetSetting('btn_express_color') . '"
+                  data-qui-options-displayshape="' . static::getWidgetSetting('btn_express_shape') . '"
+                  data-qui-options-orderprocessurl="' . static::getOrderProcessUrl() . '">
             </div>'
         );
     }
@@ -109,35 +100,33 @@ class Events
         QUI\ERP\Order\AbstractOrder $Order
     ): void {
         // Check if order is a plan order
-        if (class_exists('QUI\ERP\Plans\Utils') && QUI\ERP\Plans\Utils::isPlanOrder($Order)) {
+        if (class_exists('QUI\ERP\Plans\Utils') && static::isPlanOrder($Order)) {
             return;
         }
 
-        if (!Provider::getPaymentSetting('display_express_basket')) {
+        if (!static::getPaymentSetting('display_express_basket')) {
             return;
         }
 
-        $PaymentExpress = Provider::getPayPalExpressPayment();
+        $PaymentExpress = static::getPayPalExpressPayment();
 
         if (!$PaymentExpress || !$PaymentExpress->isActive()) {
             return;
         }
 
-        $Project = QUI::getProjectManager()->getStandard();
-        $CheckoutStep = new CheckoutStep();
         $checkout = 0;
         $orderHash = $Order->getUUID();
         $Payment = $Order->getPayment();
 
         if (
-            $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+            $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_ORDER_ID)
             && $Payment
             && $Payment->getPaymentType() instanceof PaymentExpress
         ) {
             $checkout = 1;
         }
 
-        $sandbox = Provider::getApiSetting('sandbox') ? 1 : 0;
+        $sandbox = static::getApiSetting('sandbox') ? 1 : 0;
 
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtn"
@@ -146,10 +135,10 @@ class Events
                   data-qui-options-sandbox="' . $sandbox . '"
                   data-qui-options-orderhash="' . $orderHash . '"
                   data-qui-options-checkout="' . $checkout . '"
-                  data-qui-options-displaysize="' . Provider::getWidgetsSetting('btn_express_size') . '"
-                  data-qui-options-displaycolor="' . Provider::getWidgetsSetting('btn_express_color') . '"
-                  data-qui-options-displayshape="' . Provider::getWidgetsSetting('btn_express_shape') . '"
-                  data-qui-options-orderprocessurl="' . OrderUtils::getOrderProcessUrl($Project, $CheckoutStep) . '">
+                  data-qui-options-displaysize="' . static::getWidgetSetting('btn_express_size') . '"
+                  data-qui-options-displaycolor="' . static::getWidgetSetting('btn_express_color') . '"
+                  data-qui-options-displayshape="' . static::getWidgetSetting('btn_express_shape') . '"
+                  data-qui-options-orderprocessurl="' . static::getOrderProcessUrl() . '">
             </div>'
         );
     }
@@ -174,13 +163,13 @@ class Events
             return;
         }
 
-        if (!Provider::getPaymentSetting('display_express_smallbasket')) {
+        if (!static::getPaymentSetting('display_express_smallbasket')) {
             return;
         }
 
         // Do not show PayPal Express button in mini basket for guest users until
         // guest orders are implemented.
-        if (QUI::getUsers()->isNobodyUser(QUI::getUserBySession())) {
+        if (static::isNobodyUser()) {
             return;
         }
 
@@ -194,12 +183,12 @@ class Events
                 return;
             }
 
-            if (QUI\ERP\Plans\Utils::isPlanOrder($Order)) {
+            if (static::isPlanOrder($Order)) {
                 return;
             }
         }
 
-        $PaymentExpress = Provider::getPayPalExpressPayment();
+        $PaymentExpress = static::getPayPalExpressPayment();
 
         if (!$PaymentExpress || !$PaymentExpress->isActive()) {
             return;
@@ -210,8 +199,6 @@ class Events
             return;
         }
 
-        $Project = QUI::getProjectManager()->getStandard();
-        $CheckoutStep = new CheckoutStep();
         $checkout = 0;
 
         if ($Basket->hasOrder()) {
@@ -219,7 +206,7 @@ class Events
             $Payment = $Order->getPayment();
 
             if (
-                $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+                $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_ORDER_ID)
                 && $Payment
                 && $Payment->getPaymentType() instanceof PaymentExpress
             ) {
@@ -232,10 +219,10 @@ class Events
                   data-qui-options-context="smallbasket"
                   data-qui-options-basketid="' . $Basket->getId() . '"
                   data-qui-options-checkout="' . $checkout . '"
-                  data-qui-options-displaysize="' . Provider::getWidgetsSetting('btn_express_size_smallbasket') . '"
-                  data-qui-options-displaycolor="' . Provider::getWidgetsSetting('btn_express_color') . '"
-                  data-qui-options-displayshape="' . Provider::getWidgetsSetting('btn_express_shape') . '"
-                  data-qui-options-orderprocessurl="' . OrderUtils::getOrderProcessUrl($Project, $CheckoutStep) . '">
+                  data-qui-options-displaysize="' . static::getWidgetSetting('btn_express_size_smallbasket') . '"
+                  data-qui-options-displaycolor="' . static::getWidgetSetting('btn_express_color') . '"
+                  data-qui-options-displayshape="' . static::getWidgetSetting('btn_express_shape') . '"
+                  data-qui-options-orderprocessurl="' . static::getOrderProcessUrl() . '">
             </div>'
         );
     }
@@ -253,11 +240,11 @@ class Events
     {
         if (
             $paymentClass === QUI\ERP\Payments\PayPal\Recurring\Payment::class
-            && !QUI::getPackageManager()->isInstalled('quiqqer/erp-plans')
+            && !static::isPlansInstalled()
         ) {
             throw new PaymentCanNotBeUsed(
                 QUI::getLocale()->get(
-                    'quiqqer/payments-paypal',
+                    'quiqqer/payment-paypal',
                     'exception.onPaymentsCreateBegin.erp_plans_missing'
                 )
             );
@@ -276,7 +263,7 @@ class Events
      */
     public static function onPaymentsCanUsedInOrder(Payment $Payment, OrderInterface $Order): void
     {
-        if (!QUI::getPackageManager()->isInstalled('quiqqer/erp-plans')) {
+        if (!static::isPlansInstalled()) {
             return;
         }
 
@@ -296,7 +283,7 @@ class Events
             return;
         }
 
-        $planDetails = QUI\ERP\Plans\Utils::getPlanDetailsFromOrder($Order);
+        $planDetails = static::getPlanDetailsFromOrder($Order);
 
         if (empty($planDetails['invoice_interval'])) {
             return;
@@ -314,8 +301,67 @@ class Events
             return;
         }
 
+        if ($InvoiceInterval === false) {
+            return;
+        }
+
         if (QUI\ERP\Plans\Utils::compareDateIntervals($InvoiceInterval, $OneYearInterval) === 1) {
             throw new PaymentCanNotBeUsed();
         }
+    }
+
+    protected static function isPlansInstalled(): bool
+    {
+        return QUI::getPackageManager()->isInstalled('quiqqer/erp-plans');
+    }
+
+    protected static function isPlanOrder(OrderInterface $Order): bool
+    {
+        return QUI\ERP\Plans\Utils::isPlanOrder($Order);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected static function getPlanDetailsFromOrder(
+        OrderInterface $Order
+    ): array {
+        return QUI\ERP\Plans\Utils::getPlanDetailsFromOrder($Order);
+    }
+
+    protected static function getPaymentSetting(string $key): mixed
+    {
+        return Provider::getPaymentSetting($key);
+    }
+
+    protected static function getApiSetting(string $key): mixed
+    {
+        return Provider::getApiSetting($key);
+    }
+
+    protected static function getWidgetSetting(string $key): mixed
+    {
+        return Provider::getWidgetsSetting($key);
+    }
+
+    protected static function getPayPalExpressPayment(): false|Payment
+    {
+        return Provider::getPayPalExpressPayment();
+    }
+
+    protected static function getOrderProcessUrl(): string
+    {
+        $Project = QUI::getProjectManager()->getStandard();
+
+        if ($Project === null) {
+            return '';
+        }
+
+        return OrderUtils::getOrderProcessUrl($Project, new CheckoutStep()) ?? '';
+    }
+
+    protected static function isNobodyUser(): bool
+    {
+        return QUI::getUsers()->isNobodyUser(QUI::getUserBySession());
     }
 }

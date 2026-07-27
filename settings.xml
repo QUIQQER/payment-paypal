@@ -21,6 +21,9 @@
                     <type><![CDATA[boolean]]></type>
                     <defaultvalue>1</defaultvalue>
                 </conf>
+                <conf name="webhook_id">
+                    <type><![CDATA[string]]></type>
+                </conf>
             </section>
 
             <section name="payment">
@@ -141,6 +144,15 @@
                             </text>
                             <description>
                                 <locale group="quiqqer/payment-paypal" var="settings.api.sandbox.description"/>
+                            </description>
+                        </input>
+
+                        <input conf="api.webhook_id" type="text">
+                            <text>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.webhook_id.title"/>
+                            </text>
+                            <description>
+                                <locale group="quiqqer/payment-paypal" var="settings.api.webhook_id.description"/>
                             </description>
                         </input>
 

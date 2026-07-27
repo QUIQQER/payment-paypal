@@ -21,15 +21,20 @@
             <email><![CDATA[support@pcsg.de]]></email>
             <forum><![CDATA[https://community.quiqqer.com]]></forum>
             <source><![CDATA[https://dev.quiqqer.com/quiqqer/payment-paypal]]></source>
-            <issues><![CDATA[https://dev.quiqqer.com/quiqqer/payment-paypal/issues]]></issues>
-            <wiki><![CDATA[https://dev.quiqqer.com/quiqqer/payment-paypal/wikis/home]]></wiki>
+            <issues><![CDATA[https://dev.quiqqer.com/quiqqer/payment-paypal/-/issues]]></issues>
+            <wiki><![CDATA[https://dev.quiqqer.com/quiqqer/payment-paypal/-/wikis/home]]></wiki>
         </support>
 
         <copyright>
             <name><![CDATA[PCSG - Computer & Internet Service OHG]]></name>
             <license><![CDATA[PCSG QL-1.0]]></license>
-            <license><![CDATA[GPL-3.0+]]></license>
+            <license><![CDATA[GPL-3.0-or-later]]></license>
         </copyright>
+
+        <languages>
+            <language>de</language>
+            <language>en</language>
+        </languages>
 
         <provider>
             <payment src="\QUI\ERP\Payments\PayPal\Provider"/>
