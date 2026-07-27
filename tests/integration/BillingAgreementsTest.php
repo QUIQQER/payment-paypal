@@ -137,6 +137,62 @@ final class BillingAgreementsTest extends TestCase
         self::assertSame(['note' => 'Approved'], $this->Payment->apiCalls[1]['body']);
     }
 
+    public function testLifecycleOperationsGenerateDefaultNotes(): void
+    {
+        BillingAgreementsDouble::suspendBillingAgreement(self::AGREEMENT_ID);
+        BillingAgreementsDouble::resumeSubscription(self::AGREEMENT_ID);
+        BillingAgreementsDouble::cancelBillingAgreement(self::AGREEMENT_ID);
+
+        self::assertNotSame('', $this->Payment->apiCalls[0]['body']['note']);
+        self::assertNotSame('', $this->Payment->apiCalls[1]['body']['note']);
+        self::assertNotSame('', $this->Payment->apiCalls[2]['body']['note']);
+    }
+
+    public function testCancelApiFailureIsTranslated(): void
+    {
+        $this->Payment->apiException = new \QUI\ERP\Payments\PayPal\PayPalException(
+            'Cancel failed'
+        );
+
+        $this->expectException(
+            \QUI\ERP\Payments\PayPal\PayPalException::class
+        );
+
+        BillingAgreementsDouble::cancelBillingAgreement(self::AGREEMENT_ID);
+    }
+
+    public function testSuspendApiFailureIsTranslated(): void
+    {
+        $this->Payment->apiException = new \QUI\ERP\Payments\PayPal\PayPalException(
+            'Suspend failed'
+        );
+
+        $this->expectException(
+            \QUI\ERP\Payments\PayPal\PayPalException::class
+        );
+
+        BillingAgreementsDouble::suspendBillingAgreement(
+            self::AGREEMENT_ID,
+            'Review'
+        );
+    }
+
+    public function testResumeApiFailureIsTranslated(): void
+    {
+        $this->Payment->apiException = new \QUI\ERP\Payments\PayPal\PayPalException(
+            'Resume failed'
+        );
+
+        $this->expectException(
+            \QUI\ERP\Payments\PayPal\PayPalException::class
+        );
+
+        BillingAgreementsDouble::resumeSubscription(
+            self::AGREEMENT_ID,
+            'Approved'
+        );
+    }
+
     public function testCancelSendsReasonAndMarksAgreementInactive(): void
     {
         BillingAgreementsDouble::cancelBillingAgreement(
