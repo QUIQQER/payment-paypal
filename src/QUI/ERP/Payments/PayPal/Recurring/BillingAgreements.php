@@ -793,42 +793,17 @@ class BillingAgreements
      */
     public static function processUnpaidInvoices(): void
     {
-        $Invoices = InvoiceHandler::getInstance();
-
-        // Determine payment type IDs
-        $payments = Payments::getInstance()->getPayments([
-            'select' => ['id'],
-            'where' => [
-                'payment_type' => RecurringPayment::class
-            ]
-        ]);
-
-        $paymentTypeIds = [];
-
-        /** @var QUI\ERP\Accounting\Payments\Types\Payment $Payment */
-        foreach ($payments as $Payment) {
-            $paymentTypeIds[] = $Payment->getId();
-        }
+        $Invoices = static::getInvoiceHandler();
+        $paymentTypeIds = static::getRecurringPaymentTypeIds();
 
         if (empty($paymentTypeIds)) {
             return;
         }
 
-        // Get all unpaid Invoices
-        $result = $Invoices->search([
-            'select' => ['id', 'global_process_id'],
-            'where' => [
-                'paid_status' => 0,
-                'type' => QUI\ERP\Constants::TYPE_INVOICE,
-                'payment_method' => [
-                    'type' => 'IN',
-                    'value' => $paymentTypeIds
-                ]
-            ],
-            'order' => 'date ASC',
-            'limit' => 99999 // yes, I hate this too
-        ]);
-
+        $result = static::searchUnpaidInvoiceRows(
+            $Invoices,
+            $paymentTypeIds
+        );
         $invoiceIds = [];
 
         foreach ($result as $row) {
@@ -845,26 +820,9 @@ class BillingAgreements
             return;
         }
 
-        // Determine relevant Billing Agreements
-        try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['global_process_id'],
-                'from' => self::getBillingAgreementsTable(),
-                'where' => [
-                    'global_process_id' => [
-                        'type' => 'IN',
-                        'value' => array_keys($invoiceIds)
-                    ]
-                ]
-            ]);
-        } catch (Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
-            return;
-        }
+        $result = static::getAgreementProcessRows(array_keys($invoiceIds));
 
-        // Refresh Billing Agreement transactions
         foreach ($result as $row) {
-            // Handle invoices
             foreach ($invoiceIds as $globalProcessId => $invoices) {
                 if ($row['global_process_id'] !== $globalProcessId) {
                     continue;
@@ -872,19 +830,99 @@ class BillingAgreements
 
                 foreach ($invoices as $invoiceId) {
                     try {
-                        $Invoice = $Invoices->get($invoiceId);
-
-                        // First: Process all failed transactions for Invoice
-                        self::processDeniedTransactions($Invoice);
-
-                        // Second: Process all completed transactions for Invoice
-                        self::billBillingAgreementBalance($Invoice);
+                        $Invoice = static::getInvoiceById(
+                            $Invoices,
+                            $invoiceId
+                        );
+                        static::processInvoiceDeniedTransactions($Invoice);
+                        static::billInvoiceAgreement($Invoice);
                     } catch (Exception $Exception) {
                         QUI\System\Log::writeException($Exception);
                     }
                 }
             }
         }
+    }
+
+    protected static function getInvoiceHandler(): InvoiceHandler
+    {
+        return InvoiceHandler::getInstance();
+    }
+
+    protected static function getRecurringPaymentTypeIds(): array
+    {
+        $payments = Payments::getInstance()->getPayments([
+            'select' => ['id'],
+            'where' => [
+                'payment_type' => RecurringPayment::class
+            ]
+        ]);
+
+        $paymentTypeIds = [];
+
+        /** @var QUI\ERP\Accounting\Payments\Types\Payment $Payment */
+        foreach ($payments as $Payment) {
+            $paymentTypeIds[] = $Payment->getId();
+        }
+
+        return $paymentTypeIds;
+    }
+
+    protected static function searchUnpaidInvoiceRows(
+        InvoiceHandler $Invoices,
+        array $paymentTypeIds
+    ): array {
+        return $Invoices->search([
+            'select' => ['id', 'global_process_id'],
+            'where' => [
+                'paid_status' => 0,
+                'type' => QUI\ERP\Constants::TYPE_INVOICE,
+                'payment_method' => [
+                    'type' => 'IN',
+                    'value' => $paymentTypeIds
+                ]
+            ],
+            'order' => 'date ASC',
+            'limit' => 99999 // yes, I hate this too
+        ]);
+    }
+
+    protected static function getAgreementProcessRows(
+        array $globalProcessIds
+    ): array {
+        try {
+            return QUI::getDataBase()->fetch([
+                'select' => ['global_process_id'],
+                'from' => self::getBillingAgreementsTable(),
+                'where' => [
+                    'global_process_id' => [
+                        'type' => 'IN',
+                        'value' => $globalProcessIds
+                    ]
+                ]
+            ]);
+        } catch (Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return [];
+        }
+    }
+
+    protected static function getInvoiceById(
+        InvoiceHandler $Invoices,
+        int|string $invoiceId
+    ): Invoice {
+        return $Invoices->get($invoiceId);
+    }
+
+    protected static function processInvoiceDeniedTransactions(
+        Invoice $Invoice
+    ): void {
+        self::processDeniedTransactions($Invoice);
+    }
+
+    protected static function billInvoiceAgreement(Invoice $Invoice): void
+    {
+        self::billBillingAgreementBalance($Invoice);
     }
 
     /**

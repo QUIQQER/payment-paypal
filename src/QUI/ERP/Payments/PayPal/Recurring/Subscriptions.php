@@ -567,38 +567,17 @@ class Subscriptions
      */
     public static function processUnpaidInvoices(): void
     {
-        $Invoices = InvoiceHandler::getInstance();
-        $payments = Payments::getInstance()->getPayments([
-            'select' => ['id'],
-            'where' => [
-                'payment_type' => Payment::class
-            ]
-        ]);
-
-        $paymentTypeIds = [];
-
-        foreach ($payments as $Payment) {
-            $paymentTypeIds[] = $Payment->getId();
-        }
+        $Invoices = static::getInvoiceHandler();
+        $paymentTypeIds = static::getRecurringPaymentTypeIds();
 
         if (empty($paymentTypeIds)) {
             return;
         }
 
-        $result = $Invoices->search([
-            'select' => ['id', 'global_process_id'],
-            'where' => [
-                'paid_status' => 0,
-                'type' => QUI\ERP\Constants::TYPE_INVOICE,
-                'payment_method' => [
-                    'type' => 'IN',
-                    'value' => $paymentTypeIds
-                ]
-            ],
-            'order' => 'date ASC',
-            'limit' => 99999
-        ]);
-
+        $result = static::searchUnpaidInvoiceRows(
+            $Invoices,
+            $paymentTypeIds
+        );
         $invoiceIds = [];
 
         foreach ($result as $row) {
@@ -615,21 +594,9 @@ class Subscriptions
             return;
         }
 
-        try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['global_process_id'],
-                'from' => self::getSubscriptionsTable(),
-                'where' => [
-                    'global_process_id' => [
-                        'type' => 'IN',
-                        'value' => array_keys($invoiceIds)
-                    ]
-                ]
-            ]);
-        } catch (Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
-            return;
-        }
+        $result = static::getSubscriptionProcessRows(
+            array_keys($invoiceIds)
+        );
 
         foreach ($result as $row) {
             foreach ($invoiceIds as $globalProcessId => $invoices) {
@@ -639,15 +606,99 @@ class Subscriptions
 
                 foreach ($invoices as $invoiceId) {
                     try {
-                        $Invoice = $Invoices->get($invoiceId);
-                        self::processDeniedTransactions($Invoice);
-                        self::billSubscriptionInvoice($Invoice);
+                        $Invoice = static::getInvoiceById(
+                            $Invoices,
+                            $invoiceId
+                        );
+                        static::processInvoiceDeniedTransactions($Invoice);
+                        static::billInvoiceSubscription($Invoice);
                     } catch (Exception $Exception) {
                         QUI\System\Log::writeException($Exception);
                     }
                 }
             }
         }
+    }
+
+    protected static function getInvoiceHandler(): InvoiceHandler
+    {
+        return InvoiceHandler::getInstance();
+    }
+
+    protected static function getRecurringPaymentTypeIds(): array
+    {
+        $payments = Payments::getInstance()->getPayments([
+            'select' => ['id'],
+            'where' => [
+                'payment_type' => Payment::class
+            ]
+        ]);
+
+        $paymentTypeIds = [];
+
+        foreach ($payments as $Payment) {
+            $paymentTypeIds[] = $Payment->getId();
+        }
+
+        return $paymentTypeIds;
+    }
+
+    protected static function searchUnpaidInvoiceRows(
+        InvoiceHandler $Invoices,
+        array $paymentTypeIds
+    ): array {
+        return $Invoices->search([
+            'select' => ['id', 'global_process_id'],
+            'where' => [
+                'paid_status' => 0,
+                'type' => QUI\ERP\Constants::TYPE_INVOICE,
+                'payment_method' => [
+                    'type' => 'IN',
+                    'value' => $paymentTypeIds
+                ]
+            ],
+            'order' => 'date ASC',
+            'limit' => 99999
+        ]);
+    }
+
+    protected static function getSubscriptionProcessRows(
+        array $globalProcessIds
+    ): array {
+        try {
+            return QUI::getDataBase()->fetch([
+                'select' => ['global_process_id'],
+                'from' => self::getSubscriptionsTable(),
+                'where' => [
+                    'global_process_id' => [
+                        'type' => 'IN',
+                        'value' => $globalProcessIds
+                    ]
+                ]
+            ]);
+        } catch (Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return [];
+        }
+    }
+
+    protected static function getInvoiceById(
+        InvoiceHandler $Invoices,
+        int|string $invoiceId
+    ): Invoice {
+        return $Invoices->get($invoiceId);
+    }
+
+    protected static function processInvoiceDeniedTransactions(
+        Invoice $Invoice
+    ): void {
+        self::processDeniedTransactions($Invoice);
+    }
+
+    protected static function billInvoiceSubscription(
+        Invoice $Invoice
+    ): void {
+        self::billSubscriptionInvoice($Invoice);
     }
 
     /**
