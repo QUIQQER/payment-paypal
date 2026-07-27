@@ -69,7 +69,7 @@ class BillingAgreements
      */
     public static function createBillingAgreement(AbstractOrder $Order): string
     {
-        $billingPlanId = BillingPlans::createBillingPlanFromOrder($Order);
+        $billingPlanId = static::createBillingPlanFromOrder($Order);
 
         $Order->addHistory(
             Utils::getHistoryText('order.billing_plan_created', [
@@ -86,13 +86,7 @@ class BillingAgreements
         }
 
         $Customer = $Order->getCustomer();
-        $Gateway = new Gateway();
-        $Gateway->setOrder($Order);
-
-        $host = QUI::getRewrite()->getProject()->getVHost(true, true);
-
-        $returnUrl = $host . URL_OPT_DIR . 'quiqqer/payment-paypal/bin/recurringReturn.php';
-        $cancelUrl = $host . URL_OPT_DIR . 'quiqqer/payment-paypal/bin/recurringReturn.php';
+        $Gateway = static::createGatewayForOrder($Order);
 
         $body = [
             'name' => QUI::getLocale()->get(
@@ -143,7 +137,7 @@ class BillingAgreements
         $body['start_date'] = $Now->format('Y-m-d\TH:i:sP'); // ISO 8601
 
         try {
-            $response = self::payPalApiRequest(
+            $response = static::payPalApiRequest(
                 RecurringPayment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_AGREEMENT,
                 $body,
                 $Order
@@ -198,6 +192,19 @@ class BillingAgreements
                 'exception.Recurring.order.error'
             )
         );
+    }
+
+    protected static function createBillingPlanFromOrder(AbstractOrder $Order): string
+    {
+        return BillingPlans::createBillingPlanFromOrder($Order);
+    }
+
+    protected static function createGatewayForOrder(AbstractOrder $Order): Gateway
+    {
+        $Gateway = new Gateway();
+        $Gateway->setOrder($Order);
+
+        return $Gateway;
     }
 
     /**
