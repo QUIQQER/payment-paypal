@@ -64,16 +64,41 @@ if (!class_exists(AbstractOrder::class)) {
             throw new \LogicException('PHPStan stub');
         }
 
+        public function getPrefixedId(): string
+        {
+            return '';
+        }
+
         public function getUUID(): string
         {
             return '';
+        }
+
+        public function recalculate(mixed $Basket = null): void
+        {
+        }
+
+        public function refresh(): void
+        {
+        }
+
+        public function setDeliveryAddress(array | \QUI\ERP\Address $address): void
+        {
         }
 
         public function setInvoiceAddress(array | \QUI\Users\Address $address): void
         {
         }
 
+        public function setPayment(int | string $paymentId): void
+        {
+        }
+
         public function setPaymentData(string $key, mixed $value): void
+        {
+        }
+
+        public function setShipping(\QUI\ERP\Shipping\Api\ShippingInterface $Shipping): void
         {
         }
 

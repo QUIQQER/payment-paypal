@@ -43,7 +43,7 @@ if (!class_exists(Utils::class)) {
 
         public static function parseIntervalFromDuration(
             string $duration
-        ): \DateInterval {
+        ): \DateInterval | false {
             return new \DateInterval('P1D');
         }
     }

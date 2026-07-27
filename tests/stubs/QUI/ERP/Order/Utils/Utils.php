@@ -8,8 +8,8 @@ if (!class_exists(Utils::class)) {
         public static function getOrderProcessUrl(
             \QUI\Projects\Project $Project,
             ?\QUI\ERP\Order\Controls\AbstractOrderingStep $Step = null
-        ): string {
-            return '';
+        ): ?string {
+            return null;
         }
     }
 }

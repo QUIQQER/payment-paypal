@@ -24,5 +24,16 @@ if (!class_exists(Handler::class)) {
         {
             throw new \LogicException('PHPStan stub');
         }
+
+        public function getLastOrderInProcessFromUser(
+            \QUI\Interfaces\Users\User $User
+        ): OrderInProcess {
+            throw new \LogicException('PHPStan stub');
+        }
+
+        public function table(): string
+        {
+            return '';
+        }
     }
 }

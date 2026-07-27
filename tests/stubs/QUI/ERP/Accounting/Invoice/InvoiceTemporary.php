@@ -3,7 +3,11 @@
 namespace QUI\ERP\Accounting\Invoice;
 
 if (!class_exists(InvoiceTemporary::class)) {
-    class InvoiceTemporary extends Invoice
+    class InvoiceTemporary
     {
+        public function getCustomer(): ?\QUI\ERP\User
+        {
+            return null;
+        }
     }
 }

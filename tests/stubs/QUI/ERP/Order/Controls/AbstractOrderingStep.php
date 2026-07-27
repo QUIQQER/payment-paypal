@@ -9,5 +9,10 @@ if (!class_exists(AbstractOrderingStep::class)) {
         {
             return null;
         }
+
+        public function getName(): string
+        {
+            return '';
+        }
     }
 }

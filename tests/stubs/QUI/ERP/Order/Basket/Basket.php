@@ -19,9 +19,9 @@ if (!class_exists(Basket::class)) {
             return 0;
         }
 
-        public function getOrder(): ?\QUI\ERP\Order\AbstractOrder
+        public function getOrder(): \QUI\ERP\Order\AbstractOrder
         {
-            return null;
+            throw new \LogicException('PHPStan stub');
         }
 
         public function hasOrder(): bool
