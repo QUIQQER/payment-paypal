@@ -23,7 +23,7 @@
     "quiqqer/core": "^2",
     "quiqqer/payments": "^3",
     "paypal/paypal-server-sdk": "^2.3",
-    "quiqqer/paypal-rest-api-sdk-php": "^1|dev-main"
+    "quiqqer/paypal-rest-api-sdk-php": "^1.0"
   },
   "suggest": {
     "quiqqer/erp-plans": "Allows handling of orders that require automated recurring payments"
