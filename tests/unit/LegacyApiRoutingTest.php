@@ -260,4 +260,20 @@ final class LegacyApiRoutingTest extends TestCase
             []
         );
     }
+
+    public function testNonArrayLegacyResponseIsRejected(): void
+    {
+        $Client = new PayPalHttpClient();
+        $Client->result = 'invalid-response';
+        $Payment = new LegacyApiPaymentDouble();
+        $Payment->useLegacyClient($Client);
+
+        $this->expectException(PayPalException::class);
+
+        $Payment->payPalApiRequest(
+            RecurringPayment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN,
+            [],
+            []
+        );
+    }
 }

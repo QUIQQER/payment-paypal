@@ -19,6 +19,9 @@ class PayPalHttpClient
     {
     }
 
+    /**
+     * @return object{result: mixed}
+     */
     public function execute(Request $Request): object
     {
         $this->requests[] = $Request;

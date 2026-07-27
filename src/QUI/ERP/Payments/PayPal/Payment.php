@@ -50,6 +50,7 @@ use function mb_substr;
 use function rtrim;
 
 use const JSON_ERROR_NONE;
+use const JSON_THROW_ON_ERROR;
 
 /**
  * Class Payment
@@ -1265,6 +1266,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         try {
             $Response = $this->getPayPalClient()->execute($Request);
+            $response = json_decode(
+                json_encode($Response->result, JSON_THROW_ON_ERROR),
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            );
         } catch (Exception $Exception) {
             $message = $Exception->getCode() . " :: \n\n";
             $message .= $Exception->getMessage() . "\n";
@@ -1294,8 +1301,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $this->throwPayPalException();
         }
 
-        // turn stdClass object to array
-        return json_decode(json_encode($Response->result), true);
+        if (!is_array($response)) {
+            $this->throwPayPalException();
+        }
+
+        return $response;
     }
 
     /**
@@ -1397,9 +1407,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * Get PayPal Client for current payment process
      *
-     * @return PayPalClient|null
+     * @return PayPalClient
      */
-    protected function getPayPalClient(): ?PayPalClient
+    protected function getPayPalClient(): PayPalClient
     {
         if (!is_null($this->PayPalClient)) {
             return $this->PayPalClient;
