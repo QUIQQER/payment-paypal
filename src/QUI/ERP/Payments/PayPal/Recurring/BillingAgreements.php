@@ -4,8 +4,9 @@ namespace QUI\ERP\Payments\PayPal\Recurring;
 
 use DateInterval;
 use DateTime;
+use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Query\QueryBuilder;
 use Exception;
-use PDO;
 use QUI;
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
 use QUI\ERP\Accounting\Invoice\Invoice;
@@ -19,7 +20,7 @@ use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Payments\PayPal\Utils;
-use QUI\Utils\Security\Orthos;
+use QUI\Utils\Doctrine;
 
 use function rtrim;
 
@@ -308,7 +309,7 @@ class BillingAgreements
 
                 $Invoice->addTransaction($InvoiceTransaction);
 
-                QUI::getDataBase()->update(
+                QUI::getDataBaseConnection()->update(
                     self::getBillingAgreementTransactionsTable(),
                     [
                         'quiqqer_transaction_id' => $InvoiceTransaction->getTxId(),
@@ -345,78 +346,56 @@ class BillingAgreements
     {
         $Grid = new QUI\Utils\Grid($searchParams);
         $gridParams = $Grid->parseDBParams($searchParams);
-
-        $binds = [];
-        $where = [];
+        $QueryBuilder = QUI::getQueryBuilder();
 
         if ($countOnly) {
-            $sql = "SELECT COUNT(paypal_agreement_id)";
+            $QueryBuilder->select('COUNT(' . Doctrine::quoteIdentifier('paypal_agreement_id') . ')');
         } else {
-            $sql = "SELECT *";
+            $QueryBuilder->select('*');
         }
 
-        $sql .= " FROM `" . self::getBillingAgreementsTable() . "`";
+        $QueryBuilder->from(Doctrine::quoteIdentifier(self::getBillingAgreementsTable()));
 
         if (!empty($searchParams['search'])) {
-            $where[] = '`global_process_id` LIKE :search';
-
-            $binds['search'] = [
-                'value' => '%' . $searchParams['search'] . '%',
-                'type' => PDO::PARAM_STR
-            ];
+            $QueryBuilder
+                ->where(Doctrine::quoteIdentifier('global_process_id') . ' LIKE :search')
+                ->setParameter('search', '%' . $searchParams['search'] . '%');
         }
 
-        // build WHERE query string
-        if (!empty($where)) {
-            $sql .= " WHERE " . implode(" AND ", $where);
-        }
+        if (!$countOnly) {
+            if (!empty($searchParams['sortOn'])) {
+                $allowedSortColumns = [
+                    'paypal_agreement_id',
+                    'paypal_plan_id',
+                    'customer',
+                    'global_process_id',
+                    'active'
+                ];
+                $sortOn = in_array($searchParams['sortOn'], $allowedSortColumns, true)
+                    ? (string)$searchParams['sortOn']
+                    : 'paypal_agreement_id';
+                $sortBy = strtoupper((string)($searchParams['sortBy'] ?? 'ASC')) === 'DESC'
+                    ? 'DESC'
+                    : 'ASC';
 
-        // ORDER
-        if (!empty($searchParams['sortOn'])) {
-            $sortOn = Orthos::clear($searchParams['sortOn']);
-            $order = "ORDER BY " . $sortOn;
-
-            if (!empty($searchParams['sortBy'])) {
-                $order .= " " . Orthos::clear($searchParams['sortBy']);
-            } else {
-                $order .= " ASC";
+                $QueryBuilder->orderBy(Doctrine::quoteIdentifier($sortOn), $sortBy);
             }
 
-            $sql .= " " . $order;
-        }
-
-        // LIMIT
-        if (!empty($gridParams['limit']) && !$countOnly) {
-            $sql .= " LIMIT " . $gridParams['limit'];
-        } else {
-            if (!$countOnly) {
-                $sql .= " LIMIT " . 20;
-            }
-        }
-
-        $Stmt = QUI::getPDO()->prepare($sql);
-
-        // bind search values
-        foreach ($binds as $var => $bind) {
-            $Stmt->bindValue(':' . $var, $bind['value'], $bind['type']);
+            self::applyGridLimit($QueryBuilder, $gridParams);
         }
 
         try {
-            $Stmt->execute();
-            $result = $Stmt->fetchAll(PDO::FETCH_ASSOC);
+            $Result = $QueryBuilder->executeQuery();
         } catch (Exception $Exception) {
-            QUI\System\Log::addError(
-                self::class . ' :: searchUsers() -> ' . $Exception->getMessage()
-            );
-
+            QUI\System\Log::writeException($Exception);
             return [];
         }
 
         if ($countOnly) {
-            return (int)current(current($result));
+            return (int)$Result->fetchOne();
         }
 
-        return $result;
+        return $Result->fetchAllAssociative();
     }
 
     /**
@@ -700,7 +679,7 @@ class BillingAgreements
     public static function setBillingAgreementAsInactive(int | string $billingAgreementId): void
     {
         try {
-            QUI::getDataBase()->update(
+            QUI::getDataBaseConnection()->update(
                 self::getBillingAgreementsTable(),
                 ['active' => 0],
                 ['paypal_agreement_id' => $billingAgreementId]
@@ -760,7 +739,7 @@ class BillingAgreements
 
         // Save billing agreement reference in database
         try {
-            QUI::getDataBase()->insert(
+            QUI::getDataBaseConnection()->insert(
                 self::getBillingAgreementsTable(),
                 [
                     'paypal_agreement_id' => $Order->getPaymentDataEntry(
@@ -900,17 +879,18 @@ class BillingAgreements
     protected static function getAgreementProcessRows(
         array $globalProcessIds
     ): array {
+        if (empty($globalProcessIds)) {
+            return [];
+        }
+
         try {
-            return QUI::getDataBase()->fetch([
-                'select' => ['global_process_id'],
-                'from' => self::getBillingAgreementsTable(),
-                'where' => [
-                    'global_process_id' => [
-                        'type' => 'IN',
-                        'value' => $globalProcessIds
-                    ]
-                ]
-            ]);
+            return QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('global_process_id'))
+                ->from(Doctrine::quoteIdentifier(self::getBillingAgreementsTable()))
+                ->where(Doctrine::quoteIdentifier('global_process_id') . ' IN (:globalProcessIds)')
+                ->setParameter('globalProcessIds', $globalProcessIds, ArrayParameterType::STRING)
+                ->executeQuery()
+                ->fetchAllAssociative();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return [];
@@ -1007,7 +987,7 @@ class BillingAgreements
 
                 $Invoice->addTransaction($InvoiceTransaction);
 
-                QUI::getDataBase()->update(
+                QUI::getDataBaseConnection()->update(
                     self::getBillingAgreementTransactionsTable(),
                     [
                         'quiqqer_transaction_id' => $InvoiceTransaction->getTxId(),
@@ -1050,35 +1030,35 @@ class BillingAgreements
         $globalProcessId = $data['globalProcessId'];
 
         // Determine start date
-        $result = QUI::getDataBase()->fetch([
-            'select' => ['paypal_transaction_date'],
-            'from' => self::getBillingAgreementTransactionsTable(),
-            'where' => [
-                'paypal_agreement_id' => $billingAgreementId
-            ],
-            'order' => [
-                'field' => 'paypal_transaction_date',
-                'sort' => 'DESC'
-            ],
-            'limit' => 1
-        ]);
+        $latestTransactionDate = QUI::getQueryBuilder()
+            ->select(Doctrine::quoteIdentifier('paypal_transaction_date'))
+            ->from(Doctrine::quoteIdentifier(self::getBillingAgreementTransactionsTable()))
+            ->where(Doctrine::quoteIdentifier('paypal_agreement_id') . ' = :billingAgreementId')
+            ->setParameter('billingAgreementId', $billingAgreementId)
+            ->orderBy(Doctrine::quoteIdentifier('paypal_transaction_date'), 'DESC')
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne();
 
-        if (empty($result)) {
+        if ($latestTransactionDate === false) {
             $Start = new DateTime(date('Y') . '-01-01 00:00:00'); // Beginning of current year
         } else {
-            $Start = new DateTime($result[0]['paypal_transaction_date']);
+            $Start = new DateTime((string)$latestTransactionDate);
         }
 
         $End = new DateTime(); // today
 
         // Determine existing transactions
-        $result = QUI::getDataBase()->fetch([
-            'select' => ['paypal_transaction_id', 'paypal_transaction_date'],
-            'from' => self::getBillingAgreementTransactionsTable(),
-            'where' => [
-                'paypal_agreement_id' => $billingAgreementId
-            ]
-        ]);
+        $result = QUI::getQueryBuilder()
+            ->select(
+                Doctrine::quoteIdentifier('paypal_transaction_id'),
+                Doctrine::quoteIdentifier('paypal_transaction_date')
+            )
+            ->from(Doctrine::quoteIdentifier(self::getBillingAgreementTransactionsTable()))
+            ->where(Doctrine::quoteIdentifier('paypal_agreement_id') . ' = :billingAgreementId')
+            ->setParameter('billingAgreementId', $billingAgreementId)
+            ->executeQuery()
+            ->fetchAllAssociative();
 
         $existing = [];
 
@@ -1124,7 +1104,7 @@ class BillingAgreements
                 continue;
             }
 
-            QUI::getDataBase()->insert(
+            QUI::getDataBaseConnection()->insert(
                 self::getBillingAgreementTransactionsTable(),
                 [
                     'paypal_transaction_id' => $transaction['transaction_id'],
@@ -1153,27 +1133,27 @@ class BillingAgreements
         string $billingAgreementId,
         string $status = self::TRANSACTION_STATE_COMPLETED
     ): array {
-        $result = QUI::getDataBase()->fetch([
-            'select' => ['paypal_transaction_data'],
-            'from' => self::getBillingAgreementTransactionsTable(),
-            'where' => [
-                'paypal_agreement_id' => $billingAgreementId,
-                'quiqqer_transaction_id' => null
-            ]
-        ]);
+        $result = QUI::getQueryBuilder()
+            ->select(Doctrine::quoteIdentifier('paypal_transaction_data'))
+            ->from(Doctrine::quoteIdentifier(self::getBillingAgreementTransactionsTable()))
+            ->where(Doctrine::quoteIdentifier('paypal_agreement_id') . ' = :billingAgreementId')
+            ->andWhere(Doctrine::quoteIdentifier('quiqqer_transaction_id') . ' IS NULL')
+            ->setParameter('billingAgreementId', $billingAgreementId)
+            ->executeQuery()
+            ->fetchAllAssociative();
 
         // Try to refresh list if no unprocessed transactions found
         if (empty($result)) {
             self::refreshTransactionList($billingAgreementId);
 
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_transaction_data'],
-                'from' => self::getBillingAgreementTransactionsTable(),
-                'where' => [
-                    'paypal_agreement_id' => $billingAgreementId,
-                    'quiqqer_transaction_id' => null
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_transaction_data'))
+                ->from(Doctrine::quoteIdentifier(self::getBillingAgreementTransactionsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_agreement_id') . ' = :billingAgreementId')
+                ->andWhere(Doctrine::quoteIdentifier('quiqqer_transaction_id') . ' IS NULL')
+                ->setParameter('billingAgreementId', $billingAgreementId)
+                ->executeQuery()
+                ->fetchAllAssociative();
         }
 
         $transactions = [];
@@ -1227,28 +1207,48 @@ class BillingAgreements
     public static function getBillingAgreementData(string $billingAgreementId): bool | array
     {
         try {
-            $result = QUI::getDataBase()->fetch([
-                'from' => self::getBillingAgreementsTable(),
-                'where' => [
-                    'paypal_agreement_id' => $billingAgreementId
-                ]
-            ]);
+            $data = QUI::getQueryBuilder()
+                ->select('*')
+                ->from(Doctrine::quoteIdentifier(self::getBillingAgreementsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_agreement_id') . ' = :billingAgreementId')
+                ->setParameter('billingAgreementId', $billingAgreementId)
+                ->executeQuery()
+                ->fetchAssociative();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
 
-        if (empty($result)) {
+        if ($data === false) {
             return false;
         }
-
-        $data = current($result);
 
         return [
             'active' => !empty($data['active']),
             'globalProcessId' => $data['global_process_id'],
             'customer' => json_decode($data['customer'], true),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $gridParams
+     */
+    private static function applyGridLimit(QueryBuilder $QueryBuilder, array $gridParams): void
+    {
+        if (empty($gridParams['limit'])) {
+            $QueryBuilder->setMaxResults(20);
+            return;
+        }
+
+        $limit = explode(',', (string)$gridParams['limit'], 2);
+
+        if (isset($limit[1])) {
+            $QueryBuilder->setFirstResult((int)$limit[0]);
+            $QueryBuilder->setMaxResults((int)$limit[1]);
+            return;
+        }
+
+        $QueryBuilder->setMaxResults((int)$limit[0]);
     }
 
     /**

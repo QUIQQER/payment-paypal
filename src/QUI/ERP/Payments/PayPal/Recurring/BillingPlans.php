@@ -16,6 +16,7 @@ use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Payments\PayPal\Utils;
 use QUI\ERP\Products\Handler\Products as ProductsHandler;
 use QUI\ERP\Products\Product\Product;
+use QUI\Utils\Doctrine;
 
 use function class_exists;
 use function rtrim;
@@ -126,7 +127,7 @@ class BillingPlans
         $billingPlanId = $response['id'];
 
         // Save reference in database
-        QUI::getDataBase()->insert(
+        QUI::getDataBaseConnection()->insert(
             static::getBillingPlansTable(),
             [
                 'paypal_id' => $billingPlanId,
@@ -276,23 +277,23 @@ class BillingPlans
     protected static function getBillingPlanIdByOrder(AbstractOrder $Order): bool|string
     {
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_id'],
-                'from' => self::getBillingPlansTable(),
-                'where' => [
-                    'identification_hash' => self::getIdentificationHash($Order)
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_id'))
+                ->from(Doctrine::quoteIdentifier(self::getBillingPlansTable()))
+                ->where(Doctrine::quoteIdentifier('identification_hash') . ' = :identificationHash')
+                ->setParameter('identificationHash', self::getIdentificationHash($Order))
+                ->executeQuery()
+                ->fetchOne();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
 
-        if (empty($result)) {
+        if ($result === false) {
             return false;
         }
 
-        return $result[0]['paypal_id'];
+        return (string)$result;
     }
 
     /**

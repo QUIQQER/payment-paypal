@@ -2,6 +2,7 @@
 
 namespace QUI\ERP\Payments\PayPal;
 
+use Doctrine\DBAL\ArrayParameterType;
 use Exception;
 use QUI;
 use QUI\ERP\Accounting\CalculationValue;
@@ -35,6 +36,7 @@ use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\SaleRefundRequest;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Utils\User as ERPUserUtils;
 use QUI\ExceptionStack;
+use QUI\Utils\Doctrine;
 
 use function boolval;
 use function get_class;
@@ -1582,26 +1584,25 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     protected function getPendingCaptureOrderRows(array $paymentTypeIds): array
     {
+        if (empty($paymentTypeIds)) {
+            return [];
+        }
+
         $OrderHandler = OrderHandler::getInstance();
 
         try {
-            return QUI::getDataBase()->fetch([
-                'select' => ['id'],
-                'from' => $OrderHandler->table(),
-                'where' => [
-                    'payment_id' => [
-                        'type' => 'IN',
-                        'value' => $paymentTypeIds
-                    ],
-                    'paid_status' => [
-                        'type' => 'IN',
-                        'value' => [
-                            QUI\ERP\Constants::PAYMENT_STATUS_OPEN,
-                            QUI\ERP\Constants::PAYMENT_STATUS_PART
-                        ]
-                    ]
-                ]
-            ]);
+            return QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('id'))
+                ->from(Doctrine::quoteIdentifier($OrderHandler->table()))
+                ->where(Doctrine::quoteIdentifier('payment_id') . ' IN (:paymentTypeIds)')
+                ->andWhere(Doctrine::quoteIdentifier('paid_status') . ' IN (:paidStatuses)')
+                ->setParameter('paymentTypeIds', $paymentTypeIds, ArrayParameterType::STRING)
+                ->setParameter('paidStatuses', [
+                    QUI\ERP\Constants::PAYMENT_STATUS_OPEN,
+                    QUI\ERP\Constants::PAYMENT_STATUS_PART
+                ], ArrayParameterType::INTEGER)
+                ->executeQuery()
+                ->fetchAllAssociative();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return [];

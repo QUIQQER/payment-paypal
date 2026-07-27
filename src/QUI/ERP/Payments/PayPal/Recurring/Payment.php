@@ -20,8 +20,7 @@ use QUI\Exception;
 use QUI\ExceptionStack;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
-
-use function array_column;
+use QUI\Utils\Doctrine;
 
 /**
  * Class Payment
@@ -543,23 +542,23 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         }
 
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['active'],
-                'from' => BillingAgreements::getBillingAgreementsTable(),
-                'where' => [
-                    'paypal_agreement_id' => $subscriptionId
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('active'))
+                ->from(Doctrine::quoteIdentifier(BillingAgreements::getBillingAgreementsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_agreement_id') . ' = :subscriptionId')
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->executeQuery()
+                ->fetchOne();
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return true;
         }
 
-        if (empty($result)) {
+        if ($result === false) {
             return false;
         }
 
-        return !empty($result[0]['active']);
+        return !empty($result);
     }
 
     /**
@@ -570,25 +569,27 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function getSubscriptionIds(bool $includeInactive = false): array
     {
-        $where = [];
-
-        if (empty($includeInactive)) {
-            $where['active'] = 1;
-        }
-
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_agreement_id'],
-                'from' => BillingAgreements::getBillingAgreementsTable(),
-                'where' => $where
-            ]);
+            $QueryBuilder = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_agreement_id'))
+                ->from(Doctrine::quoteIdentifier(BillingAgreements::getBillingAgreementsTable()));
+
+            if (!$includeInactive) {
+                $QueryBuilder
+                    ->where(Doctrine::quoteIdentifier('active') . ' = :active')
+                    ->setParameter('active', 1);
+            }
+
+            $result = $QueryBuilder
+                ->executeQuery()
+                ->fetchFirstColumn();
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return [];
         }
 
         return array_merge(
-            array_column($result, 'paypal_agreement_id'),
+            $result,
             Subscriptions::getSubscriptionIds($includeInactive)
         );
     }
