@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use QUI;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Handler as TransactionHandler;
+use QUI\ERP\Accounting\Payments\Transactions\RefundException;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Currency\Handler as CurrencyHandler;
 use QUI\ERP\Payments\PayPal\Payment;
@@ -102,7 +103,52 @@ final class PaymentRefundTest extends TestCase
         );
     }
 
-    private function sourceTransaction(): Transaction
+    public function testRefundRequiresCapturedSourceTransaction(): void
+    {
+        $Payment = new PaymentWorkflowDouble();
+
+        $this->expectException(PayPalException::class);
+
+        $Payment->refundPayment(
+            $this->sourceTransaction(false),
+            self::PREFIX . 'not-captured',
+            2.5
+        );
+    }
+
+    public function testUnexpectedRefundStatusIsRejected(): void
+    {
+        $Payment = new PaymentWorkflowDouble();
+        $Payment->apiResponse = [
+            'id' => 'REFUND-FAILED',
+            'status' => 'FAILED'
+        ];
+
+        $this->expectException(PayPalException::class);
+
+        $Payment->refundPayment(
+            $this->sourceTransaction(),
+            self::PREFIX . 'failed',
+            2.5
+        );
+    }
+
+    public function testPublicRefundTranslatesPayPalFailure(): void
+    {
+        $Payment = new PaymentWorkflowDouble();
+        $Payment->apiException = new PayPalException('Refund rejected');
+
+        $this->expectException(RefundException::class);
+
+        $Payment->refund(
+            $this->sourceTransaction(),
+            2.5,
+            'Customer request',
+            self::PREFIX . 'public-error'
+        );
+    }
+
+    private function sourceTransaction(bool $captured = true): Transaction
     {
         $Transaction = $this->createMock(Transaction::class);
         $Transaction->method('getTxId')->willReturn(self::PREFIX . 'source');
@@ -113,7 +159,10 @@ final class PaymentRefundTest extends TestCase
         );
         $Transaction->method('getPayment')->willReturn(new Payment());
         $Transaction->method('getData')->willReturnMap([
-            [Payment::ATTR_PAYPAL_CAPTURE_ID, 'CAPTURE-SOURCE']
+            [
+                Payment::ATTR_PAYPAL_CAPTURE_ID,
+                $captured ? 'CAPTURE-SOURCE' : null
+            ]
         ]);
 
         return $Transaction;
