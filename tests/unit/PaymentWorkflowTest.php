@@ -238,6 +238,55 @@ final class PaymentWorkflowTest extends TestCase
         );
     }
 
+    public function testCompletedCaptureCreatesGatewayTransaction(): void
+    {
+        $Order = $this->createCalculatedOrder();
+        $Order->setPaymentData(
+            Payment::ATTR_PAYPAL_ORDER_ID,
+            'ORDER-COMPLETED'
+        );
+        $Transaction = $this->createMock(
+            \QUI\ERP\Accounting\Payments\Transactions\Transaction::class
+        );
+        $Transaction->expects(self::exactly(2))->method('setData');
+        $Transaction->expects(self::once())->method('updateData');
+        $Transaction->method('getTxId')->willReturn('TX-COMPLETED');
+
+        $Payment = new PaymentWorkflowDouble();
+        $Payment->CaptureTransaction = $Transaction;
+        $Payment->payPalData = [
+            'purchase_units' => [
+                ['reference_id' => $Order->getUUID()]
+            ]
+        ];
+        $Payment->apiResponses[Payment::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER] = [
+            'purchase_units' => [[
+                'payments' => [
+                    'captures' => [[
+                        'id' => 'CAPTURE-COMPLETED',
+                        'status' => Payment::PAYPAL_CAPTURE_STATE_COMPLETED,
+                        'amount' => [
+                            'value' => '12.50',
+                            'currency_code' => 'EUR'
+                        ]
+                    ]]
+                ]
+            ]]
+        ];
+
+        $Payment->capturePayPalOrder($Order);
+
+        self::assertSame(12.5, $Payment->capturePurchase['amount']);
+        self::assertSame('EUR', $Payment->capturePurchase['currencyCode']);
+        self::assertSame($Order, $Payment->capturePurchase['order']);
+        self::assertSame(1, $Order->refreshCount);
+        self::assertContains(
+            'PayPal :: Order capture was completed. Transaction '
+            . 'TX-COMPLETED added.',
+            $Order->history
+        );
+    }
+
     public function testCaptureRecoversPendingResultAfterApiException(): void
     {
         $Order = $this->createCalculatedOrder();

@@ -550,11 +550,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->addHistory('PayPal :: Set Gateway purchase');
 
         if (!$pending) {
-            $Transaction = Gateway::getInstance()->purchase(
+            $Transaction = $this->purchaseCapturedOrder(
                 (float)$amount['value'],
-                QUI\ERP\Currency\Handler::getCurrency($amount['currency_code']),
-                $Order,
-                $this
+                $amount['currency_code'],
+                $Order
             );
 
             $Transaction->setData(
@@ -588,6 +587,19 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $Order->addHistory('PayPal :: Gateway purchase completed.');
         $this->saveOrder($Order);
+    }
+
+    protected function purchaseCapturedOrder(
+        float $amount,
+        string $currencyCode,
+        AbstractOrder $Order
+    ): Transaction {
+        return Gateway::getInstance()->purchase(
+            $amount,
+            QUI\ERP\Currency\Handler::getCurrency($currencyCode),
+            $Order,
+            $this
+        );
     }
 
     /**

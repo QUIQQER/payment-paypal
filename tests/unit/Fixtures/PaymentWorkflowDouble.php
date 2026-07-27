@@ -18,6 +18,8 @@ final class PaymentWorkflowDouble extends Payment
     public array $apiExceptions = [];
     public array $apiCalls = [];
     public int $saveCount = 0;
+    public ?Transaction $CaptureTransaction = null;
+    public array $capturePurchase = [];
 
     protected function getPayPalDataForOrder(AbstractOrder $Order): array
     {
@@ -59,5 +61,19 @@ final class PaymentWorkflowDouble extends Payment
     protected function saveOrder(AbstractOrder $Order): void
     {
         $this->saveCount++;
+    }
+
+    protected function purchaseCapturedOrder(
+        float $amount,
+        string $currencyCode,
+        AbstractOrder $Order
+    ): Transaction {
+        $this->capturePurchase = [
+            'amount' => $amount,
+            'currencyCode' => $currencyCode,
+            'order' => $Order
+        ];
+
+        return $this->CaptureTransaction;
     }
 }
