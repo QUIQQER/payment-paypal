@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace QUITests\ERP\Payments\PayPal\Unit;
 
 use PHPUnit\Framework\TestCase;
-use QUI;
 use QUI\ERP\Accounting\Payments\Types\Payment as PaymentType;
 use QUI\ERP\Payments\PayPal\Payment;
 use QUI\ERP\Payments\PayPal\PaymentExpress;
 use QUI\ERP\Payments\PayPal\Provider;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
+use QUI\ERP\Payments\PayPal\Settings;
 
 final class ProviderTest extends TestCase
 {
@@ -25,7 +25,7 @@ final class ProviderTest extends TestCase
 
     public function testSettingsAreReadFromPackageConfiguration(): void
     {
-        $Config = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+        $Config = Settings::getConfig();
 
         self::assertSame(
             $Config->get('api', 'sandbox'),
@@ -43,7 +43,7 @@ final class ProviderTest extends TestCase
 
     public function testApiSetupSupportsSandboxAndProductionCredentials(): void
     {
-        $Config = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+        $Config = Settings::getConfig();
         $keys = [
             'sandbox',
             'sandbox_client_id',

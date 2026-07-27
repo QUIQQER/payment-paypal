@@ -20,7 +20,7 @@ use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 class Provider extends AbstractPaymentProvider
 {
     /**
-     * @return array
+     * @return list<class-string>
      */
     public function getPaymentTypes(): array
     {
@@ -40,7 +40,7 @@ class Provider extends AbstractPaymentProvider
     public static function getApiSetting(string $setting): bool|string
     {
         try {
-            $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+            $Conf = Settings::getConfig();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
@@ -59,7 +59,7 @@ class Provider extends AbstractPaymentProvider
     public static function getPaymentSetting(string $setting): bool|string
     {
         try {
-            $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+            $Conf = Settings::getConfig();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
@@ -73,12 +73,12 @@ class Provider extends AbstractPaymentProvider
      * Get Widgets setting
      *
      * @param string $setting - Setting name
-     * @return array|bool|string
+     * @return array<mixed>|bool|string
      */
     public static function getWidgetsSetting(string $setting): bool|array|string
     {
         try {
-            $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+            $Conf = Settings::getConfig();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
 
@@ -115,7 +115,7 @@ class Provider extends AbstractPaymentProvider
     public static function isApiSetUp(): bool
     {
         try {
-            $Conf = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+            $Conf = Settings::getConfig();
             $apiSettings = $Conf->getSection('api');
         } catch (QUI\Exception) {
             return false;

@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace QUITests\ERP\Payments\PayPal\Unit;
 
 use PHPUnit\Framework\TestCase;
-use QUI;
 use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Settings;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\SubscriptionsApiClientDouble;
 
 use const CURLOPT_CUSTOMREQUEST;
@@ -21,7 +21,7 @@ final class SubscriptionsApiClientTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->Config = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+        $this->Config = Settings::getConfig();
 
         foreach (
             [

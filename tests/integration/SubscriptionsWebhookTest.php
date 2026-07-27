@@ -8,6 +8,7 @@ use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use QUI;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
+use QUI\ERP\Payments\PayPal\Settings;
 use ReflectionProperty;
 use Throwable;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\SubscriptionsApiClientDouble;
@@ -39,7 +40,7 @@ final class SubscriptionsWebhookTest extends TestCase
             );
         }
 
-        $this->Config = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+        $this->Config = Settings::getConfig();
         $this->previousWebhookId = $this->Config->get('api', 'webhook_id');
         $this->Config->setValue('api', 'webhook_id', 'phpunit-webhook-id');
 

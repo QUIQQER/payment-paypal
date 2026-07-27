@@ -15,13 +15,14 @@ use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Accounting\PriceFactors\FactorList;
 use QUI\ERP\Currency\Currency;
 use QUI\ERP\Order\AbstractOrder;
+use QUI\ERP\Payments\PayPal\Settings;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\PaymentPayloadDouble;
 
 final class PayPalOrderPayloadTest extends TestCase
 {
     public function testOrderUsesModernPayPalWalletPaymentSource(): void
     {
-        $Config = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+        $Config = Settings::getConfig();
         $displayBasket = $Config->get('payment', 'display_paypal_basket');
         $Config->setValue('payment', 'display_paypal_basket', 0);
 
@@ -94,7 +95,7 @@ final class PayPalOrderPayloadTest extends TestCase
 
     public function testDetailedBasketContainsModernItemBreakdown(): void
     {
-        $Config = QUI::getPackage('quiqqer/payment-paypal')->getConfig();
+        $Config = Settings::getConfig();
         $displayBasket = $Config->get('payment', 'display_paypal_basket');
         $Config->setValue('payment', 'display_paypal_basket', 1);
 
