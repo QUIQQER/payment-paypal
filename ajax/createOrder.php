@@ -15,7 +15,7 @@ use QUI\ERP\Payments\PayPal\Payment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\Utils\Security\Orthos;
 
-QUI::$Ajax->registerFunction(
+QUI::getAjax()->registerFunction(
     'package_quiqqer_payment-paypal_ajax_createOrder',
     function ($orderHash, $basketId, $express = false) {
         if (

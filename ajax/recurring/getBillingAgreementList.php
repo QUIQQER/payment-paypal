@@ -13,7 +13,7 @@ use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
 use QUI\Utils\Grid;
 use QUI\Utils\Security\Orthos;
 
-QUI::$Ajax->registerFunction(
+QUI::getAjax()->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_getBillingAgreementList',
     function ($searchParams) {
         $searchParams = Orthos::clearArray(json_decode($searchParams, true));

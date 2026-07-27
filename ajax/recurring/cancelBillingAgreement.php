@@ -11,7 +11,7 @@
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
 
-QUI::$Ajax->registerFunction(
+QUI::getAjax()->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_cancelBillingAgreement',
     function ($billingAgreementId) {
         BillingAgreements::cancelBillingAgreement($billingAgreementId);

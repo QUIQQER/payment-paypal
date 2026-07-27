@@ -21,7 +21,6 @@ final class AjaxCallbacksTest extends TestCase
     {
         parent::setUp();
 
-        QUI::$Ajax = QUI::getAjax();
         $this->Payment = new PaymentWorkflowDouble();
         BillingAgreementsDouble::usePayment($this->Payment);
         BillingPlansDouble::usePayment($this->Payment);

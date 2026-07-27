@@ -9,7 +9,7 @@
 
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
 
-QUI::$Ajax->registerFunction(
+QUI::getAjax()->registerFunction(
     'package_quiqqer_payment-paypal_ajax_recurring_webhook',
     function () {
         $headers = [];
