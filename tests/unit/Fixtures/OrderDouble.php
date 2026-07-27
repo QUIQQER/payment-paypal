@@ -12,6 +12,7 @@ use QUI\Interfaces\Users\User;
 final class OrderDouble extends AbstractOrder
 {
     public array $history = [];
+    public ?User $updateUser = null;
 
     public function __construct()
     {
@@ -27,6 +28,7 @@ final class OrderDouble extends AbstractOrder
 
     public function update(?User $PermissionUser = null): void
     {
+        $this->updateUser = $PermissionUser;
     }
 
     public function delete(?User $PermissionUser = null): void
