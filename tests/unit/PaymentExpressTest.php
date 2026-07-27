@@ -11,6 +11,7 @@ use QUI\ERP\Payments\PayPal\PaymentExpress;
 use QUI\ERP\Shipping\Shipping;
 use QUI\ERP\Shipping\Types\ShippingEntry;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
+use QUITests\ERP\Payments\PayPal\Unit\Fixtures\PaymentExpressDouble;
 
 final class PaymentExpressTest extends TestCase
 {
@@ -68,5 +69,52 @@ final class PaymentExpressTest extends TestCase
 
         self::assertNull($Order->Shipping);
         self::assertNull($Order->updateUser);
+    }
+
+    public function testModernWalletDataOverridesLegacyPayerData(): void
+    {
+        $Payment = new PaymentExpressDouble();
+
+        self::assertSame([
+            'name' => [
+                'given_name' => 'Modern',
+                'surname' => 'Legacy'
+            ],
+            'email_address' => 'modern@example.com'
+        ], $Payment->getPayerData([
+            'payer' => [
+                'name' => [
+                    'given_name' => 'Legacy',
+                    'surname' => 'Legacy'
+                ],
+                'email_address' => 'legacy@example.com'
+            ],
+            'payment_source' => [
+                'paypal' => [
+                    'name' => [
+                        'given_name' => 'Modern'
+                    ],
+                    'email_address' => 'modern@example.com'
+                ]
+            ]
+        ]));
+    }
+
+    public function testLegacyPayerDataRemainsSupported(): void
+    {
+        $legacyPayer = [
+            'name' => [
+                'given_name' => 'Legacy',
+                'surname' => 'Customer'
+            ],
+            'email_address' => 'legacy@example.com'
+        ];
+
+        self::assertSame(
+            $legacyPayer,
+            (new PaymentExpressDouble())->getPayerData([
+                'payer' => $legacyPayer
+            ])
+        );
     }
 }

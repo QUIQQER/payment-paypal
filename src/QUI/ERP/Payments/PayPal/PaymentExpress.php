@@ -7,6 +7,8 @@ use QUI;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\Users\User as QUIQQERUser;
 
+use function array_replace_recursive;
+use function is_array;
 use function mb_strtoupper;
 
 class PaymentExpress extends Payment
@@ -261,6 +263,7 @@ class PaymentExpress extends Payment
     protected function getQuiqqerAddressFromPayPalOrder(array $payPalOrder, QUIQQERUser $QuiqqerUser): QUI\Users\Address
     {
         $SystemUser = QUI::getUsers()->getSystemUser();
+        $payer = $this->getPayerDataFromPayPalOrder($payPalOrder);
 
         // Create Address
         $shipping = $payPalOrder['purchase_units'][0]['shipping'];
@@ -281,8 +284,8 @@ class PaymentExpress extends Payment
         }
 
         $Address = $QuiqqerUser->addAddress([
-            'firstname' => !empty($payPalOrder['payer']['name']['given_name']) ? $payPalOrder['payer']['name']['given_name'] : '',
-            'lastname' => !empty($payPalOrder['payer']['name']['surname']) ? $payPalOrder['payer']['name']['surname'] : '',
+            'firstname' => !empty($payer['name']['given_name']) ? $payer['name']['given_name'] : '',
+            'lastname' => !empty($payer['name']['surname']) ? $payer['name']['surname'] : '',
             'street_no' => implode(' ', $streetParts),
             'zip' => !empty($shipping['address']['postal_code']) ? $shipping['address']['postal_code'] : '',
             'city' => $city,
@@ -291,8 +294,8 @@ class PaymentExpress extends Payment
             ) : ''
         ], $SystemUser);
 
-        if (!empty($payPalOrder['payer']['email_address'])) {
-            $Address->addMail($payPalOrder['payer']['email_address']);
+        if (!empty($payer['email_address'])) {
+            $Address->addMail($payer['email_address']);
         }
 
         $Address->setCustomDataEntry('source', 'PayPal');
@@ -300,6 +303,28 @@ class PaymentExpress extends Payment
 
         // reload Address from DB to set correct attributes
         return new QUI\Users\Address($QuiqqerUser, $Address->getUUID());
+    }
+
+    /**
+     * Read buyer data from an Orders v2 response while supporting legacy responses.
+     *
+     * @param array<string, mixed> $payPalOrder
+     * @return array<string, mixed>
+     */
+    protected function getPayerDataFromPayPalOrder(array $payPalOrder): array
+    {
+        $legacyPayer = $payPalOrder['payer'] ?? [];
+        $paypalWallet = $payPalOrder['payment_source']['paypal'] ?? [];
+
+        if (!is_array($legacyPayer)) {
+            $legacyPayer = [];
+        }
+
+        if (!is_array($paypalWallet)) {
+            $paypalWallet = [];
+        }
+
+        return array_replace_recursive($legacyPayer, $paypalWallet);
     }
 
     /**
