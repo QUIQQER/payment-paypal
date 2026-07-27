@@ -7,6 +7,7 @@ spl_autoload_register(
         $prefixes = [
             'QUITests\\ERP\\Payments\\PayPal\\Unit\\' => __DIR__ . '/unit/',
             'QUITests\\ERP\\Payments\\PayPal\\Integration\\' => __DIR__ . '/integration/',
+            'QUI\\ERP\\Payments\\PayPal\\PhpSdk\\' => __DIR__ . '/stubs/PayPalPhpSdk/',
             'QUI\\ERP\\Payments\\PayPal\\' => __DIR__ . '/../src/QUI/ERP/Payments/PayPal/',
             'QUI\\ERP\\Shipping\\' => __DIR__ . '/stubs/QUI/ERP/Shipping/',
             'PaypalServerSdkLib\\' => __DIR__ . '/stubs/PaypalServerSdkLib/'
