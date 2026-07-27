@@ -966,7 +966,7 @@ class BillingAgreements
                 $Invoice->addHistory(
                     Utils::getHistoryText('invoice.add_paypal_transaction', [
                         'quiqqerTransactionId' => $InvoiceTransaction->getTxId(),
-                        'paypalTransactionId' => $transaction['id']
+                        'paypalTransactionId' => $transaction['transaction_id']
                     ])
                 );
             } catch (Exception $Exception) {
