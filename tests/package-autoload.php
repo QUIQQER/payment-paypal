@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+// Keep test shims ahead of installed optional packages so local and CI tests use the same contracts.
 spl_autoload_register(
     static function (string $class): void {
         $prefixes = [
@@ -30,5 +31,7 @@ spl_autoload_register(
 
             return;
         }
-    }
+    },
+    true,
+    true
 );

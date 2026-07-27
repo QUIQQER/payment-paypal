@@ -2,7 +2,7 @@
 
 namespace QUI\ERP\Accounting\Invoice;
 
-if (!class_exists(Invoice::class)) {
+if (!class_exists(Invoice::class, false)) {
     class Invoice
     {
         public function addHistory(string $message): void

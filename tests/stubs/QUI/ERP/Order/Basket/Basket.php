@@ -2,7 +2,7 @@
 
 namespace QUI\ERP\Order\Basket;
 
-if (!class_exists(Basket::class)) {
+if (!class_exists(Basket::class, false)) {
     class Basket
     {
         public function __construct(int $basketId = 0)

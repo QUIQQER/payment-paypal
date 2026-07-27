@@ -32,5 +32,6 @@ require_once __DIR__ . '/stubs/QUI/ERP/Accounting/Invoice/Invoice.php';
 require_once __DIR__ . '/stubs/QUI/ERP/Accounting/Invoice/InvoiceTemporary.php';
 require_once __DIR__ . '/stubs/QUI/ERP/Accounting/Invoice/InvoiceView.php';
 require_once __DIR__ . '/stubs/QUI/ERP/Accounting/Invoice/Handler.php';
+require_once __DIR__ . '/stubs/QUI/ERP/Plans/Handler.php';
 require_once __DIR__ . '/stubs/QUI/ERP/Plans/Utils.php';
 require_once __DIR__ . '/package-autoload.php';

@@ -2,7 +2,7 @@
 
 namespace QUI\ERP\Accounting\Invoice;
 
-if (!class_exists(Handler::class)) {
+if (!class_exists(Handler::class, false)) {
     class Handler
     {
         public static function getInstance(): self

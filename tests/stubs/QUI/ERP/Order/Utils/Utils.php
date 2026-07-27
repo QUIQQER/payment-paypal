@@ -2,7 +2,7 @@
 
 namespace QUI\ERP\Order\Utils;
 
-if (!class_exists(Utils::class)) {
+if (!class_exists(Utils::class, false)) {
     class Utils
     {
         public static function getOrderProcessUrl(

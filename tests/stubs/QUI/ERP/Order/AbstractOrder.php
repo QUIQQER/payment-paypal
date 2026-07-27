@@ -2,21 +2,35 @@
 
 namespace QUI\ERP\Order;
 
-if (!class_exists(AbstractOrder::class)) {
+if (!class_exists(AbstractOrder::class, false)) {
     abstract class AbstractOrder implements OrderInterface
     {
+        /** @var array<string, mixed> */
+        protected array $attributes = [];
+
+        protected ?\QUI\ERP\Accounting\ArticleList $Articles = null;
+
+        protected ?\QUI\ERP\Accounting\Payments\Types\Payment $stubPayment = null;
+
+        /** @var array<string, mixed> */
+        protected array $paymentData = [];
+
         public function addHistory(string $message): void
         {
         }
 
         public function getArticles(): \QUI\ERP\Accounting\ArticleList
         {
-            throw new \LogicException('PHPStan stub');
+            if ($this->Articles === null) {
+                throw new \LogicException('No article list configured for test order.');
+            }
+
+            return $this->Articles;
         }
 
         public function getAttribute(string $key): mixed
         {
-            return null;
+            return $this->attributes[$key] ?? null;
         }
 
         public function getCurrency(): \QUI\ERP\Currency\Currency
@@ -31,7 +45,14 @@ if (!class_exists(AbstractOrder::class)) {
 
         public function getDeliveryAddress(): \QUI\ERP\Address
         {
-            throw new \LogicException('PHPStan stub');
+            if (
+                property_exists($this, 'DeliveryAddress')
+                && $this->DeliveryAddress instanceof \QUI\ERP\Address
+            ) {
+                return $this->DeliveryAddress;
+            }
+
+            throw new \LogicException('No delivery address configured for test order.');
         }
 
         public function getGlobalProcessId(): string
@@ -46,17 +67,24 @@ if (!class_exists(AbstractOrder::class)) {
 
         public function getInvoiceAddress(): \QUI\ERP\Address
         {
-            throw new \LogicException('PHPStan stub');
+            if (
+                property_exists($this, 'InvoiceAddress')
+                && $this->InvoiceAddress instanceof \QUI\ERP\Address
+            ) {
+                return $this->InvoiceAddress;
+            }
+
+            throw new \LogicException('No invoice address configured for test order.');
         }
 
         public function getPayment(): ?\QUI\ERP\Accounting\Payments\Types\Payment
         {
-            return null;
+            return $this->stubPayment;
         }
 
         public function getPaymentDataEntry(string $key): mixed
         {
-            return null;
+            return $this->paymentData[$key] ?? null;
         }
 
         public function getPriceCalculation(): \QUI\ERP\Accounting\Calculations
@@ -69,9 +97,19 @@ if (!class_exists(AbstractOrder::class)) {
             return '';
         }
 
+        public function getHash(): string
+        {
+            return $this->getUUID();
+        }
+
         public function getUUID(): string
         {
             return '';
+        }
+
+        public function isSuccessful(): int
+        {
+            return 0;
         }
 
         public function recalculate(mixed $Basket = null): void
@@ -96,6 +134,7 @@ if (!class_exists(AbstractOrder::class)) {
 
         public function setPaymentData(string $key, mixed $value): void
         {
+            $this->paymentData[$key] = $value;
         }
 
         public function setShipping(\QUI\ERP\Shipping\Api\ShippingInterface $Shipping): void

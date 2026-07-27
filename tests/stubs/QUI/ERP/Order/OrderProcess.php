@@ -2,7 +2,7 @@
 
 namespace QUI\ERP\Order;
 
-if (!class_exists(OrderProcess::class)) {
+if (!class_exists(OrderProcess::class, false)) {
     class OrderProcess
     {
         /**
