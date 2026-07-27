@@ -13,6 +13,7 @@ final class OrderDouble extends AbstractOrder
 {
     public array $history = [];
     public ?User $updateUser = null;
+    public string $globalProcessIdValue = 'phpunit-global-process';
 
     public function __construct()
     {
@@ -48,6 +49,11 @@ final class OrderDouble extends AbstractOrder
     public function hasInvoice(): bool
     {
         return false;
+    }
+
+    public function getGlobalProcessId(): string
+    {
+        return $this->globalProcessIdValue;
     }
 
     public function setPaymentStatus(int $status, bool $force = false): void
