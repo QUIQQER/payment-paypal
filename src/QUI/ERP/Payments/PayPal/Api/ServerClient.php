@@ -22,8 +22,17 @@ final class ServerClient implements ServerClientInterface
 {
     private PaypalServerSdkClient $Client;
 
-    public function __construct(string $clientId, string $clientSecret, bool $sandbox)
-    {
+    public function __construct(
+        string $clientId,
+        string $clientSecret,
+        bool $sandbox,
+        ?PaypalServerSdkClient $Client = null
+    ) {
+        if ($Client !== null) {
+            $this->Client = $Client;
+            return;
+        }
+
         $environment = $sandbox ? Environment::SANDBOX : Environment::PRODUCTION;
 
         $this->Client = PaypalServerSdkClientBuilder::init()
