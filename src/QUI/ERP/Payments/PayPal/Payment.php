@@ -1591,7 +1591,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $OrderHandler = OrderHandler::getInstance();
 
         try {
-            return QUI::getQueryBuilder()
+            $rows = QUI::getQueryBuilder()
                 ->select(Doctrine::quoteIdentifier('id'))
                 ->from(Doctrine::quoteIdentifier($OrderHandler->table()))
                 ->where(Doctrine::quoteIdentifier('payment_id') . ' IN (:paymentTypeIds)')
@@ -1603,6 +1603,13 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 ], ArrayParameterType::INTEGER)
                 ->executeQuery()
                 ->fetchAllAssociative();
+
+            return array_map(
+                static fn(array $row): array => [
+                    'id' => is_int($row['id']) ? $row['id'] : (string)$row['id']
+                ],
+                $rows
+            );
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return [];

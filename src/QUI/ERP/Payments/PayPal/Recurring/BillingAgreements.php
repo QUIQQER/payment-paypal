@@ -884,13 +884,20 @@ class BillingAgreements
         }
 
         try {
-            return QUI::getQueryBuilder()
+            $rows = QUI::getQueryBuilder()
                 ->select(Doctrine::quoteIdentifier('global_process_id'))
                 ->from(Doctrine::quoteIdentifier(self::getBillingAgreementsTable()))
                 ->where(Doctrine::quoteIdentifier('global_process_id') . ' IN (:globalProcessIds)')
                 ->setParameter('globalProcessIds', $globalProcessIds, ArrayParameterType::STRING)
                 ->executeQuery()
                 ->fetchAllAssociative();
+
+            return array_map(
+                static fn(array $row): array => [
+                    'global_process_id' => (string)$row['global_process_id']
+                ],
+                $rows
+            );
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return [];

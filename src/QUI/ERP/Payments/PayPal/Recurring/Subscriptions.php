@@ -688,13 +688,20 @@ class Subscriptions
         }
 
         try {
-            return QUI::getQueryBuilder()
+            $rows = QUI::getQueryBuilder()
                 ->select(Doctrine::quoteIdentifier('global_process_id'))
                 ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
                 ->where(Doctrine::quoteIdentifier('global_process_id') . ' IN (:globalProcessIds)')
                 ->setParameter('globalProcessIds', $globalProcessIds, ArrayParameterType::STRING)
                 ->executeQuery()
                 ->fetchAllAssociative();
+
+            return array_map(
+                static fn(array $row): array => [
+                    'global_process_id' => (string)$row['global_process_id']
+                ],
+                $rows
+            );
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return [];
@@ -1342,7 +1349,10 @@ class Subscriptions
             return false;
         }
 
-        return $result;
+        return [
+            'paypal_product_id' => (string)$result['paypal_product_id'],
+            'paypal_plan_id' => (string)$result['paypal_plan_id']
+        ];
     }
 
     /**
