@@ -253,11 +253,11 @@ class Events
     {
         if (
             $paymentClass === QUI\ERP\Payments\PayPal\Recurring\Payment::class
-            && !QUI::getPackageManager()->isInstalled('quiqqer/erp-plans')
+            && !static::isPlansInstalled()
         ) {
             throw new PaymentCanNotBeUsed(
                 QUI::getLocale()->get(
-                    'quiqqer/payments-paypal',
+                    'quiqqer/payment-paypal',
                     'exception.onPaymentsCreateBegin.erp_plans_missing'
                 )
             );
@@ -276,7 +276,7 @@ class Events
      */
     public static function onPaymentsCanUsedInOrder(Payment $Payment, OrderInterface $Order): void
     {
-        if (!QUI::getPackageManager()->isInstalled('quiqqer/erp-plans')) {
+        if (!static::isPlansInstalled()) {
             return;
         }
 
@@ -317,5 +317,10 @@ class Events
         if (QUI\ERP\Plans\Utils::compareDateIntervals($InvoiceInterval, $OneYearInterval) === 1) {
             throw new PaymentCanNotBeUsed();
         }
+    }
+
+    protected static function isPlansInstalled(): bool
+    {
+        return QUI::getPackageManager()->isInstalled('quiqqer/erp-plans');
     }
 }
