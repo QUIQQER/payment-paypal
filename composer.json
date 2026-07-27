@@ -33,6 +33,11 @@
       "QUI\\ERP\\Payments\\PayPal\\": "src/QUI/ERP/Payments/PayPal"
     }
   },
+  "autoload-dev": {
+    "psr-4": {
+      "QUITests\\ERP\\Payments\\PayPal\\": "tests/QUITests/ERP/Payments/PayPal"
+    }
+  },
   "scripts": {
     "test": [
       "@dev:lint",
