@@ -30,6 +30,16 @@ final class PaymentExpressDouble extends PaymentExpress
         return $this->getPayerDataFromPayPalOrder($payPalOrder);
     }
 
+    public function createAddressForTest(
+        array $payPalOrder,
+        User $QuiqqerUser
+    ): Address {
+        return parent::getQuiqqerAddressFromPayPalOrder(
+            $payPalOrder,
+            $QuiqqerUser
+        );
+    }
+
     protected function getPayPalOrderDetails(AbstractOrder $Order): bool|array
     {
         return $this->payPalOrder;
@@ -48,6 +58,13 @@ final class PaymentExpressDouble extends PaymentExpress
     protected function getQuiqqerAddressFromPayPalOrder(
         array $payPalOrder,
         User $QuiqqerUser
+    ): Address {
+        return $this->PayPalAddress;
+    }
+
+    protected function reloadQuiqqerAddress(
+        User $QuiqqerUser,
+        string|int $addressId
     ): Address {
         return $this->PayPalAddress;
     }

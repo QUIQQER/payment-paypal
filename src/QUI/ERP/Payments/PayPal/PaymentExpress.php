@@ -314,7 +314,17 @@ class PaymentExpress extends Payment
         $Address->save($SystemUser);
 
         // reload Address from DB to set correct attributes
-        return new QUI\Users\Address($QuiqqerUser, $Address->getUUID());
+        return $this->reloadQuiqqerAddress(
+            $QuiqqerUser,
+            $Address->getUUID()
+        );
+    }
+
+    protected function reloadQuiqqerAddress(
+        QUIQQERUser $QuiqqerUser,
+        string|int $addressId
+    ): QUI\Users\Address {
+        return new QUI\Users\Address($QuiqqerUser, $addressId);
     }
 
     /**
