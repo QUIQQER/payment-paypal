@@ -22,7 +22,6 @@
     "php": "^8.2",
     "quiqqer/core": "^2",
     "quiqqer/payments": "^3",
-    "paypal/paypal-checkout-sdk": "^1.0.1",
     "paypal/paypal-server-sdk": "^2.3",
     "quiqqer/paypal-rest-api-sdk-php": "^1|dev-main"
   },
