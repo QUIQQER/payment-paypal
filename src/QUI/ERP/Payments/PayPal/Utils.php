@@ -90,7 +90,7 @@ class Utils
 
         $Shipping = Shipping::getInstance()->getShippingByObject($Order);
 
-        if (!$Shipping || $Shipping->getAddress()) {
+        if (!$Shipping || !$Shipping->getAddress()) {
             return false;
         }
 
