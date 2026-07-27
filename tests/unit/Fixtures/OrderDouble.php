@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Unit\Fixtures;
 use QUI\ERP\Accounting\Invoice\Invoice;
 use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Order\AbstractOrder;
+use QUI\ERP\Shipping\Api\ShippingInterface;
 use QUI\Interfaces\Users\User;
 
 final class OrderDouble extends AbstractOrder
@@ -14,6 +15,7 @@ final class OrderDouble extends AbstractOrder
     public array $history = [];
     public ?User $updateUser = null;
     public string $globalProcessIdValue = 'phpunit-global-process';
+    public ?ShippingInterface $Shipping = null;
 
     public function __construct()
     {
@@ -58,6 +60,11 @@ final class OrderDouble extends AbstractOrder
 
     public function setPaymentStatus(int $status, bool $force = false): void
     {
+    }
+
+    public function setShipping(ShippingInterface $Shipping): void
+    {
+        $this->Shipping = $Shipping;
     }
 
     public function addHistory(string $message): void
