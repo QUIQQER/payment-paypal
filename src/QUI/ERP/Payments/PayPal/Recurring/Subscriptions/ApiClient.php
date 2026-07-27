@@ -28,8 +28,8 @@ class ApiClient
 
     /**
      * @param string $path
-     * @param array $body
-     * @return array
+     * @param array<mixed> $body
+     * @return array<mixed>
      * @throws PayPalException
      */
     public function post(string $path, array $body = []): array
@@ -39,8 +39,8 @@ class ApiClient
 
     /**
      * @param string $path
-     * @param array $body
-     * @return array
+     * @param array<mixed> $body
+     * @return array<mixed>
      * @throws PayPalException
      */
     public function get(string $path, array $body = []): array
@@ -53,7 +53,7 @@ class ApiClient
     }
 
     /**
-     * @param array $headers
+     * @param array<string, string> $headers
      * @param string $rawBody
      * @param string $webhookId
      * @return bool
@@ -83,18 +83,12 @@ class ApiClient
     /**
      * @param string $method
      * @param string $path
-     * @param array|null $body
-     * @return array
+     * @param array<mixed>|null $body
+     * @return array<mixed>
      * @throws PayPalException
      */
     protected function request(string $method, string $path, ?array $body = null): array
     {
-        $Curl = curl_init($this->getBaseUrl() . $path);
-
-        if ($Curl === false) {
-            throw new PayPalException('Could not initialize PayPal request.');
-        }
-
         $headers = [
             'Accept: application/json',
             'Authorization: Bearer ' . $this->getAccessToken()
@@ -107,17 +101,19 @@ class ApiClient
             $headers[] = 'Content-Type: application/json';
         }
 
-        curl_setopt_array($Curl, [
-            CURLOPT_CUSTOMREQUEST => $method,
-            CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_POSTFIELDS => $payload,
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 30
-        ]);
-
-        $result = curl_exec($Curl);
-        $status = curl_getinfo($Curl, CURLINFO_RESPONSE_CODE);
-        curl_close($Curl);
+        $curlResponse = $this->executeCurlRequest(
+            $this->getBaseUrl() . $path,
+            [
+                CURLOPT_CUSTOMREQUEST => $method,
+                CURLOPT_HTTPHEADER => $headers,
+                CURLOPT_POSTFIELDS => $payload,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30
+            ],
+            'Could not initialize PayPal request.'
+        );
+        $result = $curlResponse['body'];
+        $status = $curlResponse['status'];
 
         if ($result === false) {
             throw new PayPalException('PayPal request failed.');
@@ -174,28 +170,24 @@ class ApiClient
             $clientSecret = Provider::getApiSetting('client_secret');
         }
 
-        $Curl = curl_init($this->getBaseUrl() . '/v1/oauth2/token');
-
-        if ($Curl === false) {
-            throw new PayPalException('Could not initialize PayPal OAuth request.');
-        }
-
-        curl_setopt_array($Curl, [
-            CURLOPT_CUSTOMREQUEST => 'POST',
-            CURLOPT_HTTPHEADER => [
-                'Accept: application/json',
-                'Accept-Language: en_US',
-                'Content-Type: application/x-www-form-urlencoded'
+        $curlResponse = $this->executeCurlRequest(
+            $this->getBaseUrl() . '/v1/oauth2/token',
+            [
+                CURLOPT_CUSTOMREQUEST => 'POST',
+                CURLOPT_HTTPHEADER => [
+                    'Accept: application/json',
+                    'Accept-Language: en_US',
+                    'Content-Type: application/x-www-form-urlencoded'
+                ],
+                CURLOPT_POSTFIELDS => 'grant_type=client_credentials',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_USERPWD => $clientId . ':' . $clientSecret
             ],
-            CURLOPT_POSTFIELDS => 'grant_type=client_credentials',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT => 30,
-            CURLOPT_USERPWD => $clientId . ':' . $clientSecret
-        ]);
-
-        $result = curl_exec($Curl);
-        $status = curl_getinfo($Curl, CURLINFO_RESPONSE_CODE);
-        curl_close($Curl);
+            'Could not initialize PayPal OAuth request.'
+        );
+        $result = $curlResponse['body'];
+        $status = $curlResponse['status'];
 
         if ($result === false) {
             throw new PayPalException('Could not fetch PayPal access token.');
@@ -215,6 +207,35 @@ class ApiClient
         $this->accessToken = $response['access_token'];
 
         return $this->accessToken;
+    }
+
+    /**
+     * @param array<int, mixed> $options
+     * @return array{body: string|false, status: int}
+     * @throws PayPalException
+     */
+    protected function executeCurlRequest(
+        string $url,
+        array $options,
+        string $initializationError
+    ): array {
+        $Curl = curl_init($url);
+
+        if ($Curl === false) {
+            throw new PayPalException($initializationError);
+        }
+
+        curl_setopt_array($Curl, $options);
+
+        $curlResult = curl_exec($Curl);
+        $result = $curlResult === false ? false : (string)$curlResult;
+        $status = (int)curl_getinfo($Curl, CURLINFO_RESPONSE_CODE);
+        curl_close($Curl);
+
+        return [
+            'body' => $result,
+            'status' => $status
+        ];
     }
 
     /**
