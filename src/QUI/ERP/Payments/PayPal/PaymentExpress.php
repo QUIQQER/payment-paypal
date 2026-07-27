@@ -114,7 +114,7 @@ class PaymentExpress extends Payment
          */
         $Order->addHistory('PayPal Express :: Set Order Payment');
 
-        $Payment = Provider::getPayPalExpressPayment();
+        $Payment = $this->getExpressPayment();
 
         if (!$Payment) {
             $Order->addHistory(
@@ -146,7 +146,9 @@ class PaymentExpress extends Payment
         }
 
         $Customer = $Order->getCustomer();
-        $CustomerQuiqqerUser = QUI::getUsers()->get($Customer->getUUID());
+        $CustomerQuiqqerUser = $this->getQuiqqerUser(
+            $Customer->getUUID()
+        );
 
         $InvoiceAddress = false;
         $PayPalQuiqqerAddress = $this->getQuiqqerAddressFromPayPalOrder($payPalOrder, $CustomerQuiqqerUser);
@@ -245,6 +247,16 @@ class PaymentExpress extends Payment
         $this->setDefaultShipping($Order);
 
         $this->updatePayPalOrder($Order);
+    }
+
+    protected function getExpressPayment(): bool|QUI\ERP\Accounting\Payments\Types\Payment
+    {
+        return Provider::getPayPalExpressPayment();
+    }
+
+    protected function getQuiqqerUser(string|int $userId): QUIQQERUser
+    {
+        return QUI::getUsers()->get($userId);
     }
 
     /**

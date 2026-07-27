@@ -7,12 +7,14 @@ namespace QUITests\ERP\Payments\PayPal\Unit\Fixtures;
 use QUI\ERP\Accounting\Invoice\Invoice;
 use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Accounting\ArticleList;
+use QUI\ERP\Address as ErpAddress;
 use QUI\ERP\Accounting\Calculations;
 use QUI\ERP\Currency\Currency;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Shipping\Api\ShippingInterface;
 use QUI\ERP\User as ErpUser;
 use QUI\Interfaces\Users\User;
+use QUI\Users\Address as UserAddress;
 use RuntimeException;
 
 final class OrderDouble extends AbstractOrder
@@ -27,6 +29,9 @@ final class OrderDouble extends AbstractOrder
     public ?ErpUser $CustomerValue = null;
     public bool $successfulStatusSet = false;
     public int $refreshCount = 0;
+    public int|string|null $configuredPaymentId = null;
+    public array|ErpAddress|UserAddress|null $InvoiceAddress = null;
+    public array|ErpAddress|null $DeliveryAddress = null;
 
     public function __construct()
     {
@@ -119,6 +124,22 @@ final class OrderDouble extends AbstractOrder
     public function setShipping(ShippingInterface $Shipping): void
     {
         $this->Shipping = $Shipping;
+    }
+
+    public function setPayment(int|string $paymentId): void
+    {
+        $this->configuredPaymentId = $paymentId;
+    }
+
+    public function setInvoiceAddress(
+        array|ErpAddress|UserAddress $address
+    ): void {
+        $this->InvoiceAddress = $address;
+    }
+
+    public function setDeliveryAddress(array|ErpAddress $address): void
+    {
+        $this->DeliveryAddress = $address;
     }
 
     public function useArticles(ArticleList $Articles): void
