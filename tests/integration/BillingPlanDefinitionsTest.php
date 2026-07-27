@@ -11,6 +11,7 @@ use QUI\ERP\Accounting\Article;
 use QUI\ERP\Accounting\ArticleList;
 use QUI\ERP\Accounting\Calculations;
 use QUI\ERP\Accounting\CalculationValue;
+use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Currency\Currency;
 use QUI\ERP\Payments\PayPal\Recurring\BillingPlans;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
@@ -19,6 +20,7 @@ use QUI\ERP\Products\Product\Product;
 use QUI\ERP\User;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\BillingPlansDouble;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
+use QUITests\ERP\Payments\PayPal\Unit\Fixtures\PaymentWorkflowDouble;
 
 final class BillingPlanDefinitionsTest extends TestCase
 {
@@ -26,6 +28,11 @@ final class BillingPlanDefinitionsTest extends TestCase
 
     protected function tearDown(): void
     {
+        BillingPlansDouble::usePayment(null);
+        BillingPlansDouble::$PlanProduct = null;
+        BillingPlansDouble::$Gateway = null;
+        BillingPlansDouble::$planDetails = [];
+
         $this->connection()->delete(
             BillingPlans::getBillingPlansTable(),
             ['paypal_id' => self::PLAN_ID]
@@ -110,6 +117,54 @@ final class BillingPlanDefinitionsTest extends TestCase
         self::assertSame(
             'PLAN-FROM-ORDER',
             BillingPlansDouble::createBillingPlanFromOrder($Order)
+        );
+    }
+
+    public function testMissingPlanIsCreatedAndActivated(): void
+    {
+        $Payment = new PaymentWorkflowDouble();
+        $Payment->apiResponses = [
+            Payment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN => [
+                'id' => self::PLAN_ID
+            ],
+            Payment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN => []
+        ];
+        BillingPlansDouble::usePayment($Payment);
+
+        $Gateway = $this->createMock(Gateway::class);
+        $Gateway->method('getSuccessUrl')->willReturn(
+            'https://example.test/success?'
+        );
+        $Gateway->method('getCancelUrl')->willReturn(
+            'https://example.test/cancel?'
+        );
+        BillingPlansDouble::$Gateway = $Gateway;
+        BillingPlansDouble::$PlanProduct = $this->planProduct(true);
+        BillingPlansDouble::$planDetails = [
+            'auto_extend' => true
+        ];
+
+        $Order = $this->pricedOrder();
+        $Articles = new ArticleList();
+        $Articles->addArticle($this->article(99));
+        $Order->useArticles($Articles);
+
+        self::assertSame(
+            self::PLAN_ID,
+            BillingPlansDouble::createBillingPlanFromOrder($Order)
+        );
+        self::assertSame(
+            Payment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN,
+            $Payment->apiCalls[0]['request']
+        );
+        self::assertSame('INFINITE', $Payment->apiCalls[0]['body']['type']);
+        self::assertSame(
+            'https://example.test/success',
+            $Payment->apiCalls[0]['body']['merchant_preferences']['return_url']
+        );
+        self::assertSame(
+            Payment::PAYPAL_REQUEST_TYPE_UPDATE_BILLING_PLAN,
+            $Payment->apiCalls[1]['request']
         );
     }
 

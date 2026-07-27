@@ -51,7 +51,7 @@ class BillingPlans
             return $Order->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_PLAN_ID);
         }
 
-        $billingPlanId = self::getBillingPlanIdByOrder($Order);
+        $billingPlanId = static::getBillingPlanIdByOrder($Order);
 
         if ($billingPlanId !== false) {
             return $billingPlanId;
@@ -63,21 +63,14 @@ class BillingPlans
             );
         }
 
-        if (!QUI\ERP\Plans\Utils::isPlanOrder($Order)) {
+        if (!static::isPlanOrder($Order)) {
             throw new QUI\ERP\Accounting\Payments\Exception(
                 'Order #' . $Order->getUUID() . ' contains no plan products.'
             );
         }
 
         // Create new Billing Plan
-        $PlanProduct = false;
-
-        /** @var QUI\ERP\Accounting\Article $Article */
-        foreach ($Order->getArticles() as $Article) {
-            if ($PlanProduct === false && QUI\ERP\Plans\Utils::isPlanArticle($Article)) {
-                $PlanProduct = ProductsHandler::getProduct($Article->getId());
-            }
-        }
+        $PlanProduct = static::getPlanProduct($Order);
 
         // Read name and description from PlanProduct (= Product that contains subscription plan information)
         $Locale = $Order->getCustomer()->getLocale();
@@ -106,18 +99,17 @@ class BillingPlans
         ];
 
         // Parse billing plan details from order
-        $planDetails = QUI\ERP\Plans\Utils::getPlanDetailsFromOrder($Order);
+        $planDetails = static::getPlanDetailsFromOrder($Order);
 
         // Determine plan type
         $autoExtend = !empty($planDetails['auto_extend']);
         $body['type'] = $autoExtend ? 'INFINITE' : 'FIXED';
 
         // Determine payment definitions
-        $body['payment_definitions'] = self::parsePaymentDefinitionsFromOrder($Order, $PlanProduct);
+        $body['payment_definitions'] = static::parsePaymentDefinitionsFromOrder($Order, $PlanProduct);
 
         // Merchant preferences
-        $Gateway = new Gateway();
-        $Gateway->setOrder($Order);
+        $Gateway = static::createGatewayForOrder($Order);
 
         $body['merchant_preferences'] = [
             'cancel_url' => rtrim($Gateway->getCancelUrl(), '?'),
@@ -125,7 +117,7 @@ class BillingPlans
         ];
 
         // Create Billing Plan
-        $response = self::payPalApiRequest(
+        $response = static::payPalApiRequest(
             RecurringPayment::PAYPAL_REQUEST_TYPE_CREATE_BILLING_PLAN,
             $body,
             $Order
@@ -135,17 +127,51 @@ class BillingPlans
 
         // Save reference in database
         QUI::getDataBase()->insert(
-            self::getBillingPlansTable(),
+            static::getBillingPlansTable(),
             [
                 'paypal_id' => $billingPlanId,
-                'identification_hash' => self::getIdentificationHash($Order)
+                'identification_hash' => static::getIdentificationHash($Order)
             ]
         );
 
         // Activate new billing plan
-        self::activateBillingPlan($billingPlanId);
+        static::activateBillingPlan($billingPlanId);
 
         return $billingPlanId;
+    }
+
+    protected static function isPlanOrder(AbstractOrder $Order): bool
+    {
+        return QUI\ERP\Plans\Utils::isPlanOrder($Order);
+    }
+
+    protected static function getPlanProduct(AbstractOrder $Order): Product
+    {
+        /** @var QUI\ERP\Accounting\Article $Article */
+        foreach ($Order->getArticles() as $Article) {
+            if (QUI\ERP\Plans\Utils::isPlanArticle($Article)) {
+                return ProductsHandler::getProduct($Article->getId());
+            }
+        }
+
+        throw new QUI\ERP\Accounting\Payments\Exception(
+            'Order #' . $Order->getUUID() . ' contains no plan products.'
+        );
+    }
+
+    protected static function getPlanDetailsFromOrder(
+        AbstractOrder $Order
+    ): array {
+        return QUI\ERP\Plans\Utils::getPlanDetailsFromOrder($Order);
+    }
+
+    protected static function createGatewayForOrder(
+        AbstractOrder $Order
+    ): Gateway {
+        $Gateway = new Gateway();
+        $Gateway->setOrder($Order);
+
+        return $Gateway;
     }
 
     public static function updateBillingPlan(AbstractOrder $Order)
