@@ -47,7 +47,7 @@ final class EventsDouble extends Events
         return 'test-' . $key;
     }
 
-    protected static function getPayPalExpressPayment(): bool|Payment
+    protected static function getPayPalExpressPayment(): false|Payment
     {
         return self::$ExpressPayment ?? false;
     }

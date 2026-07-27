@@ -184,6 +184,7 @@ class PaymentExpress extends Payment
                  * address data is empty, then set PayPal address data to standard address.
                  */
                 if (
+                    $StandardAddress instanceof QUI\Users\Address &&
                     $StandardAddress->getAttribute('firstname') === $PayPalQuiqqerAddress->getAttribute('firstname') &&
                     $StandardAddress->getAttribute('lastname') === $PayPalQuiqqerAddress->getAttribute('lastname')
                 ) {
@@ -225,7 +226,7 @@ class PaymentExpress extends Payment
             }
 
             // Set the PayPal address as default address if no default address previously set
-            if (!$StandardAddress) {
+            if (!$StandardAddress instanceof QUI\Users\Address) {
                 $CustomerQuiqqerUser->setAttribute('address', $InvoiceAddress->getUUID());
                 $CustomerQuiqqerUser->save($SystemUser);
 
@@ -249,14 +250,20 @@ class PaymentExpress extends Payment
         $this->updatePayPalOrder($Order);
     }
 
-    protected function getExpressPayment(): bool|QUI\ERP\Accounting\Payments\Types\Payment
+    protected function getExpressPayment(): false|QUI\ERP\Accounting\Payments\Types\Payment
     {
         return Provider::getPayPalExpressPayment();
     }
 
     protected function getQuiqqerUser(string|int $userId): QUIQQERUser
     {
-        return QUI::getUsers()->get($userId);
+        $User = QUI::getUsers()->get($userId);
+
+        if (!$User instanceof QUIQQERUser) {
+            throw new QUI\Exception('PayPal Express requires a persistent QUIQQER user.');
+        }
+
+        return $User;
     }
 
     /**
@@ -314,10 +321,13 @@ class PaymentExpress extends Payment
         $Address->save($SystemUser);
 
         // reload Address from DB to set correct attributes
-        return $this->reloadQuiqqerAddress(
-            $QuiqqerUser,
-            $Address->getUUID()
-        );
+        $addressId = $Address->getUUID();
+
+        if ($addressId === null) {
+            throw new QUI\Exception('The PayPal invoice address has no UUID.');
+        }
+
+        return $this->reloadQuiqqerAddress($QuiqqerUser, $addressId);
     }
 
     protected function reloadQuiqqerAddress(
@@ -363,7 +373,7 @@ class PaymentExpress extends Payment
         $Control = new ExpressPaymentDisplay();
         $Control->setAttribute('Order', $Order);
 
-        $Step->setTitle(
+        $Step?->setTitle(
             QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
                 'payment.step.title'
@@ -371,7 +381,7 @@ class PaymentExpress extends Payment
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
+        $Step?->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
 
         return $Control->create();
     }

@@ -19,7 +19,7 @@ QUI::getAjax()->registerFunction(
         $searchParams = Orthos::clearArray(json_decode($searchParams, true));
 
         $page = 0;
-        $perPage = null;
+        $perPage = 10;
 
         if (!empty($searchParams['page'])) {
             $page = (int)$searchParams['page'] - 1;

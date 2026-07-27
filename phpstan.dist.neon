@@ -11,5 +11,7 @@ parameters:
         - ajax
     bootstrapFiles:
         - tests/phpstan-bootstrap.php
+    stubFiles:
+        - tests/phpstan-stubs/QUI/ERP/Order/Utils/Utils.stub
     treatPhpDocTypesAsCertain: false
     tipsOfTheDay: false

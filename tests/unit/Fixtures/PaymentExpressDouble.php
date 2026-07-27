@@ -13,7 +13,7 @@ use QUI\Users\User;
 final class PaymentExpressDouble extends PaymentExpress
 {
     public array|bool $payPalOrder = [];
-    public bool|Payment $ExpressPayment = false;
+    public false|Payment $ExpressPayment = false;
     public ?User $QuiqqerUser = null;
     public ?Address $PayPalAddress = null;
     public int $voidCount = 0;
@@ -45,7 +45,7 @@ final class PaymentExpressDouble extends PaymentExpress
         return $this->payPalOrder;
     }
 
-    protected function getExpressPayment(): bool|Payment
+    protected function getExpressPayment(): false|Payment
     {
         return $this->ExpressPayment;
     }

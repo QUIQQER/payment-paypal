@@ -137,6 +137,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     public function executeGatewayPayment(QUI\ERP\Accounting\Payments\Gateway\Gateway $Gateway): void
     {
         $Order = $Gateway->getOrder();
+
+        if (!$Order instanceof AbstractOrder) {
+            throw new QUI\Exception('The PayPal recurring gateway has no order.');
+        }
+
         $OrderProcess = new QUI\ERP\Order\OrderProcess([
             'orderHash' => $Order->getUUID()
         ]);
@@ -149,10 +154,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                     Subscriptions::approveSubscription($Order, $_REQUEST['subscription_id']);
 
                     $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Finish([
-                        'Order' => $Gateway->getOrder()
+                        'Order' => $Order
                     ]);
 
-                    $Gateway->getOrder()->setSuccessfulStatus();
+                    $Order->setSuccessfulStatus();
                 } catch (PayPalException) {
                     $goToBasket = true;
                 } catch (\Exception $Exception) {
@@ -166,10 +171,10 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                     BillingAgreements::executeBillingAgreement($Order, $_REQUEST['token']);
 
                     $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Finish([
-                        'Order' => $Gateway->getOrder()
+                        'Order' => $Order
                     ]);
 
-                    $Gateway->getOrder()->setSuccessfulStatus();
+                    $Order->setSuccessfulStatus();
                 } catch (PayPalException) {
                     $goToBasket = true;
                 } catch (\Exception $Exception) {
@@ -179,7 +184,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             }
         } elseif ($Gateway->isCancelRequest()) {
             $GoToStep = new OrderProcessStepPayments([
-                'Order' => $Gateway->getOrder()
+                'Order' => $Order
             ]);
         } else {
             $goToBasket = true;
@@ -187,7 +192,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
 
         if ($goToBasket) {
             $GoToStep = new QUI\ERP\Order\Controls\OrderProcess\Basket([
-                'Order' => $Gateway->getOrder()
+                'Order' => $Order
             ]);
         }
 
@@ -201,7 +206,13 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         //$Redirect = new RedirectResponse($processingUrl);
 
         $status = $goToBasket ? 'error' : 'success';
-        $url = QUI::getRewrite()->getProject()->getVHost(true, true);
+        $Project = QUI::getRewrite()->getProject();
+
+        if ($Project === null) {
+            throw new QUI\Exception('Could not determine the project for the PayPal redirect.');
+        }
+
+        $url = $Project->getVHost(true, true);
         $url .= URL_OPT_DIR . 'quiqqer/payment-paypal/bin/recurringReturn.php';
         $url .= '?orderHash=' . urlencode($Order->getUUID());
         $url .= '&status=' . $status;
@@ -229,7 +240,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         $Control = new PaymentDisplay();
         $Control->setAttribute('Order', $Order);
 
-        $Step->setTitle(
+        $Step?->setTitle(
             QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
                 'payment.step.title'
@@ -237,7 +248,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__, 2) . '/PaymentDisplay.Header.html'));
+        $Step?->setContent($Engine->fetch(dirname(__FILE__, 2) . '/PaymentDisplay.Header.html'));
 
         return $Control->create();
     }
@@ -373,7 +384,13 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     public function getInvoiceInformationText(Invoice | InvoiceTemporary | InvoiceView $Invoice): string
     {
         try {
-            return $Invoice->getCustomer()->getLocale()->get(
+            $Customer = $Invoice->getCustomer();
+
+            if ($Customer === null) {
+                return '';
+            }
+
+            return $Customer->getLocale()->get(
                 'quiqqer/payment-paypal',
                 'recurring.additional_invoice_text'
             );
@@ -415,12 +432,18 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             $this->throwPayPalException(self::PAYPAL_ERROR_NO_BILLING_AGREEMENT_TRANSACTION);
         }
 
+        $Payment = $Transaction->getPayment();
+
+        if ($Payment === null) {
+            $this->throwPayPalException();
+        }
+
         // create a refund transaction
         $RefundTransaction = TransactionFactory::createPaymentRefundTransaction(
             $amount,
             $Transaction->getCurrency(),
             $refundHash,
-            $Transaction->getPayment()->getName(),
+            $Payment->getName(),
             [
                 'isRefund' => 1,
                 'message' => $reason
@@ -514,7 +537,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         }
 
         try {
-            $billingAgreement = BillingAgreements::getBillingAgreementDetails($subscriptionId);
+            $billingAgreement = BillingAgreements::getBillingAgreementDetails((string)$subscriptionId);
         } catch (\Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return true;
@@ -610,12 +633,12 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             return $subscriptionData['globalProcessId'] ?: false;
         }
 
-        $data = BillingAgreements::getBillingAgreementData($subscriptionId);
+        $data = BillingAgreements::getBillingAgreementData((string)$subscriptionId);
 
         if (empty($data)) {
             return false;
         }
 
-        return $data['globalProcessId'];
+        return $data['globalProcessId'] ?: false;
     }
 }

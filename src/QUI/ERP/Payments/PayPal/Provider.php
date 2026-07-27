@@ -94,7 +94,7 @@ class Provider extends AbstractPaymentProvider
      * @return QUI\ERP\Accounting\Payments\Types\Payment|false
      * @throws QUI\Database\Exception
      */
-    public static function getPayPalExpressPayment(): QUI\ERP\Accounting\Payments\Types\Payment|bool
+    public static function getPayPalExpressPayment(): QUI\ERP\Accounting\Payments\Types\Payment|false
     {
         $payments = PaymentsFactory::getInstance()->getChildren([
             'where' => ['payment_type' => PaymentExpress::class]
@@ -104,7 +104,13 @@ class Provider extends AbstractPaymentProvider
             return false;
         }
 
-        return current($payments);
+        $Payment = current($payments);
+
+        if (!$Payment instanceof QUI\ERP\Accounting\Payments\Types\Payment) {
+            return false;
+        }
+
+        return $Payment;
     }
 
     /**

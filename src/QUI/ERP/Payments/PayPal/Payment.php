@@ -257,7 +257,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Control->setAttribute('Order', $Order);
         $Control->setAttribute('Payment', $this);
 
-        $Step->setTitle(
+        $Step?->setTitle(
             QUI::getLocale()->get(
                 'quiqqer/payment-paypal',
                 'payment.step.title'
@@ -265,7 +265,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         );
 
         $Engine = QUI::getTemplateManager()->getEngine();
-        $Step->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
+        $Step?->setContent($Engine->fetch(dirname(__FILE__) . '/PaymentDisplay.Header.html'));
 
         return $Control->create();
     }
@@ -639,12 +639,18 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED_ORDER_NOT_CAPTURED);
         }
 
+        $Payment = $Transaction->getPayment();
+
+        if ($Payment === null) {
+            $this->throwPayPalException();
+        }
+
         // create a refund transaction
         $RefundTransaction = TransactionFactory::createPaymentRefundTransaction(
             $amount,
             $Transaction->getCurrency(),
             $refundHash,
-            $Transaction->getPayment()->getName(),
+            $Payment->getName(),
             [
                 'isRefund' => 1,
                 'message' => $reason
@@ -788,7 +794,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         if (!empty($ShippingCost)) {
-            $shippingCost = Utils::formatPrice($ShippingCost->getSum());
+            $shippingCost = Utils::formatPrice((float)$ShippingCost->getSum());
             $amountDetails['shipping'] = $shippingCost;
 
             $amount['breakdown']['shipping'] = [
@@ -802,7 +808,6 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         // Article List
         $displayItemList = boolval(Provider::getPaymentSetting('display_paypal_basket'));
 
-        /** @var QUI\ERP\Products\Interfaces\PriceFactorInterface $PriceFactor */
         foreach ($Order->getArticles()->getPriceFactors() as $PriceFactor) {
             if ($ShippingCost && $PriceFactor === $ShippingCost) {
                 continue;
@@ -830,7 +835,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 // Article name
                 $articleName = $OrderArticle->getTitle();
 
-                if (empty($articleName)) {
+                if (empty($articleName) && method_exists($OrderArticle, 'getArticleNo')) {
                     $articleName = $OrderArticle->getArticleNo();
                 }
 
@@ -861,7 +866,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 }
 
                 // Optional: product article no.
-                $articleNo = $OrderArticle->getArticleNo();
+                $articleNo = method_exists($OrderArticle, 'getArticleNo')
+                    ? $OrderArticle->getArticleNo()
+                    : null;
 
                 if (!empty($articleNo)) {
                     $item['sku'] = $articleNo;
@@ -1139,7 +1146,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 return $TransactionObj->getData($key);
             }
 
-            if (is_array($TransactionObj) && array_key_exists($key, $TransactionObj)) {
+            if (array_key_exists($key, $TransactionObj)) {
                 return $TransactionObj[$key];
             }
 

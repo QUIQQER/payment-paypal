@@ -59,14 +59,6 @@ class Events
             return;
         }
 
-        if (
-            !($Basket instanceof Basket)
-            && !($Basket instanceof BasketOrder)
-            && !($Basket instanceof BasketGuest)
-        ) {
-            return;
-        }
-
         $checkout = 0;
         $orderHash = $Order->getUUID();
         $Payment = $Order->getPayment();
@@ -80,11 +72,12 @@ class Events
         }
 
         $sandbox = static::getApiSetting('sandbox') ? 1 : 0;
+        $basketId = $Basket instanceof BasketGuest ? 0 : $Basket->getId();
 
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="basket"
-                  data-qui-options-basketid="' . $Basket->getId() . '"
+                  data-qui-options-basketid="' . $basketId . '"
                   data-qui-options-sandbox="' . $sandbox . '"
                   data-qui-options-orderhash="' . $orderHash . '"
                   data-qui-options-checkout="' . $checkout . '"
@@ -351,7 +344,7 @@ class Events
         return Provider::getWidgetsSetting($key);
     }
 
-    protected static function getPayPalExpressPayment(): bool|Payment
+    protected static function getPayPalExpressPayment(): false|Payment
     {
         return Provider::getPayPalExpressPayment();
     }
@@ -360,7 +353,11 @@ class Events
     {
         $Project = QUI::getProjectManager()->getStandard();
 
-        return OrderUtils::getOrderProcessUrl($Project, new CheckoutStep());
+        if ($Project === null) {
+            return '';
+        }
+
+        return OrderUtils::getOrderProcessUrl($Project, new CheckoutStep()) ?? '';
     }
 
     protected static function isNobodyUser(): bool

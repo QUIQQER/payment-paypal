@@ -712,7 +712,13 @@ class Subscriptions
         InvoiceHandler $Invoices,
         int|string $invoiceId
     ): Invoice {
-        return $Invoices->get($invoiceId);
+        $Invoice = $Invoices->get($invoiceId);
+
+        if (!$Invoice instanceof Invoice) {
+            throw new \UnexpectedValueException('Expected a persistent invoice.');
+        }
+
+        return $Invoice;
     }
 
     protected static function processInvoiceDeniedTransactions(

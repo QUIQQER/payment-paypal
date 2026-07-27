@@ -82,7 +82,13 @@ class Utils
     public static function getProjectUrl(): string
     {
         try {
-            $url = QUI::getRewrite()->getProject()->get(1)->getUrlRewrittenWithHost();
+            $Project = QUI::getRewrite()->getProject();
+
+            if ($Project === null) {
+                return '';
+            }
+
+            $url = $Project->get(1)->getUrlRewrittenWithHost();
             return rtrim($url, '/');
         } catch (\Exception $Exception) {
             QUI\System\Log::writeDebugException($Exception);

@@ -483,21 +483,25 @@ class BillingAgreements
      */
     public static function cancelBillingAgreement(int | string $billingAgreementId, string $reason = ''): void
     {
-        $data = self::getBillingAgreementData($billingAgreementId);
+        $data = self::getBillingAgreementData((string)$billingAgreementId);
 
         if (empty($data)) {
             return;
         }
 
-        try {
-            $Locale = new QUI\Locale();
-            $Locale->setCurrent($data['customer']['lang']);
-        } catch (Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
-            return;
-        }
-
         if (empty($reason)) {
+            if (empty($data['customer']['lang'])) {
+                return;
+            }
+
+            try {
+                $Locale = new QUI\Locale();
+                $Locale->setCurrent($data['customer']['lang']);
+            } catch (Exception $Exception) {
+                QUI\System\Log::writeException($Exception);
+                return;
+            }
+
             $reason = $Locale->get(
                 'quiqqer/payment-paypal',
                 'recurring.billing_agreement.cancel.note',
@@ -549,13 +553,17 @@ class BillingAgreements
      */
     public static function suspendBillingAgreement(int | string $billingAgreementId, ?string $note = null): void
     {
-        $data = self::getBillingAgreementData($billingAgreementId);
+        $data = self::getBillingAgreementData((string)$billingAgreementId);
 
         if (empty($data)) {
             return;
         }
 
         if (empty($note)) {
+            if (empty($data['customer']['lang'])) {
+                return;
+            }
+
             try {
                 $Locale = new QUI\Locale();
                 $Locale->setCurrent($data['customer']['lang']);
@@ -613,13 +621,17 @@ class BillingAgreements
      */
     public static function resumeSubscription(int | string $billingAgreementId, ?string $note = null): void
     {
-        $data = self::getBillingAgreementData($billingAgreementId);
+        $data = self::getBillingAgreementData((string)$billingAgreementId);
 
         if (empty($data)) {
             return;
         }
 
         if (empty($note)) {
+            if (empty($data['customer']['lang'])) {
+                return;
+            }
+
             try {
                 $Locale = new QUI\Locale();
                 $Locale->setCurrent($data['customer']['lang']);
@@ -674,7 +686,7 @@ class BillingAgreements
      */
     public static function isSuspended(int | string $billingAgreementId): bool
     {
-        $data = self::getBillingAgreementDetails($billingAgreementId);
+        $data = self::getBillingAgreementDetails((string)$billingAgreementId);
 
         if (!is_array($data)) {
             return false;
@@ -923,7 +935,13 @@ class BillingAgreements
         InvoiceHandler $Invoices,
         int|string $invoiceId
     ): Invoice {
-        return $Invoices->get($invoiceId);
+        $Invoice = $Invoices->get($invoiceId);
+
+        if (!$Invoice instanceof Invoice) {
+            throw new \UnexpectedValueException('Expected a persistent invoice.');
+        }
+
+        return $Invoice;
     }
 
     protected static function processInvoiceDeniedTransactions(
@@ -1049,6 +1067,11 @@ class BillingAgreements
 
         // Get global process id
         $data = self::getBillingAgreementData($billingAgreementId);
+
+        if ($data === false) {
+            return;
+        }
+
         $globalProcessId = $data['globalProcessId'];
 
         // Determine start date
