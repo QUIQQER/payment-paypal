@@ -21,7 +21,6 @@ use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
 use QUI\ERP\Payments\PayPal\Utils;
 use QUI\Utils\Security\Orthos;
 
-use function date_interval_create_from_date_string;
 use function rtrim;
 
 /**
@@ -132,7 +131,7 @@ class BillingAgreements
         $Now = new DateTime();
 
         // Set 1 minute to the future
-        $Now->add(date_interval_create_from_date_string('1 minute'));
+        $Now->add(new DateInterval('PT1M'));
 
         $body['start_date'] = $Now->format('Y-m-d\TH:i:sP'); // ISO 8601
 
@@ -292,7 +291,7 @@ class BillingAgreements
 
             // Transaction amount equals Invoice amount
             try {
-                $PayPalTransactionDate = date_create($transaction['time_stamp']);
+                $PayPalTransactionDate = new DateTime((string)$transaction['time_stamp']);
 
                 $InvoiceTransaction = TransactionFactory::createPaymentTransaction(
                     $amount,
@@ -468,7 +467,7 @@ class BillingAgreements
 
         if ($End < $Start || $Start->format('Y-m-d') === $End->format('Y-m-d')) {
             $End = clone $Start;
-            $End->add(date_interval_create_from_date_string('1 day'));
+            $End->add(new DateInterval('P1D'));
         }
 
         $data['end_date'] = $End->format('Y-m-d');

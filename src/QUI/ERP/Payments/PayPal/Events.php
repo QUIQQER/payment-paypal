@@ -308,6 +308,10 @@ class Events
             return;
         }
 
+        if ($InvoiceInterval === false) {
+            return;
+        }
+
         if (QUI\ERP\Plans\Utils::compareDateIntervals($InvoiceInterval, $OneYearInterval) === 1) {
             throw new PaymentCanNotBeUsed();
         }

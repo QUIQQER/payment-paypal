@@ -1261,6 +1261,10 @@ class Subscriptions
             $DurationInterval = QUI\ERP\Plans\Utils::parseIntervalFromDuration($planDetails['duration_interval']);
             $InvoiceInterval = QUI\ERP\Plans\Utils::parseIntervalFromDuration($planDetails['invoice_interval']);
 
+            if ($DurationInterval === false || $InvoiceInterval === false) {
+                throw new Exception('Could not parse PayPal subscription intervals.');
+            }
+
             $Start = new DateTime();
             $End = clone $Start;
             $End->add($DurationInterval)->sub(new DateInterval('P1D'));

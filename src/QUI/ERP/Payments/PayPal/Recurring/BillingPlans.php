@@ -376,6 +376,10 @@ class BillingPlans
                 $DurationInterval = QUI\ERP\Plans\Utils::parseIntervalFromDuration($planDetails['duration_interval']);
                 $InvoiceInterval = QUI\ERP\Plans\Utils::parseIntervalFromDuration($planDetails['invoice_interval']);
 
+                if ($DurationInterval === false || $InvoiceInterval === false) {
+                    throw new Exception('Could not parse PayPal billing plan intervals.');
+                }
+
                 $Start = new DateTime();
                 $End = clone $Start;
                 $End->add($DurationInterval)->sub(new DateInterval('P1D'));
