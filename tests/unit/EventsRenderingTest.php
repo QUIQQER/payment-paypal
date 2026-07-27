@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Unit;
 use PHPUnit\Framework\TestCase;
 use QUI\ERP\Accounting\Payments\Types\Payment;
 use QUI\ERP\Order\Basket\Basket;
+use QUI\ERP\Order\Basket\BasketGuest;
 use QUI\ERP\Payments\PayPal\PaymentExpress;
 use QUI\Smarty\Collector;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\EventsDouble;
@@ -54,6 +55,29 @@ final class EventsRenderingTest extends TestCase
         );
         self::assertStringContainsString(
             'https://example.test/checkout',
+            $Collector->getContent()
+        );
+    }
+
+    public function testGuestBasketUsesOrderWithoutBasketId(): void
+    {
+        $Collector = new Collector();
+        $Basket = $this->createMock(BasketGuest::class);
+        $Order = new OrderDouble();
+        $Order->uuidValue = 'ORDER-GUEST-EVENT';
+
+        EventsDouble::templateOrderProcessBasketEnd(
+            $Collector,
+            $Basket,
+            $Order
+        );
+
+        self::assertStringContainsString(
+            'data-qui-options-basketid="0"',
+            $Collector->getContent()
+        );
+        self::assertStringContainsString(
+            'data-qui-options-orderhash="ORDER-GUEST-EVENT"',
             $Collector->getContent()
         );
     }

@@ -79,6 +79,52 @@ final class PaymentExpressExecutionTest extends TestCase
         }
     }
 
+    public function testNewPayPalAddressBecomesDefaultInvoiceAddress(): void
+    {
+        $PaymentType = $this->createMock(Payment::class);
+        $PaymentType->method('getId')->willReturn(42);
+        $PayPalAddress = $this->createMock(Address::class);
+        $PayPalAddress->method('getUUID')->willReturn('ADDRESS-PAYPAL');
+        $PayPalAddress->method('getAttributes')->willReturn([
+            'firstname' => 'Jane',
+            'lastname' => 'Doe',
+            'street_no' => 'Main Street 1',
+            'zip' => '12345',
+            'city' => 'Berlin',
+            'country' => 'DE'
+        ]);
+
+        $QuiqqerUser = $this->createMock(User::class);
+        $QuiqqerUser->method('getAddressList')->willReturn([]);
+        $QuiqqerUser->method('getStandardAddress')->willReturn(null);
+        $QuiqqerUser->expects(self::once())
+            ->method('setAttribute')
+            ->with('address', 'ADDRESS-PAYPAL');
+        $QuiqqerUser->expects(self::once())->method('save');
+
+        $Customer = $this->createMock(ErpUser::class);
+        $Customer->method('getUUID')->willReturn('CUSTOMER-NEW');
+        $Order = new OrderDouble();
+        $Order->CustomerValue = $Customer;
+
+        $Express = new PaymentExpressDouble();
+        $Express->ExpressPayment = $PaymentType;
+        $Express->QuiqqerUser = $QuiqqerUser;
+        $Express->PayPalAddress = $PayPalAddress;
+        $Express->payPalOrder = $this->payPalOrder();
+
+        $Express->executePayPalOrder($Order);
+
+        self::assertSame($PayPalAddress, $Order->InvoiceAddress);
+        self::assertInstanceOf(
+            \QUI\ERP\Address::class,
+            $Order->DeliveryAddress
+        );
+        self::assertSame(1, $Express->saveCount);
+        self::assertSame(1, $Express->shippingCount);
+        self::assertSame(1, $Express->updateCount);
+    }
+
     public function testMissingShippingAddressVoidsOrder(): void
     {
         $PaymentType = $this->createMock(Payment::class);
