@@ -53,6 +53,29 @@ final class SubscriptionsDouble extends Subscriptions
         return self::getCycleCount($planDetails);
     }
 
+    public static function getIdentificationHashForTest(
+        AbstractOrder $Order
+    ): string {
+        return parent::getIdentificationHash($Order);
+    }
+
+    public static function getPlanByOrderForTest(
+        AbstractOrder $Order
+    ): array|false {
+        return parent::getPlanByOrder($Order);
+    }
+
+    public static function getStoredPlanReferencesForTest(
+        AbstractOrder $Order
+    ): array {
+        return parent::getOrCreatePlanReferences($Order);
+    }
+
+    public static function getSubscriptionPlansTableForTest(): string
+    {
+        return parent::getSubscriptionPlansTable();
+    }
+
     /**
      * @return array{string, string}
      */
