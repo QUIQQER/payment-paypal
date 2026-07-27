@@ -3,86 +3,86 @@
 
     <global>
         <table name="paypal_billing_plans">
-            <field type="INT(11) NOT NULL">id</field>
-            <field type="VARCHAR(255) NOT NULL">paypal_id</field>
-            <field type="VARCHAR(255) NOT NULL">identification_hash</field>
+            <field type="integer" autoincrement="true" primary="true">id</field>
+            <field type="string" length="255">paypal_id</field>
+            <field type="string" length="255">identification_hash</field>
 
-            <primary>id</primary>
-            <auto_increment>id</auto_increment>
+            <index>identification_hash</index>
         </table>
 
         <table name="paypal_billing_agreements">
-            <field type="VARCHAR(255) NOT NULL">paypal_agreement_id</field>
-            <field type="VARCHAR(255) NOT NULL">paypal_plan_id</field>
-            <field type="MEDIUMTEXT NOT NULL">customer</field>
-            <field type="VARCHAR(250) NULL DEFAULT NULL">global_process_id</field>
-            <field type="TINYINT(1) NOT NULL DEFAULT 1">active</field>
+            <field type="string" length="255" primary="true">paypal_agreement_id</field>
+            <field type="string" length="255">paypal_plan_id</field>
+            <field type="text">customer</field>
+            <field type="string" length="250" nullable="true" default="null">global_process_id</field>
+            <field type="boolean" default="1">active</field>
 
-            <primary>paypal_agreement_id</primary>
             <index>global_process_id</index>
+            <index>active</index>
         </table>
 
         <table name="paypal_billing_agreement_transactions">
-            <field type="VARCHAR(255) NOT NULL">paypal_transaction_id</field>
-            <field type="VARCHAR(255) NOT NULL">paypal_agreement_id</field>
-            <field type="MEDIUMTEXT NOT NULL">paypal_transaction_data</field>
-            <field type="DATETIME NOT NULL">paypal_transaction_date</field>
-            <field type="VARCHAR(255) NULL">quiqqer_transaction_id</field>
-            <field type="TINYINT(1) NOT NULL DEFAULT 0">quiqqer_transaction_completed</field>
-            <field type="VARCHAR(250) NOT NULL">global_process_id</field>
+            <field type="string" length="255">paypal_transaction_id</field>
+            <field type="string" length="255">paypal_agreement_id</field>
+            <field type="text">paypal_transaction_data</field>
+            <field type="datetime">paypal_transaction_date</field>
+            <field type="string" length="255" nullable="true" default="null">quiqqer_transaction_id</field>
+            <field type="boolean" default="0">quiqqer_transaction_completed</field>
+            <field type="string" length="250" nullable="true" default="null">global_process_id</field>
 
             <primary>paypal_transaction_id,paypal_transaction_date</primary>
+            <index>paypal_agreement_id</index>
+            <index>quiqqer_transaction_id</index>
+            <index>global_process_id</index>
         </table>
 
         <table name="paypal_subscription_plans">
-            <field type="INT(11) NOT NULL">id</field>
-            <field type="VARCHAR(255) NOT NULL">paypal_product_id</field>
-            <field type="VARCHAR(255) NOT NULL">paypal_plan_id</field>
-            <field type="VARCHAR(255) NOT NULL">identification_hash</field>
-            <field type="MEDIUMTEXT NULL DEFAULT NULL">plan_data</field>
+            <field type="integer" autoincrement="true" primary="true">id</field>
+            <field type="string" length="255">paypal_product_id</field>
+            <field type="string" length="255">paypal_plan_id</field>
+            <field type="string" length="255">identification_hash</field>
+            <field type="text" nullable="true" default="null">plan_data</field>
 
-            <primary>id</primary>
-            <auto_increment>id</auto_increment>
             <index>paypal_plan_id</index>
             <index>identification_hash</index>
         </table>
 
         <table name="paypal_subscriptions">
-            <field type="VARCHAR(255) NOT NULL">paypal_subscription_id</field>
-            <field type="VARCHAR(255) NOT NULL">paypal_plan_id</field>
-            <field type="MEDIUMTEXT NOT NULL">customer</field>
-            <field type="MEDIUMTEXT NULL DEFAULT NULL">subscription_data</field>
-            <field type="VARCHAR(250) NULL DEFAULT NULL">global_process_id</field>
-            <field type="TINYINT(1) NOT NULL DEFAULT 1">active</field>
+            <field type="string" length="255" primary="true">paypal_subscription_id</field>
+            <field type="string" length="255">paypal_plan_id</field>
+            <field type="text">customer</field>
+            <field type="text" nullable="true" default="null">subscription_data</field>
+            <field type="string" length="250" nullable="true" default="null">global_process_id</field>
+            <field type="boolean" default="1">active</field>
 
-            <primary>paypal_subscription_id</primary>
             <index>paypal_plan_id</index>
             <index>global_process_id</index>
+            <index>active</index>
         </table>
 
         <table name="paypal_subscription_transactions">
-            <field type="VARCHAR(255) NOT NULL">paypal_transaction_id</field>
-            <field type="VARCHAR(255) NOT NULL">paypal_subscription_id</field>
-            <field type="MEDIUMTEXT NOT NULL">paypal_transaction_data</field>
-            <field type="DATETIME NOT NULL">paypal_transaction_date</field>
-            <field type="VARCHAR(255) NULL">quiqqer_transaction_id</field>
-            <field type="TINYINT(1) NOT NULL DEFAULT 0">quiqqer_transaction_completed</field>
-            <field type="VARCHAR(250) NOT NULL">global_process_id</field>
+            <field type="string" length="255">paypal_transaction_id</field>
+            <field type="string" length="255">paypal_subscription_id</field>
+            <field type="text">paypal_transaction_data</field>
+            <field type="datetime">paypal_transaction_date</field>
+            <field type="string" length="255" nullable="true" default="null">quiqqer_transaction_id</field>
+            <field type="boolean" default="0">quiqqer_transaction_completed</field>
+            <field type="string" length="250" nullable="true" default="null">global_process_id</field>
 
             <primary>paypal_transaction_id,paypal_transaction_date</primary>
             <index>paypal_subscription_id</index>
+            <index>quiqqer_transaction_id</index>
             <index>global_process_id</index>
         </table>
 
         <table name="paypal_subscription_webhook_events">
-            <field type="VARCHAR(255) NOT NULL">paypal_event_id</field>
-            <field type="VARCHAR(255) NOT NULL">paypal_event_type</field>
-            <field type="VARCHAR(255) NULL DEFAULT NULL">paypal_subscription_id</field>
-            <field type="MEDIUMTEXT NOT NULL">paypal_event_data</field>
-            <field type="DATETIME NOT NULL">paypal_event_date</field>
-            <field type="TINYINT(1) NOT NULL DEFAULT 0">processed</field>
+            <field type="string" length="255" primary="true">paypal_event_id</field>
+            <field type="string" length="255">paypal_event_type</field>
+            <field type="string" length="255" nullable="true" default="null">paypal_subscription_id</field>
+            <field type="text">paypal_event_data</field>
+            <field type="datetime">paypal_event_date</field>
+            <field type="boolean" default="0">processed</field>
 
-            <primary>paypal_event_id</primary>
             <index>paypal_subscription_id</index>
             <index>paypal_event_type</index>
         </table>
