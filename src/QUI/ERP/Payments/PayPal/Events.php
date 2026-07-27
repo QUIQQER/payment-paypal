@@ -74,7 +74,7 @@ class Events
         $Payment = $Order->getPayment();
 
         if (
-            $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+            $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_ORDER_ID)
             && $Payment
             && $Payment->getPaymentType() instanceof PaymentExpress
         ) {
@@ -130,7 +130,7 @@ class Events
         $Payment = $Order->getPayment();
 
         if (
-            $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+            $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_ORDER_ID)
             && $Payment
             && $Payment->getPaymentType() instanceof PaymentExpress
         ) {
@@ -219,7 +219,7 @@ class Events
             $Payment = $Order->getPayment();
 
             if (
-                $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_PAYMENT_ID)
+                $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_ORDER_ID)
                 && $Payment
                 && $Payment->getPaymentType() instanceof PaymentExpress
             ) {

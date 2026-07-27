@@ -286,7 +286,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     {
         $Order->addHistory('PayPal :: Create Order');
 
-        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_ID)) {
+        if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
             $Order->addHistory('PayPal :: Order already created - updating with new details');
             $this->updatePayPalOrder($Order);
             return;

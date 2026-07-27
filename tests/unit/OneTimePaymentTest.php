@@ -43,4 +43,17 @@ final class OneTimePaymentTest extends TestCase
 
         self::assertTrue($Payment->saved);
     }
+
+    public function testExistingPayPalOrderUsesUpdatePath(): void
+    {
+        $Order = new OrderDouble();
+        $Order->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'PAYPAL-ORDER-ID');
+
+        $Payment = new OneTimePaymentDouble();
+        $Payment->createPayPalOrder($Order);
+
+        self::assertTrue($Payment->updated);
+        self::assertNull($Payment->requestType);
+        self::assertFalse($Payment->saved);
+    }
 }
