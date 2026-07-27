@@ -672,7 +672,16 @@ class Subscriptions
             return false;
         }
 
-        self::persistWebhookEvent($event);
+        $eventPersisted = self::persistWebhookEvent($event);
+
+        if ($eventPersisted === null) {
+            return false;
+        }
+
+        if ($eventPersisted === false) {
+            return true;
+        }
+
         self::processWebhookEvent($event);
 
         return true;
@@ -680,16 +689,16 @@ class Subscriptions
 
     /**
      * @param array $event
-     * @return void
+     * @return bool|null - true if persisted, false if already known, null on database error
      */
-    protected static function persistWebhookEvent(array $event): void
+    protected static function persistWebhookEvent(array $event): ?bool
     {
         $resource = $event['resource'] ?? [];
         $subscriptionId = self::getSubscriptionIdFromResource($resource);
 
         try {
             if (self::webhookEventExists($event['id'])) {
-                return;
+                return false;
             }
 
             QUI::getDataBase()->insert(
@@ -703,8 +712,11 @@ class Subscriptions
                     'processed' => 0
                 ]
             );
+
+            return true;
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
+            return null;
         }
     }
 
