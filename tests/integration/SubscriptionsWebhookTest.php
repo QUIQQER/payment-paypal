@@ -16,6 +16,7 @@ final class SubscriptionsWebhookTest extends TestCase
 {
     private const EVENT_ID = 'phpunit_paypal_webhook_event';
     private const SUBSCRIPTION_ID = 'phpunit_paypal_webhook_subscription';
+    private const TRANSACTION_ID = 'phpunit_paypal_webhook_transaction';
 
     private object $Config;
     private mixed $previousWebhookId;
@@ -78,18 +79,7 @@ final class SubscriptionsWebhookTest extends TestCase
 
     public function testDuplicateWebhookIsAcknowledgedWithoutReprocessing(): void
     {
-        $Client = new SubscriptionsApiClientDouble();
-        $Client->setAccessToken('ACCESS-TOKEN');
-        $Client->responses = [
-            [
-                'body' => '{"verification_status":"SUCCESS"}',
-                'status' => 200
-            ],
-            [
-                'body' => '{"verification_status":"SUCCESS"}',
-                'status' => 200
-            ]
-        ];
+        $Client = $this->verifiedClient(2);
         $this->setApiClient($Client);
 
         $cancelledEvent = $this->event(Subscriptions::STATUS_CANCELLED);
@@ -122,6 +112,132 @@ final class SubscriptionsWebhookTest extends TestCase
         self::assertSame(1, (int)$eventRows[0]['processed']);
     }
 
+    public function testWebhookWithoutConfiguredIdIsRejected(): void
+    {
+        $this->Config->setValue('api', 'webhook_id', '');
+        $Client = new SubscriptionsApiClientDouble();
+        $this->setApiClient($Client);
+
+        self::assertFalse(
+            Subscriptions::handleWebhook([], json_encode($this->event(
+                Subscriptions::STATUS_ACTIVE
+            )))
+        );
+        self::assertSame([], $Client->requests);
+    }
+
+    public function testInvalidWebhookSignatureIsRejected(): void
+    {
+        $Client = new SubscriptionsApiClientDouble();
+        $Client->setAccessToken('ACCESS-TOKEN');
+        $Client->responses[] = [
+            'body' => '{"verification_status":"FAILURE"}',
+            'status' => 200
+        ];
+        $this->setApiClient($Client);
+
+        self::assertFalse(
+            Subscriptions::handleWebhook([], json_encode($this->event(
+                Subscriptions::STATUS_ACTIVE
+            )))
+        );
+        self::assertSame(0, $this->webhookCount());
+    }
+
+    public function testWebhookVerificationFailureIsRejected(): void
+    {
+        $Client = new SubscriptionsApiClientDouble();
+        $Client->setAccessToken('ACCESS-TOKEN');
+        $Client->responses[] = [
+            'body' => false,
+            'status' => 0
+        ];
+        $this->setApiClient($Client);
+
+        self::assertFalse(
+            Subscriptions::handleWebhook([], json_encode($this->event(
+                Subscriptions::STATUS_ACTIVE
+            )))
+        );
+        self::assertSame(0, $this->webhookCount());
+    }
+
+    public function testMalformedVerifiedEventIsRejected(): void
+    {
+        $this->setApiClient($this->verifiedClient());
+
+        self::assertFalse(Subscriptions::handleWebhook([], '{}'));
+        self::assertSame(0, $this->webhookCount());
+    }
+
+    public function testCompletedPaymentWebhookPersistsTransaction(): void
+    {
+        $this->setApiClient($this->verifiedClient());
+        $event = [
+            'id' => self::EVENT_ID,
+            'event_type' => 'PAYMENT.SALE.COMPLETED',
+            'create_time' => '2026-07-27T10:35:00Z',
+            'resource' => [
+                'id' => self::TRANSACTION_ID,
+                'billing_agreement_id' => self::SUBSCRIPTION_ID,
+                'amount' => [
+                    'total' => '12.50',
+                    'currency' => 'EUR'
+                ],
+                'create_time' => '2026-07-27T10:34:00Z',
+                'state' => 'completed'
+            ]
+        ];
+
+        self::assertTrue(
+            Subscriptions::handleWebhook([], json_encode($event))
+        );
+
+        $transaction = $this->connection()->fetchAssociative(
+            'SELECT * FROM ' . $this->transactionsTable()
+            . ' WHERE paypal_transaction_id = ?',
+            [self::TRANSACTION_ID]
+        );
+        self::assertIsArray($transaction);
+        self::assertSame(self::SUBSCRIPTION_ID, $transaction['paypal_subscription_id']);
+        self::assertSame('phpunit-process', $transaction['global_process_id']);
+        self::assertSame(
+            Subscriptions::TRANSACTION_STATE_COMPLETED,
+            json_decode($transaction['paypal_transaction_data'], true)['status']
+        );
+        self::assertSame(1, $this->processedValue());
+    }
+
+    public function testPaymentWebhookWithoutTransactionIdIsMarkedProcessed(): void
+    {
+        $this->setApiClient($this->verifiedClient());
+        $event = [
+            'id' => self::EVENT_ID,
+            'event_type' => 'PAYMENT.SALE.DENIED',
+            'resource' => [
+                'billing_agreement_id' => self::SUBSCRIPTION_ID
+            ]
+        ];
+
+        self::assertTrue(
+            Subscriptions::handleWebhook([], json_encode($event))
+        );
+        self::assertSame(0, $this->transactionCount());
+        self::assertSame(1, $this->processedValue());
+    }
+
+    public function testLifecycleWebhookForUnknownSubscriptionIsMarkedProcessed(): void
+    {
+        $this->setApiClient($this->verifiedClient());
+        $event = $this->event(Subscriptions::STATUS_ACTIVE);
+        $event['resource']['id'] = 'phpunit_unknown_subscription';
+
+        self::assertTrue(
+            Subscriptions::handleWebhook([], json_encode($event))
+        );
+        self::assertSame(1, $this->processedValue());
+    }
+
     private function event(string $status): array
     {
         return [
@@ -145,6 +261,10 @@ final class SubscriptionsWebhookTest extends TestCase
     private function cleanupFixtures(): void
     {
         $this->connection()->delete(
+            $this->transactionsTable(),
+            ['paypal_transaction_id' => self::TRANSACTION_ID]
+        );
+        $this->connection()->delete(
             $this->webhookTable(),
             ['paypal_event_id' => self::EVENT_ID]
         );
@@ -167,5 +287,52 @@ final class SubscriptionsWebhookTest extends TestCase
     private function subscriptionsTable(): string
     {
         return QUI::getDBTableName(Subscriptions::TBL_SUBSCRIPTIONS);
+    }
+
+    private function transactionsTable(): string
+    {
+        return QUI::getDBTableName(Subscriptions::TBL_SUBSCRIPTION_TRANSACTIONS);
+    }
+
+    private function verifiedClient(int $responses = 1): SubscriptionsApiClientDouble
+    {
+        $Client = new SubscriptionsApiClientDouble();
+        $Client->setAccessToken('ACCESS-TOKEN');
+
+        for ($i = 0; $i < $responses; $i++) {
+            $Client->responses[] = [
+                'body' => '{"verification_status":"SUCCESS"}',
+                'status' => 200
+            ];
+        }
+
+        return $Client;
+    }
+
+    private function webhookCount(): int
+    {
+        return (int)$this->connection()->fetchOne(
+            'SELECT COUNT(*) FROM ' . $this->webhookTable()
+            . ' WHERE paypal_event_id = ?',
+            [self::EVENT_ID]
+        );
+    }
+
+    private function transactionCount(): int
+    {
+        return (int)$this->connection()->fetchOne(
+            'SELECT COUNT(*) FROM ' . $this->transactionsTable()
+            . ' WHERE paypal_transaction_id = ?',
+            [self::TRANSACTION_ID]
+        );
+    }
+
+    private function processedValue(): int
+    {
+        return (int)$this->connection()->fetchOne(
+            'SELECT processed FROM ' . $this->webhookTable()
+            . ' WHERE paypal_event_id = ?',
+            [self::EVENT_ID]
+        );
     }
 }
