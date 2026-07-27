@@ -3,13 +3,6 @@
 namespace QUI\ERP\Payments\PayPal;
 
 use Exception;
-use PayPalCheckoutSdk\Core\PayPalHttpClient as PayPalClientV2;
-use PayPalCheckoutSdk\Core\ProductionEnvironment as PayPalProductionEnvironmentV2;
-use PayPalCheckoutSdk\Core\SandboxEnvironment as PayPalSandboxEnvironmentV2;
-use PayPalCheckoutSdk\Orders\OrdersCaptureRequest as PayPalOrderCaptureRequestV2;
-use PayPalCheckoutSdk\Orders\OrdersCreateRequest as PayPalOrdersCreateRequestV2;
-use PayPalCheckoutSdk\Orders\OrdersGetRequest as PayPalOrderGetRequestV2;
-use PayPalCheckoutSdk\Orders\OrdersPatchRequest as PayPalOrdersPatchRequestV2;
 use QUI;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
@@ -18,6 +11,8 @@ use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Order\Handler as OrderHandler;
+use QUI\ERP\Payments\PayPal\Api\ServerClient;
+use QUI\ERP\Payments\PayPal\Api\ServerClientInterface;
 use QUI\ERP\Payments\PayPal\PhpSdk\Core\PayPalHttpClient as PayPalClient;
 use QUI\ERP\Payments\PayPal\PhpSdk\Core\ProductionEnvironment;
 use QUI\ERP\Payments\PayPal\PhpSdk\Core\SandboxEnvironment;
@@ -33,7 +28,6 @@ use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingPlans\PlanCreateRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingPlans\PlanGetRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingPlans\PlanListRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\BillingPlans\PlanUpdateRequest;
-use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\CaptureRefundRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\OrderAuthorizeRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\OrderVoidRequest;
 use QUI\ERP\Payments\PayPal\PhpSdk\v1\Payments\PaymentExecuteRequest;
@@ -44,6 +38,7 @@ use QUI\ExceptionStack;
 
 use function boolval;
 use function get_class;
+use function get_debug_type;
 use function is_array;
 use function json_decode;
 use function json_encode;
@@ -92,8 +87,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     /**
      * PayPal Refund states
      */
-    const PAYPAL_REFUND_STATE_PENDING = 'pending';
-    const PAYPAL_REFUND_STATE_COMPLETED = 'completed';
+    const PAYPAL_REFUND_STATE_PENDING = 'PENDING';
+    const PAYPAL_REFUND_STATE_COMPLETED = 'COMPLETED';
 
     /**
      * PayPal REST API request types
@@ -130,11 +125,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     protected ?PayPalClient $PayPalClient = null;
 
     /**
-     * PayPal PHP REST Client (v2)
+     * PayPal Server SDK client for Orders and Payments v2
      *
-     * @var PayPalClientV2|null
+     * @var ServerClientInterface|null
      */
-    protected ?PayPalClientV2 $PayPalClientV2 = null;
+    protected ?ServerClientInterface $PayPalServerClient = null;
 
     /**
      * @return string
@@ -653,10 +648,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 self::PAYPAL_REQUEST_TYPE_REFUND_ORDER,
                 [
                     'amount' => [
-                        'total' => $amountRefunded,
-                        'currency' => $Currency->getCode()
+                        'value' => $amountRefunded,
+                        'currency_code' => $Currency->getCode()
                     ],
-                    'reason' => mb_substr($reason, 0, 30)
+                    'note_to_payer' => mb_substr($reason, 0, 255)
                 ],
                 $Transaction
             );
@@ -673,7 +668,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             throw $Exception;
         }
 
-        switch ($response['state']) {
+        switch ($response['status']) {
             // SUCCESS
             case self::PAYPAL_REFUND_STATE_COMPLETED:
             case self::PAYPAL_REFUND_STATE_PENDING:
@@ -686,8 +681,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                         'history.refund',
                         [
                             'refundId' => $response['id'],
-                            'amount' => $response['amount']['total'],
-                            'currency' => $response['amount']['currency']
+                            'amount' => $response['amount']['value'],
+                            'currency' => $response['amount']['currency_code']
                         ]
                     )
                 );
@@ -704,7 +699,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             default:
                 $Process->addHistory(
                     'PayPal :: Order refund was not completed by PayPal because of an unknown error.'
-                    . ' Refund state: ' . $response['state']
+                    . ' Refund state: ' . $response['status']
                 );
 
                 $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED);
@@ -1090,6 +1085,20 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         Transaction|AbstractOrder|array $TransactionObj,
         bool $throwSystemException = false
     ): null|bool|array {
+        switch ($request) {
+            case self::PAYPAL_REQUEST_TYPE_GET_ORDER:
+            case self::PAYPAL_REQUEST_TYPE_CREATE_ORDER:
+            case self::PAYPAL_REQUEST_TYPE_UPDATE_ORDER:
+            case self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER:
+            case self::PAYPAL_REQUEST_TYPE_REFUND_ORDER:
+                return $this->payPalServerApiRequest(
+                    $request,
+                    $body,
+                    $TransactionObj,
+                    $throwSystemException
+                );
+        }
+
         $getData = function ($key) use ($TransactionObj) {
             if ($TransactionObj instanceof AbstractOrder) {
                 return $TransactionObj->getPaymentDataEntry($key);
@@ -1106,25 +1115,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             return false;
         };
 
-        $apiV2 = false;
-
         switch ($request) {
-            case self::PAYPAL_REQUEST_TYPE_GET_ORDER:
-                $Request = new PayPalOrderGetRequestV2(
-                    $getData(self::ATTR_PAYPAL_ORDER_ID)
-                );
-
-                $apiV2 = true;
-                break;
-
-            case self::PAYPAL_REQUEST_TYPE_CREATE_ORDER:
-//                $Request = new PaymentCreateRequest();
-                $Request = new PayPalOrdersCreateRequestV2();
-                $Request->prefer('return=representation');    // return full order representation
-
-                $apiV2 = true;
-                break;
-
             case self::PAYPAL_REQUEST_TYPE_EXECUTE_ORDER:
                 $Request = new PaymentExecuteRequest(
                     $getData(self::ATTR_PAYPAL_PAYMENT_ID)
@@ -1137,32 +1128,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 );
                 break;
 
-            case self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER:
-                $Request = new PayPalOrderCaptureRequestV2(
-                    $getData(self::ATTR_PAYPAL_ORDER_ID)
-                );
-                $Request->prefer('return=representation');    // return full order representation
-
-                $apiV2 = true;
-                break;
-
-            case self::PAYPAL_REQUEST_TYPE_UPDATE_ORDER:
-                $Request = new PayPalOrdersPatchRequestV2(
-                    $getData(self::ATTR_PAYPAL_ORDER_ID)
-                );
-
-                $apiV2 = true;
-                break;
-
             case self::PAYPAL_REQUEST_TYPE_VOID_ORDER:
                 $Request = new OrderVoidRequest(
                     $getData(self::ATTR_PAYPAL_ORDER_ID)
-                );
-                break;
-
-            case self::PAYPAL_REQUEST_TYPE_REFUND_ORDER:
-                $Request = new CaptureRefundRequest(
-                    $getData(self::ATTR_PAYPAL_CAPTURE_ID)
                 );
                 break;
 
@@ -1270,11 +1238,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         try {
-            if ($apiV2) {
-                $Response = $this->getPayPalClientV2()->execute($Request);
-            } else {
-                $Response = $this->getPayPalClient()->execute($Request);
-            }
+            $Response = $this->getPayPalClient()->execute($Request);
         } catch (Exception $Exception) {
             $message = $Exception->getCode() . " :: \n\n";
             $message .= $Exception->getMessage() . "\n";
@@ -1286,7 +1250,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 [
                     'paypalRequestClass' => get_class($Request),
                     'requestBody' => $Request->body,
-                    'transactionObject' => get_class($TransactionObj)
+                    'transactionObject' => get_debug_type($TransactionObj)
                 ],
                 'paypal_api'
             );
@@ -1306,6 +1270,98 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         // turn stdClass object to array
         return json_decode(json_encode($Response->result), true);
+    }
+
+    /**
+     * Execute an Orders v2 or Payments v2 request through the current PayPal Server SDK.
+     *
+     * @throws PayPalException
+     * @throws PayPalSystemException
+     */
+    protected function payPalServerApiRequest(
+        string $request,
+        array $body,
+        Transaction|AbstractOrder|array $TransactionObj,
+        bool $throwSystemException
+    ): ?array {
+        $getData = static function (string $key) use ($TransactionObj): mixed {
+            if ($TransactionObj instanceof AbstractOrder) {
+                return $TransactionObj->getPaymentDataEntry($key);
+            }
+
+            if ($TransactionObj instanceof Transaction) {
+                return $TransactionObj->getData($key);
+            }
+
+            return $TransactionObj[$key] ?? false;
+        };
+
+        $operation = '';
+
+        try {
+            switch ($request) {
+                case self::PAYPAL_REQUEST_TYPE_GET_ORDER:
+                    $operation = 'OrdersController::getOrder';
+                    return $this->getPayPalServerClient()->getOrder(
+                        (string)$getData(self::ATTR_PAYPAL_ORDER_ID)
+                    );
+
+                case self::PAYPAL_REQUEST_TYPE_CREATE_ORDER:
+                    $operation = 'OrdersController::createOrder';
+                    return $this->getPayPalServerClient()->createOrder($body);
+
+                case self::PAYPAL_REQUEST_TYPE_UPDATE_ORDER:
+                    $operation = 'OrdersController::patchOrder';
+                    return $this->getPayPalServerClient()->patchOrder(
+                        (string)$getData(self::ATTR_PAYPAL_ORDER_ID),
+                        $body
+                    );
+
+                case self::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER:
+                    $operation = 'OrdersController::captureOrder';
+                    return $this->getPayPalServerClient()->captureOrder(
+                        (string)$getData(self::ATTR_PAYPAL_ORDER_ID),
+                        $body
+                    );
+
+                case self::PAYPAL_REQUEST_TYPE_REFUND_ORDER:
+                    $operation = 'PaymentsController::refundCapturedPayment';
+                    return $this->getPayPalServerClient()->refundCapturedPayment(
+                        (string)$getData(self::ATTR_PAYPAL_CAPTURE_ID),
+                        $body
+                    );
+
+                default:
+                    $this->throwPayPalException();
+            }
+        } catch (Exception $Exception) {
+            $message = $Exception->getCode() . " :: \n\n";
+            $message .= $Exception->getMessage() . "\n";
+            $message .= $Exception->getTraceAsString();
+
+            QUI\System\Log::write(
+                $message,
+                QUI\System\Log::LEVEL_WARNING,
+                [
+                    'paypalOperation' => $operation,
+                    'requestBody' => $body,
+                    'transactionObject' => get_debug_type($TransactionObj)
+                ],
+                'paypal_api'
+            );
+
+            if ($throwSystemException) {
+                throw new PayPalSystemException(
+                    $Exception->getMessage(),
+                    $Exception->getCode(),
+                    [
+                        'request' => $request
+                    ]
+                );
+            }
+
+            $this->throwPayPalException();
+        }
     }
 
     /**
@@ -1337,31 +1393,29 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     }
 
     /**
-     * Get PayPal Client for current payment process
-     *
-     * @return PayPalClientV2|null
+     * Get the PayPal Server SDK client for current one-time payment requests.
      */
-    protected function getPayPalClientV2(): ?PayPalClientV2
+    protected function getPayPalServerClient(): ServerClientInterface
     {
-        if (!is_null($this->PayPalClientV2)) {
-            return $this->PayPalClientV2;
+        if (!is_null($this->PayPalServerClient)) {
+            return $this->PayPalServerClient;
         }
 
         if (Provider::getApiSetting('sandbox')) {
-            $Environment = new PayPalSandboxEnvironmentV2(
-                Provider::getApiSetting('sandbox_client_id'),
-                Provider::getApiSetting('sandbox_client_secret')
-            );
+            $clientId = Provider::getApiSetting('sandbox_client_id');
+            $clientSecret = Provider::getApiSetting('sandbox_client_secret');
         } else {
-            $Environment = new PayPalProductionEnvironmentV2(
-                Provider::getApiSetting('client_id'),
-                Provider::getApiSetting('client_secret')
-            );
+            $clientId = Provider::getApiSetting('client_id');
+            $clientSecret = Provider::getApiSetting('client_secret');
         }
 
-        $this->PayPalClientV2 = new PayPalClientV2($Environment);
+        $this->PayPalServerClient = new ServerClient(
+            (string)$clientId,
+            (string)$clientSecret,
+            boolval(Provider::getApiSetting('sandbox'))
+        );
 
-        return $this->PayPalClientV2;
+        return $this->PayPalServerClient;
     }
 
     # region Cron
