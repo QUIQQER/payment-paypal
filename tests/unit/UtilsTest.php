@@ -6,6 +6,7 @@ namespace QUITests\ERP\Payments\PayPal\Unit;
 
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Utils;
 use QUI\ERP\Products\Interfaces\PriceFactorInterface;
 use QUI\ERP\Shipping\Shipping;
@@ -25,6 +26,25 @@ final class UtilsTest extends TestCase
     {
         self::assertSame('10.00', Utils::formatPrice(10));
         self::assertSame('10.13', Utils::formatPrice(10.125));
+    }
+
+    public function testApiResponseRequiresArrayAndRequestedFields(): void
+    {
+        self::assertSame(
+            ['id' => 'PAYPAL-1'],
+            Utils::requireApiResponse(['id' => 'PAYPAL-1'], ['id'])
+        );
+
+        $this->expectException(PayPalException::class);
+
+        Utils::requireApiResponse(['status' => 'COMPLETED'], ['id']);
+    }
+
+    public function testNonArrayApiResponseIsRejected(): void
+    {
+        $this->expectException(PayPalException::class);
+
+        Utils::requireApiResponse(false);
     }
 
     public function testProjectUrlHasNoTrailingSlash(): void

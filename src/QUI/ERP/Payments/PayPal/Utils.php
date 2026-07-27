@@ -10,6 +10,8 @@ use QUI\ERP\Shipping\Shipping;
 use QUI\Exception;
 use QUI\ERP\Products\Interfaces\PriceFactorInterface;
 
+use function array_key_exists;
+use function is_array;
 use function mb_strtoupper;
 
 /**
@@ -19,6 +21,45 @@ use function mb_strtoupper;
  */
 class Utils
 {
+    /**
+     * @param mixed $response
+     * @param list<string> $requiredFields
+     * @return array<string, mixed>
+     * @throws PayPalException
+     */
+    public static function requireApiResponse(mixed $response, array $requiredFields = []): array
+    {
+        if (!is_array($response)) {
+            self::throwInvalidApiResponse();
+        }
+
+        foreach ($requiredFields as $field) {
+            if (
+                !array_key_exists($field, $response)
+                || $response[$field] === null
+                || $response[$field] === ''
+            ) {
+                self::throwInvalidApiResponse();
+            }
+        }
+
+        return $response;
+    }
+
+    /**
+     * @return never
+     * @throws PayPalException
+     */
+    public static function throwInvalidApiResponse(): never
+    {
+        throw new PayPalException(
+            QUI::getLocale()->get(
+                'quiqqer/payment-paypal',
+                'payment.error_msg.general_error'
+            )
+        );
+    }
+
     /**
      * Format a price for PayPal API use
      *

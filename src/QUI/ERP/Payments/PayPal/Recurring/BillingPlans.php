@@ -123,6 +123,7 @@ class BillingPlans
             $body,
             $Order
         );
+        $response = Utils::requireApiResponse($response, ['id']);
 
         $billingPlanId = $response['id'];
 

@@ -461,6 +461,8 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             throw $Exception;
         }
 
+        $response = Utils::requireApiResponse($response, ['state']);
+
         switch ($response['state']) {
             // SUCCESS
             case self::PAYPAL_REFUND_STATE_COMPLETED:

@@ -16,6 +16,11 @@ QUI::getAjax()->registerFunction(
     function ($billingAgreementId) {
         try {
             $billingAgreement = BillingAgreements::getBillingAgreementDetails($billingAgreementId);
+
+            if (!is_array($billingAgreement)) {
+                return false;
+            }
+
             $billingAgreement['quiqqer_data'] = BillingAgreements::getBillingAgreementData($billingAgreementId);
 
             return $billingAgreement;

@@ -457,7 +457,20 @@ class BillingAgreements
             $data
         );
 
-        return $result['agreement_transaction_list'];
+        $result = Utils::requireApiResponse($result, ['agreement_transaction_list']);
+        $transactionList = $result['agreement_transaction_list'];
+
+        if (!is_array($transactionList)) {
+            Utils::throwInvalidApiResponse();
+        }
+
+        $transactions = [];
+
+        foreach ($transactionList as $transaction) {
+            $transactions[] = Utils::requireApiResponse($transaction);
+        }
+
+        return $transactions;
     }
 
     /**
@@ -663,11 +676,11 @@ class BillingAgreements
     {
         $data = self::getBillingAgreementDetails($billingAgreementId);
 
-        if (empty($data)) {
+        if (!is_array($data)) {
             return false;
         }
 
-        return $data['state'] === self::BILLING_AGREEMENT_STATE_SUSPENDED;
+        return ($data['state'] ?? null) === self::BILLING_AGREEMENT_STATE_SUSPENDED;
     }
 
     /**
@@ -724,6 +737,8 @@ class BillingAgreements
                 )
             );
         }
+
+        $response = Utils::requireApiResponse($response, ['id']);
 
         $Order->addHistory(
             Utils::getHistoryText('order.billing_agreement_accepted', [

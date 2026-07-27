@@ -300,6 +300,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             throw $Exception;
         }
 
+        $response = Utils::requireApiResponse($response, ['id']);
+
         $Order->addHistory('PayPal :: Order successfully created');
         $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, $response['id']);
         $this->saveOrder($Order);
@@ -682,6 +684,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             throw $Exception;
         }
+
+        $response = Utils::requireApiResponse($response, ['status']);
 
         switch ($response['status']) {
             // SUCCESS
