@@ -9,6 +9,9 @@ spl_autoload_register(
             'QUITests\\ERP\\Payments\\PayPal\\Integration\\' => __DIR__ . '/integration/',
             'QUI\\ERP\\Payments\\PayPal\\PhpSdk\\' => __DIR__ . '/stubs/PayPalPhpSdk/',
             'QUI\\ERP\\Payments\\PayPal\\' => __DIR__ . '/../src/QUI/ERP/Payments/PayPal/',
+            'QUI\\ERP\\Accounting\\Invoice\\' => __DIR__ . '/stubs/QUI/ERP/Accounting/Invoice/',
+            'QUI\\ERP\\Order\\' => __DIR__ . '/stubs/QUI/ERP/Order/',
+            'QUI\\ERP\\Plans\\' => __DIR__ . '/stubs/QUI/ERP/Plans/',
             'QUI\\ERP\\Shipping\\' => __DIR__ . '/stubs/QUI/ERP/Shipping/',
             'PaypalServerSdkLib\\' => __DIR__ . '/stubs/PaypalServerSdkLib/'
         ];
