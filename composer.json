@@ -35,7 +35,8 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "QUITests\\ERP\\Payments\\PayPal\\": "tests/QUITests/ERP/Payments/PayPal"
+      "QUITests\\ERP\\Payments\\PayPal\\Unit\\": "tests/unit",
+      "QUITests\\ERP\\Payments\\PayPal\\Integration\\": "tests/integration"
     }
   },
   "scripts": {
