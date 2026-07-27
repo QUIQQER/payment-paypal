@@ -13,7 +13,9 @@ final class PaymentWorkflowDouble extends Payment
 {
     public array $payPalData = [];
     public null|bool|array $apiResponse = [];
+    public array $apiResponses = [];
     public ?PayPalException $apiException = null;
+    public array $apiExceptions = [];
     public array $apiCalls = [];
     public int $saveCount = 0;
 
@@ -35,11 +37,13 @@ final class PaymentWorkflowDouble extends Payment
             'throwSystemException' => $throwSystemException
         ];
 
-        if ($this->apiException !== null) {
-            throw $this->apiException;
+        $Exception = $this->apiExceptions[$request] ?? $this->apiException;
+
+        if ($Exception instanceof PayPalException) {
+            throw $Exception;
         }
 
-        return $this->apiResponse;
+        return $this->apiResponses[$request] ?? $this->apiResponse;
     }
 
     public function fetchPayPalOrderDetails(AbstractOrder $Order): bool|array

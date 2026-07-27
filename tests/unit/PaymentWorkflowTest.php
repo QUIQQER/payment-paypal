@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace QUITests\ERP\Payments\PayPal\Unit;
 
 use PHPUnit\Framework\TestCase;
+use QUI\ERP\Accounting\Calculations;
+use QUI\ERP\Accounting\CalculationValue;
+use QUI\ERP\Currency\Currency;
 use QUI\ERP\Payments\PayPal\Payment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
@@ -139,6 +142,50 @@ final class PaymentWorkflowTest extends TestCase
         self::assertSame(1, $Payment->saveCount);
     }
 
+    public function testAuthorizeStoresSuccessfulAuthorization(): void
+    {
+        $Order = $this->createCalculatedOrder();
+        $Payment = new PaymentWorkflowDouble();
+        $Payment->apiResponses[Payment::PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER] = [
+            'id' => 'AUTH-2',
+            'state' => 'authorized'
+        ];
+
+        $Payment->authorizePayPalOrder($Order);
+
+        self::assertSame('AUTH-2', $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_AUTHORIZATION_ID));
+        self::assertSame([
+            'amount' => [
+                'total' => '12.50',
+                'currency' => 'EUR'
+            ]
+        ], $Payment->apiCalls[0]['body']);
+        self::assertSame(1, $Payment->saveCount);
+    }
+
+    public function testAuthorizeVoidsRejectedOrderAndReportsReason(): void
+    {
+        $Order = $this->createCalculatedOrder();
+        $Order->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'ORDER-REJECTED');
+        $Payment = new PaymentWorkflowDouble();
+        $Payment->apiResponses[Payment::PAYPAL_REQUEST_TYPE_AUTHORIZE_ORDER] = [
+            'state' => 'denied',
+            'reason_code' => 'RISK_DECLINE'
+        ];
+
+        $this->expectException(PayPalException::class);
+
+        try {
+            $Payment->authorizePayPalOrder($Order);
+        } finally {
+            self::assertContains(
+                'PayPal :: Order was not authorized by PayPal. Reason: "RISK_DECLINE"',
+                $Order->history
+            );
+            self::assertContains('PayPal :: Order voided.', $Order->history);
+        }
+    }
+
     public function testAlreadyCapturedOrderStopsBeforeApiRequest(): void
     {
         $Order = new OrderDouble();
@@ -149,5 +196,129 @@ final class PaymentWorkflowTest extends TestCase
 
         self::assertSame([], $Payment->apiCalls);
         self::assertSame(1, $Payment->saveCount);
+    }
+
+    public function testPendingCaptureStoresPaymentWithoutGatewayTransaction(): void
+    {
+        $Order = $this->createCalculatedOrder();
+        $Order->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'ORDER-PENDING');
+        $Payment = new PaymentWorkflowDouble();
+        $Payment->payPalData = [
+            'purchase_units' => [
+                ['reference_id' => $Order->getUUID()]
+            ]
+        ];
+        $Payment->apiResponses[Payment::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER] = [
+            'purchase_units' => [[
+                'payments' => [
+                    'captures' => [[
+                        'id' => 'CAPTURE-PENDING',
+                        'status' => Payment::PAYPAL_CAPTURE_STATE_PENDING,
+                        'amount' => [
+                            'value' => '12.50',
+                            'currency_code' => 'EUR'
+                        ]
+                    ]]
+                ]
+            ]]
+        ];
+
+        $Payment->capturePayPalOrder($Order);
+
+        self::assertSame(
+            'CAPTURE-PENDING',
+            $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_CAPTURE_ID)
+        );
+        self::assertTrue($Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_PAYMENT_SUCCESSFUL));
+        self::assertTrue($Order->successfulStatusSet);
+        self::assertContains(
+            'PayPal :: Order capture was not completed immediately.'
+            . ' Payment is PENDING and has to be added manually to the order or checked via cronjob.',
+            $Order->history
+        );
+    }
+
+    public function testCaptureRecoversPendingResultAfterApiException(): void
+    {
+        $Order = $this->createCalculatedOrder();
+        $Order->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'ORDER-RECOVERED');
+        $Payment = new PaymentWorkflowDouble();
+        $Payment->payPalData = [
+            'purchase_units' => [
+                ['reference_id' => $Order->getUUID()]
+            ]
+        ];
+        $Payment->apiExceptions[Payment::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER] = new PayPalException(
+            'Capture response lost'
+        );
+        $Payment->apiResponses[Payment::PAYPAL_REQUEST_TYPE_GET_ORDER] = [
+            'purchase_units' => [[
+                'payments' => [
+                    'captures' => [[
+                        'id' => 'CAPTURE-RECOVERED',
+                        'status' => Payment::PAYPAL_CAPTURE_STATE_PENDING,
+                        'amount' => [
+                            'value' => '12.50',
+                            'currency_code' => 'EUR'
+                        ]
+                    ]]
+                ]
+            ]]
+        ];
+
+        $Payment->capturePayPalOrder($Order);
+
+        self::assertSame(
+            'CAPTURE-RECOVERED',
+            $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_CAPTURE_ID)
+        );
+        self::assertContains(
+            'PayPal :: Order capture REST request failed. But Order capture was still completed on PayPal site.'
+            . ' Continuing payment process.',
+            $Order->history
+        );
+    }
+
+    public function testCaptureFailureVoidsOrderAndThrows(): void
+    {
+        $Order = $this->createCalculatedOrder();
+        $Order->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'ORDER-DENIED');
+        $Payment = new PaymentWorkflowDouble();
+        $Payment->payPalData = [
+            'purchase_units' => [
+                ['reference_id' => $Order->getUUID()]
+            ]
+        ];
+        $Payment->apiResponses[Payment::PAYPAL_REQUEST_TYPE_CAPTURE_ORDER] = [
+            'reason_code' => 'CAPTURE_DENIED'
+        ];
+
+        $this->expectException(PayPalException::class);
+
+        try {
+            $Payment->capturePayPalOrder($Order);
+        } finally {
+            self::assertContains('PayPal :: Order voided.', $Order->history);
+            self::assertContains(
+                'PayPal :: Order capture was not completed by PayPal. Reason code: "CAPTURE_DENIED"'
+                . ' | Capture failed because: ',
+                $Order->history
+            );
+        }
+    }
+
+    private function createCalculatedOrder(): OrderDouble
+    {
+        $Calculations = $this->createMock(Calculations::class);
+        $Calculations->method('getSum')->willReturn(new CalculationValue(12.5));
+
+        $Currency = $this->createMock(Currency::class);
+        $Currency->method('getCode')->willReturn('EUR');
+
+        $Order = new OrderDouble();
+        $Order->PriceCalculation = $Calculations;
+        $Order->CurrencyValue = $Currency;
+
+        return $Order;
     }
 }

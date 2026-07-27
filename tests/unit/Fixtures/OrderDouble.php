@@ -6,9 +6,12 @@ namespace QUITests\ERP\Payments\PayPal\Unit\Fixtures;
 
 use QUI\ERP\Accounting\Invoice\Invoice;
 use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
+use QUI\ERP\Accounting\Calculations;
+use QUI\ERP\Currency\Currency;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Shipping\Api\ShippingInterface;
 use QUI\Interfaces\Users\User;
+use RuntimeException;
 
 final class OrderDouble extends AbstractOrder
 {
@@ -17,6 +20,10 @@ final class OrderDouble extends AbstractOrder
     public string $globalProcessIdValue = 'phpunit-global-process';
     public string $uuidValue = 'phpunit-order-uuid';
     public ?ShippingInterface $Shipping = null;
+    public ?Calculations $PriceCalculation = null;
+    public ?Currency $CurrencyValue = null;
+    public bool $successfulStatusSet = false;
+    public int $refreshCount = 0;
 
     public function __construct()
     {
@@ -28,6 +35,7 @@ final class OrderDouble extends AbstractOrder
 
     public function refresh(): void
     {
+        $this->refreshCount++;
     }
 
     public function update(?User $PermissionUser = null): void
@@ -71,6 +79,29 @@ final class OrderDouble extends AbstractOrder
 
     public function setPaymentStatus(int $status, bool $force = false): void
     {
+    }
+
+    public function getPriceCalculation(): Calculations
+    {
+        if ($this->PriceCalculation === null) {
+            throw new RuntimeException('No price calculation configured for test order.');
+        }
+
+        return $this->PriceCalculation;
+    }
+
+    public function getCurrency(): Currency
+    {
+        if ($this->CurrencyValue === null) {
+            throw new RuntimeException('No currency configured for test order.');
+        }
+
+        return $this->CurrencyValue;
+    }
+
+    public function setSuccessfulStatus(): void
+    {
+        $this->successfulStatusSet = true;
     }
 
     public function setShipping(ShippingInterface $Shipping): void
