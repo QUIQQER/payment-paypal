@@ -1439,53 +1439,17 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     public function checkPendingCaptures(): void
     {
-        // Determine payment type IDs
-        $payments = Payments::getInstance()->getPayments([
-            'select' => ['id'],
-            'where' => [
-                'payment_type' => self::class
-            ]
-        ]);
-
-        $paymentTypeIds = [];
-
-        /** @var QUI\ERP\Accounting\Payments\Types\Payment $Payment */
-        foreach ($payments as $Payment) {
-            $paymentTypeIds[] = $Payment->getId();
-        }
+        $paymentTypeIds = $this->getPendingCapturePaymentTypeIds();
 
         if (empty($paymentTypeIds)) {
             return;
         }
 
-        $OrderHandler = OrderHandler::getInstance();
-
-        try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['id'],
-                'from' => $OrderHandler->table(),
-                'where' => [
-                    'payment_id' => [
-                        'type' => 'IN',
-                        'value' => $paymentTypeIds
-                    ],
-                    'paid_status' => [
-                        'type' => 'IN',
-                        'value' => [
-                            QUI\ERP\Constants::PAYMENT_STATUS_OPEN,
-                            QUI\ERP\Constants::PAYMENT_STATUS_PART
-                        ]
-                    ]
-                ]
-            ]);
-        } catch (Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
-            return;
-        }
+        $result = $this->getPendingCaptureOrderRows($paymentTypeIds);
 
         foreach ($result as $row) {
             try {
-                $Order = $OrderHandler->get($row['id']);
+                $Order = $this->getPendingCaptureOrder($row['id']);
 
                 // Some order entities do not exist any longer at PayPal - we do not have to check these
                 if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST)) {
@@ -1546,11 +1510,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 }
 
                 // Add transaction
-                $Transaction = Gateway::getInstance()->purchase(
+                $Transaction = $this->purchasePendingCapture(
                     (float)$amountTotal,
-                    QUI\ERP\Currency\Handler::getCurrency($amountCurrencyCode),
-                    $Order,
-                    $this
+                    (string)$amountCurrencyCode,
+                    $Order
                 );
 
                 $Transaction->setData(
@@ -1573,6 +1536,78 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 QUI\System\Log::writeException($Exception);
             }
         }
+    }
+
+    /**
+     * @return list<int|string>
+     */
+    protected function getPendingCapturePaymentTypeIds(): array
+    {
+        $payments = Payments::getInstance()->getPayments([
+            'select' => ['id'],
+            'where' => [
+                'payment_type' => self::class
+            ]
+        ]);
+
+        $paymentTypeIds = [];
+
+        /** @var QUI\ERP\Accounting\Payments\Types\Payment $Payment */
+        foreach ($payments as $Payment) {
+            $paymentTypeIds[] = $Payment->getId();
+        }
+
+        return $paymentTypeIds;
+    }
+
+    /**
+     * @param list<int|string> $paymentTypeIds
+     * @return array<int, array{id: int|string}>
+     */
+    protected function getPendingCaptureOrderRows(array $paymentTypeIds): array
+    {
+        $OrderHandler = OrderHandler::getInstance();
+
+        try {
+            return QUI::getDataBase()->fetch([
+                'select' => ['id'],
+                'from' => $OrderHandler->table(),
+                'where' => [
+                    'payment_id' => [
+                        'type' => 'IN',
+                        'value' => $paymentTypeIds
+                    ],
+                    'paid_status' => [
+                        'type' => 'IN',
+                        'value' => [
+                            QUI\ERP\Constants::PAYMENT_STATUS_OPEN,
+                            QUI\ERP\Constants::PAYMENT_STATUS_PART
+                        ]
+                    ]
+                ]
+            ]);
+        } catch (Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return [];
+        }
+    }
+
+    protected function getPendingCaptureOrder(int|string $orderId): AbstractOrder
+    {
+        return OrderHandler::getInstance()->get($orderId);
+    }
+
+    protected function purchasePendingCapture(
+        float $amount,
+        string $currencyCode,
+        AbstractOrder $Order
+    ): Transaction {
+        return Gateway::getInstance()->purchase(
+            $amount,
+            QUI\ERP\Currency\Handler::getCurrency($currencyCode),
+            $Order,
+            $this
+        );
     }
 
     # endregion
