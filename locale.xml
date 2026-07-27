@@ -161,18 +161,6 @@
             <en>
                 <![CDATA[Display <b>PayPal Express</b> button on <b>Product pages</b> (offers express checkout of single products directly from the product page)]]></en>
         </locale>
-        <locale name="settings.payment.recurring_api_mode.title">
-            <de><![CDATA[Recurring-API für neue Verträge]]></de>
-            <en><![CDATA[Recurring API for new contracts]]></en>
-        </locale>
-        <locale name="settings.payment.recurring_api_mode.options.legacy">
-            <de><![CDATA[Legacy Billing Agreements]]></de>
-            <en><![CDATA[Legacy Billing Agreements]]></en>
-        </locale>
-        <locale name="settings.payment.recurring_api_mode.options.subscriptions">
-            <de><![CDATA[PayPal Subscriptions]]></de>
-            <en><![CDATA[PayPal Subscriptions]]></en>
-        </locale>
         <locale name="settings.widgets.title">
             <de><![CDATA[Darstellung]]></de>
             <en><![CDATA[Darstellung]]></en>

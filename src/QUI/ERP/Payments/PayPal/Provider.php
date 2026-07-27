@@ -146,15 +146,4 @@ class Provider extends AbstractPaymentProvider
 
         return true;
     }
-
-    /**
-     * New recurring contracts should always use the modern PayPal Subscriptions API.
-     * Existing legacy Billing Agreements continue to run via the legacy code path.
-     *
-     * @return bool
-     */
-    public static function useSubscriptionsForRecurring(): bool
-    {
-        return true;
-    }
 }

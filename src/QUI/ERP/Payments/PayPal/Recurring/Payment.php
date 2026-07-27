@@ -15,7 +15,6 @@ use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\PayPalSystemException;
-use QUI\ERP\Payments\PayPal\Provider;
 use QUI\ERP\Payments\PayPal\Utils;
 use QUI\Exception;
 use QUI\ExceptionStack;
@@ -96,7 +95,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     }
 
     /**
-     * Create a PayPal Billing Agreement based on a Billing Plan
+     * Create a PayPal Subscription
      *
      * @param AbstractOrder $Order
      * @return string - Approval URL
@@ -107,11 +106,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
      */
     public function createSubscription(AbstractOrder $Order): string
     {
-        if (Provider::useSubscriptionsForRecurring()) {
-            return Subscriptions::createSubscription($Order);
-        }
-
-        return BillingAgreements::createBillingAgreement($Order);
+        return Subscriptions::createSubscription($Order);
     }
 
     /**
