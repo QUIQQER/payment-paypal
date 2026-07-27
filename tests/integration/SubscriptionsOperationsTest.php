@@ -7,11 +7,17 @@ namespace QUITests\ERP\Payments\PayPal\Integration;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Accounting\Calculations;
+use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
+use QUI\ERP\Currency\Currency;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
+use QUI\ERP\Plans\Handler as PlansHandler;
+use QUI\ERP\Products\Product\Product;
+use QUI\Locale;
 use ReflectionProperty;
 use Throwable;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
@@ -131,6 +137,88 @@ final class SubscriptionsOperationsTest extends TestCase
         self::assertIsArray($data);
         self::assertSame('PLAN-1', $data['planId']);
         self::assertSame('jane@example.test', $data['customer']['email']);
+    }
+
+    public function testProductAndPlanPayloadsUseModernSubscriptionsApi(): void
+    {
+        $Client = $this->apiClientWithResponses([
+            ['id' => 'PRODUCT-NEW'],
+            ['id' => 'PLAN-NEW', 'status' => 'ACTIVE']
+        ]);
+        $this->setApiClient($Client);
+
+        $Locale = $this->createMock(Locale::class);
+        $Customer = $this->createMock(QUI\ERP\User::class);
+        $Customer->method('getLocale')->willReturn($Locale);
+
+        $Calculations = $this->createMock(Calculations::class);
+        $Calculations->method('getSum')->willReturn(new CalculationValue(24.95));
+
+        $Currency = $this->createMock(Currency::class);
+        $Currency->method('getCode')->willReturn('EUR');
+
+        $Order = new OrderDouble();
+        $Order->CustomerValue = $Customer;
+        $Order->PriceCalculation = $Calculations;
+        $Order->CurrencyValue = $Currency;
+
+        $PlanProduct = $this->createMock(Product::class);
+        $PlanProduct->method('getTitle')->willReturn(str_repeat('T', 140));
+        $PlanProduct->method('getDescription')->willReturn('');
+        $PlanProduct->method('getFieldValue')->willReturnMap([
+            [PlansHandler::FIELD_AUTO_EXTEND, 1],
+            [PlansHandler::FIELD_DURATION, '12-month'],
+            [PlansHandler::FIELD_NOTICE_PERIOD, '1-month'],
+            [PlansHandler::FIELD_INVOICE_INTERVAL, '1-month'],
+            [PlansHandler::FIELD_MIN_DURATION, '12-month']
+        ]);
+
+        self::assertSame(
+            'PRODUCT-NEW',
+            SubscriptionsDouble::createProductForTest($Order, $PlanProduct)
+        );
+        self::assertSame(
+            ['id' => 'PLAN-NEW', 'status' => 'ACTIVE'],
+            SubscriptionsDouble::createPlanForTest(
+                $Order,
+                $PlanProduct,
+                'PRODUCT-NEW'
+            )
+        );
+
+        $productBody = $this->requestBody($Client, 0);
+        self::assertSame('SERVICE', $productBody['type']);
+        self::assertSame(127, strlen($productBody['name']));
+
+        $planBody = $this->requestBody($Client, 1);
+        self::assertSame('PRODUCT-NEW', $planBody['product_id']);
+        self::assertSame(
+            [
+                'interval_unit' => 'MONTH',
+                'interval_count' => 1
+            ],
+            $planBody['billing_cycles'][0]['frequency']
+        );
+        self::assertSame(
+            [
+                'value' => '24.95',
+                'currency_code' => 'EUR'
+            ],
+            $planBody['billing_cycles'][0]['pricing_scheme']['fixed_price']
+        );
+        self::assertSame(0, $planBody['billing_cycles'][0]['total_cycles']);
+    }
+
+    public function testFiniteSubscriptionCycleCountIsCalculated(): void
+    {
+        self::assertSame(0, SubscriptionsDouble::getCycleCountForTest([
+            'auto_extend' => true
+        ]));
+        self::assertSame(12, SubscriptionsDouble::getCycleCountForTest([
+            'auto_extend' => false,
+            'duration_interval' => '12-month',
+            'invoice_interval' => '1-month'
+        ]));
     }
 
     public function testCancelSubscriptionUsesDefaultReasonAndMarksRecordInactive(): void
