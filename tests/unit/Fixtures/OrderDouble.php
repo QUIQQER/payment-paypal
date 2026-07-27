@@ -6,6 +6,7 @@ namespace QUITests\ERP\Payments\PayPal\Unit\Fixtures;
 
 use QUI\ERP\Accounting\Invoice\Invoice;
 use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
+use QUI\ERP\Accounting\ArticleList;
 use QUI\ERP\Accounting\Calculations;
 use QUI\ERP\Currency\Currency;
 use QUI\ERP\Order\AbstractOrder;
@@ -118,6 +119,11 @@ final class OrderDouble extends AbstractOrder
     public function setShipping(ShippingInterface $Shipping): void
     {
         $this->Shipping = $Shipping;
+    }
+
+    public function useArticles(ArticleList $Articles): void
+    {
+        $this->Articles = $Articles;
     }
 
     public function addHistory(string $message): void
