@@ -15,6 +15,7 @@ use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Currency\Currency;
 use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
+use QUI\ERP\Payments\PayPal\PayPalException;
 use ReflectionProperty;
 use Throwable;
 
@@ -121,6 +122,55 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
         self::assertNotEmpty($history);
     }
 
+    public function testInvoiceWithoutAgreementReferenceIsRejected(): void
+    {
+        $Invoice = $this->createMock(Invoice::class);
+        $Invoice->method('getPaymentDataEntry')->willReturn(null);
+        $Invoice->expects(self::once())->method('addHistory');
+
+        $this->expectException(PayPalException::class);
+
+        BillingAgreements::billBillingAgreementBalance($Invoice);
+    }
+
+    public function testInvoiceWithUnknownAgreementIsRejected(): void
+    {
+        $Invoice = $this->createMock(Invoice::class);
+        $Invoice->method('getPaymentDataEntry')->willReturn(
+            self::PREFIX . 'unknown'
+        );
+        $Invoice->expects(self::once())->method('addHistory');
+
+        $this->expectException(PayPalException::class);
+
+        BillingAgreements::billBillingAgreementBalance($Invoice);
+    }
+
+    public function testMismatchedLegacyTransactionsAreIgnored(): void
+    {
+        $this->insertPayPalTransaction(
+            self::PREFIX . 'wrong-currency',
+            BillingAgreements::TRANSACTION_STATE_COMPLETED,
+            '19.95',
+            'USD'
+        );
+        $this->insertPayPalTransaction(
+            self::PREFIX . 'too-small',
+            BillingAgreements::TRANSACTION_STATE_COMPLETED,
+            '5.00',
+            'EUR'
+        );
+        $addedTransactions = [];
+        $history = [];
+
+        BillingAgreements::billBillingAgreementBalance(
+            $this->invoice($addedTransactions, $history)
+        );
+
+        self::assertSame([], $addedTransactions);
+        self::assertSame([], $history);
+    }
+
     /**
      * @param list<Transaction> $addedTransactions
      * @param list<string> $history
@@ -156,8 +206,12 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
         return $Invoice;
     }
 
-    private function insertPayPalTransaction(string $id, string $status): void
-    {
+    private function insertPayPalTransaction(
+        string $id,
+        string $status,
+        string $amount = '19.95',
+        string $currency = 'EUR'
+    ): void {
         $this->connection()->insert(
             $this->paypalTransactionsTable(),
             [
@@ -167,8 +221,8 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
                     'transaction_id' => $id,
                     'status' => $status,
                     'amount' => [
-                        'value' => '19.95',
-                        'currency' => 'EUR'
+                        'value' => $amount,
+                        'currency' => $currency
                     ],
                     'time_stamp' => '2026-07-27T11:00:00Z'
                 ]),
