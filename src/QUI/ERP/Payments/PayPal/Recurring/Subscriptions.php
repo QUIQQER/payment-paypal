@@ -67,13 +67,12 @@ class Subscriptions
             return $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL);
         }
 
-        [$productId, $planId] = self::getOrCreatePlanReferences($Order);
+        [$productId, $planId] = static::getOrCreatePlanReferences($Order);
 
-        $Gateway = new Gateway();
-        $Gateway->setOrder($Order);
+        $Gateway = static::createGatewayForOrder($Order);
         $Customer = $Order->getCustomer();
 
-        $response = self::getApiClient()->post('/v1/billing/subscriptions', [
+        $response = static::getApiClient()->post('/v1/billing/subscriptions', [
             'plan_id' => $planId,
             'custom_id' => $Order->getUUID(),
             'subscriber' => [
@@ -100,7 +99,7 @@ class Subscriptions
             );
         }
 
-        $approvalUrl = self::getApprovalUrl($response);
+        $approvalUrl = static::getApprovalUrl($response);
 
         if (empty($approvalUrl)) {
             throw new PayPalException(
@@ -118,7 +117,7 @@ class Subscriptions
         $Order->addHistory('PayPal :: Subscription created: ' . $response['id']);
         Utils::saveOrder($Order);
 
-        self::upsertSubscriptionRecord(
+        static::upsertSubscriptionRecord(
             $response['id'],
             $planId,
             [
@@ -132,6 +131,14 @@ class Subscriptions
         );
 
         return $approvalUrl;
+    }
+
+    protected static function createGatewayForOrder(AbstractOrder $Order): Gateway
+    {
+        $Gateway = new Gateway();
+        $Gateway->setOrder($Order);
+
+        return $Gateway;
     }
 
     /**

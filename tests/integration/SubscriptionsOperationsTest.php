@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Integration;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
@@ -15,6 +16,7 @@ use ReflectionProperty;
 use Throwable;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\SubscriptionsApiClientDouble;
+use QUITests\ERP\Payments\PayPal\Unit\Fixtures\SubscriptionsDouble;
 
 final class SubscriptionsOperationsTest extends TestCase
 {
@@ -44,6 +46,7 @@ final class SubscriptionsOperationsTest extends TestCase
     protected function tearDown(): void
     {
         $this->setApiClient(null);
+        SubscriptionsDouble::useGateway(null);
         $this->cleanupFixture();
         parent::tearDown();
     }
@@ -63,6 +66,71 @@ final class SubscriptionsOperationsTest extends TestCase
             Subscriptions::createSubscription($Order)
         );
         self::assertSame([], $Client->requests);
+    }
+
+    public function testCreateSubscriptionPersistsModernApiResponse(): void
+    {
+        $Client = $this->apiClientWithResponses([[
+            'id' => self::SUBSCRIPTION_ID,
+            'status' => Subscriptions::STATUS_APPROVAL_PENDING,
+            'links' => [[
+                'rel' => 'approve',
+                'href' => 'https://paypal.example/approve-subscription'
+            ]]
+        ]]);
+        $this->setApiClient($Client);
+
+        $Gateway = $this->createMock(Gateway::class);
+        $Gateway->method('getSuccessUrl')->willReturn('https://example.test/success?');
+        $Gateway->method('getCancelUrl')->willReturn('https://example.test/cancel?');
+        SubscriptionsDouble::useGateway($Gateway);
+
+        $Customer = $this->createMock(QUI\ERP\User::class);
+        $Customer->method('getAttribute')->willReturnMap([
+            ['firstname', 'Jane'],
+            ['lastname', 'Doe'],
+            ['email', 'jane@example.test']
+        ]);
+
+        $Order = new OrderDouble();
+        $Order->CustomerValue = $Customer;
+
+        self::assertSame(
+            'https://paypal.example/approve-subscription',
+            SubscriptionsDouble::createSubscription($Order)
+        );
+        self::assertSame(
+            self::SUBSCRIPTION_ID,
+            $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_ID)
+        );
+        self::assertSame(
+            'PRODUCT-1',
+            $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_PRODUCT_ID)
+        );
+        self::assertSame(
+            'PLAN-1',
+            $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID)
+        );
+        self::assertContains(
+            'PayPal :: Subscription created: ' . self::SUBSCRIPTION_ID,
+            $Order->history
+        );
+
+        $request = $this->requestBody($Client);
+        self::assertSame('PLAN-1', $request['plan_id']);
+        self::assertSame([
+            'given_name' => 'Jane',
+            'surname' => 'Doe'
+        ], $request['subscriber']['name']);
+        self::assertSame(
+            'https://example.test/success',
+            $request['application_context']['return_url']
+        );
+
+        $data = Subscriptions::getSubscriptionData(self::SUBSCRIPTION_ID);
+        self::assertIsArray($data);
+        self::assertSame('PLAN-1', $data['planId']);
+        self::assertSame('jane@example.test', $data['customer']['email']);
     }
 
     public function testCancelSubscriptionUsesDefaultReasonAndMarksRecordInactive(): void

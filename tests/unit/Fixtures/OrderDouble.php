@@ -10,6 +10,7 @@ use QUI\ERP\Accounting\Calculations;
 use QUI\ERP\Currency\Currency;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Shipping\Api\ShippingInterface;
+use QUI\ERP\User as ErpUser;
 use QUI\Interfaces\Users\User;
 use RuntimeException;
 
@@ -22,6 +23,7 @@ final class OrderDouble extends AbstractOrder
     public ?ShippingInterface $Shipping = null;
     public ?Calculations $PriceCalculation = null;
     public ?Currency $CurrencyValue = null;
+    public ?ErpUser $CustomerValue = null;
     public bool $successfulStatusSet = false;
     public int $refreshCount = 0;
 
@@ -97,6 +99,15 @@ final class OrderDouble extends AbstractOrder
         }
 
         return $this->CurrencyValue;
+    }
+
+    public function getCustomer(): ErpUser
+    {
+        if ($this->CustomerValue === null) {
+            throw new RuntimeException('No customer configured for test order.');
+        }
+
+        return $this->CustomerValue;
     }
 
     public function setSuccessfulStatus(): void
