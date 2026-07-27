@@ -4,6 +4,7 @@ namespace QUI\ERP\Payments\PayPal\Recurring;
 
 use DateInterval;
 use DateTime;
+use Doctrine\DBAL\ArrayParameterType;
 use Exception;
 use QUI;
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
@@ -20,10 +21,9 @@ use QUI\ERP\Payments\PayPal\Recurring\Subscriptions\ApiClient;
 use QUI\ERP\Payments\PayPal\Utils;
 use QUI\ERP\Products\Handler\Products as ProductsHandler;
 use QUI\ERP\Products\Product\Product;
+use QUI\Utils\Doctrine;
 
-use function array_column;
 use function class_exists;
-use function current;
 use function date;
 use function hash;
 use function json_encode;
@@ -247,19 +247,19 @@ class Subscriptions
     public static function exists(string $subscriptionId): bool
     {
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_subscription_id'],
-                'from' => self::getSubscriptionsTable(),
-                'where' => [
-                    'paypal_subscription_id' => $subscriptionId
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_subscription_id'))
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->executeQuery()
+                ->fetchOne();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
 
-        return !empty($result);
+        return $result !== false;
     }
 
     /**
@@ -300,23 +300,23 @@ class Subscriptions
     public static function isSubscriptionActiveAtQuiqqer(string $subscriptionId): bool
     {
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['active'],
-                'from' => self::getSubscriptionsTable(),
-                'where' => [
-                    'paypal_subscription_id' => $subscriptionId
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('active'))
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->executeQuery()
+                ->fetchOne();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return true;
         }
 
-        if (empty($result)) {
+        if ($result === false) {
             return false;
         }
 
-        return !empty($result[0]['active']);
+        return !empty($result);
     }
 
     /**
@@ -325,24 +325,26 @@ class Subscriptions
      */
     public static function getSubscriptionIds(bool $includeInactive = false): array
     {
-        $where = [];
-
-        if (!$includeInactive) {
-            $where['active'] = 1;
-        }
-
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_subscription_id'],
-                'from' => self::getSubscriptionsTable(),
-                'where' => $where
-            ]);
+            $QueryBuilder = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_subscription_id'))
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()));
+
+            if (!$includeInactive) {
+                $QueryBuilder
+                    ->where(Doctrine::quoteIdentifier('active') . ' = :active')
+                    ->setParameter('active', 1);
+            }
+
+            $result = $QueryBuilder
+                ->executeQuery()
+                ->fetchFirstColumn();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return [];
         }
 
-        return array_column($result, 'paypal_subscription_id');
+        return $result;
     }
 
     /**
@@ -352,7 +354,7 @@ class Subscriptions
     public static function setSubscriptionAsInactive(string $subscriptionId): void
     {
         try {
-            QUI::getDataBase()->update(
+            QUI::getDataBaseConnection()->update(
                 self::getSubscriptionsTable(),
                 ['active' => 0],
                 ['paypal_subscription_id' => $subscriptionId]
@@ -375,22 +377,21 @@ class Subscriptions
     public static function getSubscriptionData(string $subscriptionId): array|false
     {
         try {
-            $result = QUI::getDataBase()->fetch([
-                'from' => self::getSubscriptionsTable(),
-                'where' => [
-                    'paypal_subscription_id' => $subscriptionId
-                ]
-            ]);
+            $data = QUI::getQueryBuilder()
+                ->select('*')
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->executeQuery()
+                ->fetchAssociative();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
 
-        if (empty($result)) {
+        if ($data === false) {
             return false;
         }
-
-        $data = current($result);
 
         return [
             'active' => !empty($data['active']),
@@ -473,7 +474,7 @@ class Subscriptions
 
                 $Invoice->addTransaction($InvoiceTransaction);
 
-                QUI::getDataBase()->update(
+                QUI::getDataBaseConnection()->update(
                     self::getSubscriptionTransactionsTable(),
                     [
                         'quiqqer_transaction_id' => $InvoiceTransaction->getTxId(),
@@ -551,7 +552,7 @@ class Subscriptions
                 $InvoiceTransaction->changeStatus(TransactionHandler::STATUS_ERROR);
                 $Invoice->addTransaction($InvoiceTransaction);
 
-                QUI::getDataBase()->update(
+                QUI::getDataBaseConnection()->update(
                     self::getSubscriptionTransactionsTable(),
                     [
                         'quiqqer_transaction_id' => $InvoiceTransaction->getTxId(),
@@ -682,17 +683,18 @@ class Subscriptions
     protected static function getSubscriptionProcessRows(
         array $globalProcessIds
     ): array {
+        if (empty($globalProcessIds)) {
+            return [];
+        }
+
         try {
-            return QUI::getDataBase()->fetch([
-                'select' => ['global_process_id'],
-                'from' => self::getSubscriptionsTable(),
-                'where' => [
-                    'global_process_id' => [
-                        'type' => 'IN',
-                        'value' => $globalProcessIds
-                    ]
-                ]
-            ]);
+            return QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('global_process_id'))
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
+                ->where(Doctrine::quoteIdentifier('global_process_id') . ' IN (:globalProcessIds)')
+                ->setParameter('globalProcessIds', $globalProcessIds, ArrayParameterType::STRING)
+                ->executeQuery()
+                ->fetchAllAssociative();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return [];
@@ -776,7 +778,7 @@ class Subscriptions
                 return false;
             }
 
-            QUI::getDataBase()->insert(
+            QUI::getDataBaseConnection()->insert(
                 self::getSubscriptionWebhookEventsTable(),
                 [
                     'paypal_event_id' => $event['id'],
@@ -819,7 +821,7 @@ class Subscriptions
                 self::persistTransactionFromWebhook($subscriptionId, $resource, $eventType);
             }
 
-            QUI::getDataBase()->update(
+            QUI::getDataBaseConnection()->update(
                 self::getSubscriptionWebhookEventsTable(),
                 ['processed' => 1],
                 ['paypal_event_id' => $event['id']]
@@ -884,20 +886,21 @@ class Subscriptions
         $resource['status'] = $status;
 
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_transaction_id'],
-                'from' => self::getSubscriptionTransactionsTable(),
-                'where' => [
-                    'paypal_transaction_id' => $transactionId,
-                    'paypal_transaction_date' => $transactionDate
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_transaction_id'))
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionTransactionsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_transaction_id') . ' = :transactionId')
+                ->andWhere(Doctrine::quoteIdentifier('paypal_transaction_date') . ' = :transactionDate')
+                ->setParameter('transactionId', $transactionId)
+                ->setParameter('transactionDate', $transactionDate)
+                ->executeQuery()
+                ->fetchOne();
 
-            if (!empty($result)) {
+            if ($result !== false) {
                 return;
             }
 
-            QUI::getDataBase()->insert(
+            QUI::getDataBaseConnection()->insert(
                 self::getSubscriptionTransactionsTable(),
                 [
                     'paypal_transaction_id' => $transactionId,
@@ -922,26 +925,26 @@ class Subscriptions
         string $subscriptionId,
         string $status = self::TRANSACTION_STATE_COMPLETED
     ): array {
-        $result = QUI::getDataBase()->fetch([
-            'select' => ['paypal_transaction_data'],
-            'from' => self::getSubscriptionTransactionsTable(),
-            'where' => [
-                'paypal_subscription_id' => $subscriptionId,
-                'quiqqer_transaction_id' => null
-            ]
-        ]);
+        $result = QUI::getQueryBuilder()
+            ->select(Doctrine::quoteIdentifier('paypal_transaction_data'))
+            ->from(Doctrine::quoteIdentifier(self::getSubscriptionTransactionsTable()))
+            ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+            ->andWhere(Doctrine::quoteIdentifier('quiqqer_transaction_id') . ' IS NULL')
+            ->setParameter('subscriptionId', $subscriptionId)
+            ->executeQuery()
+            ->fetchAllAssociative();
 
         if (empty($result)) {
             self::refreshTransactionList($subscriptionId);
 
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_transaction_data'],
-                'from' => self::getSubscriptionTransactionsTable(),
-                'where' => [
-                    'paypal_subscription_id' => $subscriptionId,
-                    'quiqqer_transaction_id' => null
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_transaction_data'))
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionTransactionsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+                ->andWhere(Doctrine::quoteIdentifier('quiqqer_transaction_id') . ' IS NULL')
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->executeQuery()
+                ->fetchAllAssociative();
         }
 
         $transactions = [];
@@ -978,21 +981,18 @@ class Subscriptions
         try {
             $Start = new DateTime(date('Y') . '-01-01 00:00:00');
 
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_transaction_date'],
-                'from' => self::getSubscriptionTransactionsTable(),
-                'where' => [
-                    'paypal_subscription_id' => $subscriptionId
-                ],
-                'order' => [
-                    'field' => 'paypal_transaction_date',
-                    'sort' => 'DESC'
-                ],
-                'limit' => 1
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_transaction_date'))
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionTransactionsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->orderBy(Doctrine::quoteIdentifier('paypal_transaction_date'), 'DESC')
+                ->setMaxResults(1)
+                ->executeQuery()
+                ->fetchOne();
 
-            if (!empty($result)) {
-                $Start = new DateTime($result[0]['paypal_transaction_date']);
+            if ($result !== false) {
+                $Start = new DateTime((string)$result);
             }
 
             $End = new DateTime();
@@ -1019,19 +1019,19 @@ class Subscriptions
     protected static function webhookEventExists(string $eventId): bool
     {
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_event_id'],
-                'from' => self::getSubscriptionWebhookEventsTable(),
-                'where' => [
-                    'paypal_event_id' => $eventId
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('paypal_event_id'))
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionWebhookEventsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_event_id') . ' = :eventId')
+                ->setParameter('eventId', $eventId)
+                ->executeQuery()
+                ->fetchOne();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
 
-        return !empty($result);
+        return $result !== false;
     }
 
     /**
@@ -1151,7 +1151,7 @@ class Subscriptions
         $productId = self::createProduct($Order, $PlanProduct);
         $planData = self::createPlan($Order, $PlanProduct, $productId);
 
-        QUI::getDataBase()->insert(
+        QUI::getDataBaseConnection()->insert(
             self::getSubscriptionPlansTable(),
             [
                 'paypal_product_id' => $productId,
@@ -1323,23 +1323,26 @@ class Subscriptions
     protected static function getPlanByOrder(AbstractOrder $Order): array|false
     {
         try {
-            $result = QUI::getDataBase()->fetch([
-                'select' => ['paypal_product_id', 'paypal_plan_id'],
-                'from' => self::getSubscriptionPlansTable(),
-                'where' => [
-                    'identification_hash' => self::getIdentificationHash($Order)
-                ]
-            ]);
+            $result = QUI::getQueryBuilder()
+                ->select(
+                    Doctrine::quoteIdentifier('paypal_product_id'),
+                    Doctrine::quoteIdentifier('paypal_plan_id')
+                )
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionPlansTable()))
+                ->where(Doctrine::quoteIdentifier('identification_hash') . ' = :identificationHash')
+                ->setParameter('identificationHash', self::getIdentificationHash($Order))
+                ->executeQuery()
+                ->fetchAssociative();
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
             return false;
         }
 
-        if (empty($result)) {
+        if ($result === false) {
             return false;
         }
 
-        return $result[0];
+        return $result;
     }
 
     /**
@@ -1361,7 +1364,7 @@ class Subscriptions
     ): void {
         try {
             if (self::exists($subscriptionId)) {
-                QUI::getDataBase()->update(
+                QUI::getDataBaseConnection()->update(
                     self::getSubscriptionsTable(),
                     [
                         'paypal_plan_id' => $planId,
@@ -1378,7 +1381,7 @@ class Subscriptions
                 return;
             }
 
-            QUI::getDataBase()->insert(
+            QUI::getDataBaseConnection()->insert(
                 self::getSubscriptionsTable(),
                 [
                     'paypal_subscription_id' => $subscriptionId,
