@@ -89,6 +89,26 @@ final class SubscriptionsApiClientTest extends TestCase
         );
     }
 
+    public function testPostSendsPayPalRequestIdWhenProvided(): void
+    {
+        $Client = $this->createAuthenticatedClient();
+        $Client->responses[] = [
+            'body' => '{"id":"SUBSCRIPTION-1"}',
+            'status' => 201
+        ];
+
+        $Client->post(
+            '/v1/billing/subscriptions',
+            ['plan_id' => 'PLAN-1'],
+            'stable-request-id'
+        );
+
+        self::assertContains(
+            'PayPal-Request-Id: stable-request-id',
+            $Client->requests[0]['options'][CURLOPT_HTTPHEADER]
+        );
+    }
+
     public function testGetAppendsEncodedQueryParameters(): void
     {
         $Client = $this->createAuthenticatedClient();

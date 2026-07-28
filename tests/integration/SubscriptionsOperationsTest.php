@@ -24,6 +24,8 @@ use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\SubscriptionsApiClientDouble;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\SubscriptionsDouble;
 
+use const CURLOPT_HTTPHEADER;
+
 final class SubscriptionsOperationsTest extends TestCase
 {
     private const SUBSCRIPTION_ID = 'phpunit_paypal_operations_subscription';
@@ -133,6 +135,7 @@ final class SubscriptionsOperationsTest extends TestCase
             'https://example.test/success',
             $request['application_context']['return_url']
         );
+        self::assertSame(38, strlen($this->requestId($Client)));
 
         $data = Subscriptions::getSubscriptionData(self::SUBSCRIPTION_ID);
         self::assertIsArray($data);
@@ -208,6 +211,12 @@ final class SubscriptionsOperationsTest extends TestCase
             $planBody['billing_cycles'][0]['pricing_scheme']['fixed_price']
         );
         self::assertSame(0, $planBody['billing_cycles'][0]['total_cycles']);
+
+        $productRequestId = $this->requestId($Client, 0);
+        $planRequestId = $this->requestId($Client, 1);
+        self::assertSame(38, strlen($productRequestId));
+        self::assertSame(38, strlen($planRequestId));
+        self::assertNotSame($productRequestId, $planRequestId);
     }
 
     public function testFiniteSubscriptionCycleCountIsCalculated(): void
@@ -555,6 +564,19 @@ final class SubscriptionsOperationsTest extends TestCase
             $Client->requests[$index]['options'][CURLOPT_POSTFIELDS],
             true
         );
+    }
+
+    private function requestId(
+        SubscriptionsApiClientDouble $Client,
+        int $index = 0
+    ): string {
+        foreach ($Client->requests[$index]['options'][CURLOPT_HTTPHEADER] as $header) {
+            if (str_starts_with($header, 'PayPal-Request-Id: ')) {
+                return substr($header, strlen('PayPal-Request-Id: '));
+            }
+        }
+
+        self::fail('PayPal request ID header is missing.');
     }
 
     private function insertSubscription(): void

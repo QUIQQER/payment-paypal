@@ -73,23 +73,27 @@ class Subscriptions
         $Gateway = static::createGatewayForOrder($Order);
         $Customer = $Order->getCustomer();
 
-        $response = static::getApiClient()->post('/v1/billing/subscriptions', [
-            'plan_id' => $planId,
-            'custom_id' => $Order->getUUID(),
-            'subscriber' => [
-                'name' => [
-                    'given_name' => $Customer->getAttribute('firstname') ?: '',
-                    'surname' => $Customer->getAttribute('lastname') ?: ''
+        $response = static::getApiClient()->post(
+            '/v1/billing/subscriptions',
+            [
+                'plan_id' => $planId,
+                'custom_id' => $Order->getUUID(),
+                'subscriber' => [
+                    'name' => [
+                        'given_name' => $Customer->getAttribute('firstname') ?: '',
+                        'surname' => $Customer->getAttribute('lastname') ?: ''
+                    ],
+                    'email_address' => $Customer->getAttribute('email')
                 ],
-                'email_address' => $Customer->getAttribute('email')
+                'application_context' => [
+                    'brand_name' => Utils::getProjectUrl(),
+                    'return_url' => rtrim($Gateway->getSuccessUrl(), '?'),
+                    'cancel_url' => rtrim($Gateway->getCancelUrl(), '?'),
+                    'user_action' => 'SUBSCRIBE_NOW'
+                ]
             ],
-            'application_context' => [
-                'brand_name' => Utils::getProjectUrl(),
-                'return_url' => rtrim($Gateway->getSuccessUrl(), '?'),
-                'cancel_url' => rtrim($Gateway->getCancelUrl(), '?'),
-                'user_action' => 'SUBSCRIBE_NOW'
-            ]
-        ]);
+            static::getPayPalRequestId('create-subscription', $Order->getUUID())
+        );
 
         if (empty($response['id'])) {
             throw new PayPalException(
@@ -1423,12 +1427,16 @@ class Subscriptions
             $description = $name;
         }
 
-        $response = self::getApiClient()->post('/v1/catalogs/products', [
-            'name' => $name,
-            'description' => substr($description, 0, 127),
-            'type' => 'SERVICE',
-            'category' => 'SOFTWARE'
-        ]);
+        $response = self::getApiClient()->post(
+            '/v1/catalogs/products',
+            [
+                'name' => $name,
+                'description' => substr($description, 0, 127),
+                'type' => 'SERVICE',
+                'category' => 'SOFTWARE'
+            ],
+            self::getPayPalRequestId('create-product', $Order->getUUID())
+        );
 
         if (empty($response['id'])) {
             throw new PayPalException(
@@ -1456,32 +1464,36 @@ class Subscriptions
         $invoiceIntervalParts = explode('-', $planDetails['invoice_interval']);
         $PriceCalculation = $Order->getPriceCalculation();
 
-        return self::getApiClient()->post('/v1/billing/plans', [
-            'product_id' => $productId,
-            'name' => substr($PlanProduct->getTitle(), 0, 127),
-            'description' => substr($PlanProduct->getDescription() ?: $PlanProduct->getTitle(), 0, 127),
-            'status' => 'ACTIVE',
-            'billing_cycles' => [[
-                'frequency' => [
-                    'interval_unit' => mb_strtoupper($invoiceIntervalParts[1]),
-                    'interval_count' => (int)$invoiceIntervalParts[0]
-                ],
-                'tenure_type' => 'REGULAR',
-                'sequence' => 1,
-                'total_cycles' => self::getCycleCount($planDetails),
-                'pricing_scheme' => [
-                    'fixed_price' => [
-                        'value' => Utils::formatPrice($PriceCalculation->getSum()->get()),
-                        'currency_code' => $Order->getCurrency()->getCode()
+        return self::getApiClient()->post(
+            '/v1/billing/plans',
+            [
+                'product_id' => $productId,
+                'name' => substr($PlanProduct->getTitle(), 0, 127),
+                'description' => substr($PlanProduct->getDescription() ?: $PlanProduct->getTitle(), 0, 127),
+                'status' => 'ACTIVE',
+                'billing_cycles' => [[
+                    'frequency' => [
+                        'interval_unit' => mb_strtoupper($invoiceIntervalParts[1]),
+                        'interval_count' => (int)$invoiceIntervalParts[0]
+                    ],
+                    'tenure_type' => 'REGULAR',
+                    'sequence' => 1,
+                    'total_cycles' => self::getCycleCount($planDetails),
+                    'pricing_scheme' => [
+                        'fixed_price' => [
+                            'value' => Utils::formatPrice($PriceCalculation->getSum()->get()),
+                            'currency_code' => $Order->getCurrency()->getCode()
+                        ]
                     ]
+                ]],
+                'payment_preferences' => [
+                    'auto_bill_outstanding' => true,
+                    'setup_fee_failure_action' => 'CONTINUE',
+                    'payment_failure_threshold' => 2
                 ]
-            ]],
-            'payment_preferences' => [
-                'auto_bill_outstanding' => true,
-                'setup_fee_failure_action' => 'CONTINUE',
-                'payment_failure_threshold' => 2
-            ]
-        ]);
+            ],
+            self::getPayPalRequestId('create-plan', $Order->getUUID())
+        );
     }
 
     /**
@@ -1636,6 +1648,11 @@ class Subscriptions
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
         }
+    }
+
+    protected static function getPayPalRequestId(string $operation, string $identifier): string
+    {
+        return substr(hash('sha256', $operation . '|' . $identifier), 0, 38);
     }
 
     /**

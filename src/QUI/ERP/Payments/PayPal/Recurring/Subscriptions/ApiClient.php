@@ -29,12 +29,13 @@ class ApiClient
     /**
      * @param string $path
      * @param array<mixed> $body
+     * @param string|null $requestId
      * @return array<mixed>
      * @throws PayPalException
      */
-    public function post(string $path, array $body = []): array
+    public function post(string $path, array $body = [], ?string $requestId = null): array
     {
-        return $this->request('POST', $path, $body);
+        return $this->request('POST', $path, $body, $requestId);
     }
 
     /**
@@ -84,15 +85,24 @@ class ApiClient
      * @param string $method
      * @param string $path
      * @param array<mixed>|null $body
+     * @param string|null $requestId
      * @return array<mixed>
      * @throws PayPalException
      */
-    protected function request(string $method, string $path, ?array $body = null): array
-    {
+    protected function request(
+        string $method,
+        string $path,
+        ?array $body = null,
+        ?string $requestId = null
+    ): array {
         $headers = [
             'Accept: application/json',
             'Authorization: Bearer ' . $this->getAccessToken()
         ];
+
+        if ($requestId !== null && $requestId !== '') {
+            $headers[] = 'PayPal-Request-Id: ' . $requestId;
+        }
 
         $payload = null;
 
