@@ -30,6 +30,35 @@ final class RecurringConfigurationTest extends TestCase
         );
     }
 
+    public function testSubscriptionAdministrationIsExposed(): void
+    {
+        $Settings = $this->loadXml('settings.xml');
+        $Permissions = $this->loadXml('permissions.xml');
+
+        self::assertCount(
+            1,
+            $Settings->xpath("//category[@name='subscriptions']") ?: []
+        );
+        self::assertCount(
+            1,
+            $Settings->xpath(
+                "//input[contains(@data-qui, '/backend/Subscriptions')]"
+            ) ?: []
+        );
+        self::assertCount(
+            1,
+            $Permissions->xpath(
+                "//permission[@name='quiqqer.payments.paypal.subscriptions.view']"
+            ) ?: []
+        );
+        self::assertCount(
+            1,
+            $Permissions->xpath(
+                "//permission[@name='quiqqer.payments.paypal.subscriptions.manage']"
+            ) ?: []
+        );
+    }
+
     private function loadXml(string $file): SimpleXMLElement
     {
         $Xml = simplexml_load_file(dirname(__DIR__, 2) . '/' . $file);

@@ -1,0 +1,106 @@
+.quiqqer-payment-paypal-subscriptions {
+    float: left;
+    height: 100%;
+    width: calc(100% - 190px);
+}
+
+.field-container-field.quiqqer-payment-paypal-subscriptions {
+    border: 0;
+}
+
+.quiqqer-payment-paypal-subscriptions-toolbar {
+    align-items: center;
+    display: flex;
+    margin: 10px 0;
+    width: 100%;
+}
+
+.quiqqer-payment-paypal-subscriptions-search {
+    border-bottom-right-radius: 0;
+    border-top-right-radius: 0;
+    flex: 1 1 auto;
+    margin: 0;
+    min-width: 0;
+}
+
+.quiqqer-payment-paypal-subscriptions-toolbar .qui-button {
+    border-bottom-left-radius: 0;
+    border-top-left-radius: 0;
+    flex: 0 0 auto;
+    margin-left: -1px;
+}
+
+.quiqqer-payment-paypal-subscriptions-grid {
+    height: 100%;
+    width: 100%;
+}
+
+.quiqqer-payment-paypal-subscriptions-information {
+    align-items: flex-start;
+    background: #e8f4fd;
+    border: 1px solid #9ac8e8;
+    border-left: 4px solid #168dcc;
+    box-sizing: border-box;
+    clear: both;
+    color: #24465b;
+    display: flex;
+    gap: 12px;
+    line-height: 1.5;
+    margin: 0 0 10px;
+    padding: 12px 14px;
+    text-align: left;
+    width: 100%;
+}
+
+.quiqqer-payment-paypal-subscriptions-information .fa-info-circle {
+    color: #168dcc;
+    flex: 0 0 auto;
+    font-size: 18px;
+    margin-top: 2px;
+}
+
+.quiqqer-payment-paypal-subscriptions-active {
+    color: #238636;
+}
+
+.quiqqer-payment-paypal-subscriptions-inactive {
+    color: #cf222e;
+}
+
+.quiqqer-payment-paypal-subscriptions-status {
+    background: #eef2f6;
+    border-radius: 999px;
+    color: #44546a;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 6px 9px;
+    white-space: nowrap;
+}
+
+.quiqqer-payment-paypal-subscriptions-status.status-active {
+    background: #dafbe1;
+    color: #116329;
+}
+
+.quiqqer-payment-paypal-subscriptions-status.status-approved {
+    background: #ddf4ff;
+    color: #0969da;
+}
+
+.quiqqer-payment-paypal-subscriptions-status.status-approval-pending {
+    background: #fff8c5;
+    color: #7d4e00;
+}
+
+.quiqqer-payment-paypal-subscriptions-status.status-suspended {
+    background: #fff1e5;
+    color: #9a6700;
+}
+
+.quiqqer-payment-paypal-subscriptions-status.status-cancelled,
+.quiqqer-payment-paypal-subscriptions-status.status-expired {
+    background: #ffebe9;
+    color: #a40e26;
+}

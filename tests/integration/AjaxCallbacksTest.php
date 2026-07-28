@@ -120,6 +120,34 @@ final class AjaxCallbacksTest extends TestCase
         );
     }
 
+    public function testSubscriptionAdminCallbacksAreRegistered(): void
+    {
+        $list = $this->registeredCallback('recurring/getSubscriptionList')(
+            json_encode([
+                'search' => 'phpunit-does-not-exist',
+                'page' => 1,
+                'perPage' => 10
+            ])
+        );
+
+        self::assertSame(0, $list['total']);
+        self::assertSame([], $list['data']);
+        self::assertFalse(
+            $this->registeredCallback('recurring/getSubscription')(
+                'phpunit-does-not-exist'
+            )
+        );
+        self::assertIsCallable(
+            $this->registeredCallback('recurring/cancelSubscription')
+        );
+        self::assertIsCallable(
+            $this->registeredCallback('recurring/suspendSubscription')
+        );
+        self::assertIsCallable(
+            $this->registeredCallback('recurring/activateSubscription')
+        );
+    }
+
     public function testWebhookCallbackRejectsEmptyPayload(): void
     {
         $_SERVER['HTTP_PAYPAL_TRANSMISSION_ID'] = 'AJAX-TRANSMISSION';

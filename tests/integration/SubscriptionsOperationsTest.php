@@ -241,14 +241,28 @@ final class SubscriptionsOperationsTest extends TestCase
             ['reason' => 'Cancelled from QUIQQER'],
             $this->requestBody($Client)
         );
+        self::assertSame(
+            Subscriptions::STATUS_CANCELLED,
+            Subscriptions::getSubscriptionData(
+                self::SUBSCRIPTION_ID
+            )['subscriptionData']['status']
+        );
     }
 
     public function testSuspendAndActivateSubscriptionUseProvidedAndDefaultNotes(): void
     {
+        $this->insertSubscription();
         $Client = $this->apiClientWithResponses([[], []]);
         $this->setApiClient($Client);
 
         Subscriptions::suspendSubscription(self::SUBSCRIPTION_ID, 'Payment overdue');
+        self::assertSame(
+            Subscriptions::STATUS_SUSPENDED,
+            Subscriptions::getSubscriptionData(
+                self::SUBSCRIPTION_ID
+            )['subscriptionData']['status']
+        );
+
         Subscriptions::activateSubscription(self::SUBSCRIPTION_ID);
 
         self::assertSame(
@@ -258,6 +272,12 @@ final class SubscriptionsOperationsTest extends TestCase
         self::assertSame(
             ['reason' => 'Activated from QUIQQER'],
             $this->requestBody($Client, 1)
+        );
+        self::assertSame(
+            Subscriptions::STATUS_ACTIVE,
+            Subscriptions::getSubscriptionData(
+                self::SUBSCRIPTION_ID
+            )['subscriptionData']['status']
         );
     }
 

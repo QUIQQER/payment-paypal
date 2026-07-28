@@ -5,6 +5,7 @@ namespace QUI\ERP\Payments\PayPal\Recurring;
 use DateInterval;
 use DateTime;
 use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Query\QueryBuilder;
 use Exception;
 use QUI;
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
@@ -218,7 +219,11 @@ class Subscriptions
             'reason' => $reason ?: 'Cancelled from QUIQQER'
         ]);
 
-        self::setSubscriptionAsInactive($subscriptionId);
+        self::updateStoredSubscriptionStatus(
+            $subscriptionId,
+            self::STATUS_CANCELLED,
+            false
+        );
     }
 
     /**
@@ -232,6 +237,12 @@ class Subscriptions
         self::getApiClient()->post('/v1/billing/subscriptions/' . $subscriptionId . '/suspend', [
             'reason' => $note ?: 'Suspended from QUIQQER'
         ]);
+
+        self::updateStoredSubscriptionStatus(
+            $subscriptionId,
+            self::STATUS_SUSPENDED,
+            true
+        );
     }
 
     /**
@@ -245,6 +256,12 @@ class Subscriptions
         self::getApiClient()->post('/v1/billing/subscriptions/' . $subscriptionId . '/activate', [
             'reason' => $note ?: 'Activated from QUIQQER'
         ]);
+
+        self::updateStoredSubscriptionStatus(
+            $subscriptionId,
+            self::STATUS_ACTIVE,
+            true
+        );
     }
 
     /**
@@ -419,6 +436,146 @@ class Subscriptions
             'subscriptionData' => json_decode($data['subscription_data'] ?? '[]', true),
             'planId' => $data['paypal_plan_id']
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $searchParams
+     * @param bool $countOnly
+     * @return array<int, array<string, mixed>>|int
+     */
+    public static function getSubscriptionList(array $searchParams, bool $countOnly = false): array|int
+    {
+        $Grid = new QUI\Utils\Grid($searchParams);
+        $gridParams = $Grid->parseDBParams($searchParams);
+        $QueryBuilder = QUI::getQueryBuilder();
+
+        if ($countOnly) {
+            $QueryBuilder->select(
+                'COUNT(' . Doctrine::quoteIdentifier('paypal_subscription_id') . ')'
+            );
+        } else {
+            $QueryBuilder->select('*');
+        }
+
+        $QueryBuilder->from(
+            Doctrine::quoteIdentifier(self::getSubscriptionsTable())
+        );
+
+        if (!empty($searchParams['search'])) {
+            $searchColumns = [
+                'paypal_subscription_id',
+                'paypal_plan_id',
+                'customer',
+                'global_process_id'
+            ];
+            $searchConditions = array_map(
+                static fn(string $column): string => Doctrine::quoteIdentifier($column) . ' LIKE :search',
+                $searchColumns
+            );
+
+            $QueryBuilder
+                ->where('(' . implode(' OR ', $searchConditions) . ')')
+                ->setParameter('search', '%' . $searchParams['search'] . '%');
+        }
+
+        if (!$countOnly) {
+            $allowedSortColumns = [
+                'paypal_subscription_id',
+                'paypal_plan_id',
+                'customer',
+                'global_process_id',
+                'active'
+            ];
+            $sortOn = in_array(
+                $searchParams['sortOn'] ?? '',
+                $allowedSortColumns,
+                true
+            ) ? (string)$searchParams['sortOn'] : 'paypal_subscription_id';
+            $sortBy = strtoupper((string)($searchParams['sortBy'] ?? 'ASC')) === 'DESC'
+                ? 'DESC'
+                : 'ASC';
+
+            $QueryBuilder->orderBy(
+                Doctrine::quoteIdentifier($sortOn),
+                $sortBy
+            );
+            self::applyGridLimit($QueryBuilder, $gridParams);
+        }
+
+        try {
+            $Result = $QueryBuilder->executeQuery();
+        } catch (Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return $countOnly ? 0 : [];
+        }
+
+        if ($countOnly) {
+            return (int)$Result->fetchOne();
+        }
+
+        return array_map(
+            static function (array $row): array {
+                $row['active'] = !empty($row['active']);
+                $row['customer'] = json_decode($row['customer'] ?? '[]', true);
+                $row['subscription_data'] = json_decode(
+                    $row['subscription_data'] ?? '[]',
+                    true
+                );
+
+                return $row;
+            },
+            $Result->fetchAllAssociative()
+        );
+    }
+
+    /**
+     * @param string $subscriptionId
+     * @param int $limit
+     * @return list<array<string, mixed>>
+     */
+    public static function getSubscriptionTransactionList(
+        string $subscriptionId,
+        int $limit = 50
+    ): array {
+        try {
+            $rows = QUI::getQueryBuilder()
+                ->select('*')
+                ->from(
+                    Doctrine::quoteIdentifier(
+                        self::getSubscriptionTransactionsTable()
+                    )
+                )
+                ->where(
+                    Doctrine::quoteIdentifier('paypal_subscription_id')
+                    . ' = :subscriptionId'
+                )
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->orderBy(
+                    Doctrine::quoteIdentifier('paypal_transaction_date'),
+                    'DESC'
+                )
+                ->setMaxResults(max(1, min($limit, 100)))
+                ->executeQuery()
+                ->fetchAllAssociative();
+        } catch (Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return [];
+        }
+
+        return array_map(
+            static function (array $row): array {
+                $row['paypal_transaction_data'] = json_decode(
+                    $row['paypal_transaction_data'] ?? '[]',
+                    true
+                );
+                $row['quiqqer_transaction_completed'] = !empty(
+                    $row['quiqqer_transaction_completed']
+                );
+
+                return $row;
+            },
+            $rows
+        );
     }
 
     /**
@@ -1488,6 +1645,59 @@ class Subscriptions
         $hashedString .= Provider::getApiSetting('sandbox') ? '_sandbox' : '_production';
 
         return hash('sha256', $hashedString);
+    }
+
+    protected static function updateStoredSubscriptionStatus(
+        string $subscriptionId,
+        string $status,
+        bool $active
+    ): void {
+        $data = self::getSubscriptionData($subscriptionId);
+
+        if ($data === false) {
+            return;
+        }
+
+        $subscriptionData = $data['subscriptionData'] ?? [];
+        $subscriptionData['status'] = $status;
+
+        try {
+            QUI::getDataBaseConnection()->update(
+                self::getSubscriptionsTable(),
+                [
+                    'subscription_data' => json_encode($subscriptionData),
+                    'active' => (int)$active
+                ],
+                ['paypal_subscription_id' => $subscriptionId]
+            );
+        } catch (Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+        }
+    }
+
+    /**
+     * @param QueryBuilder $QueryBuilder
+     * @param array<string, mixed> $gridParams
+     * @return void
+     */
+    private static function applyGridLimit(
+        QueryBuilder $QueryBuilder,
+        array $gridParams
+    ): void {
+        if (empty($gridParams['limit'])) {
+            $QueryBuilder->setMaxResults(20);
+            return;
+        }
+
+        $limit = explode(',', (string)$gridParams['limit'], 2);
+
+        if (isset($limit[1])) {
+            $QueryBuilder->setFirstResult((int)$limit[0]);
+            $QueryBuilder->setMaxResults((int)$limit[1]);
+            return;
+        }
+
+        $QueryBuilder->setMaxResults((int)$limit[0]);
     }
 
     /**
