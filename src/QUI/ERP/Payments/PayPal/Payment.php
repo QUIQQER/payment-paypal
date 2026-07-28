@@ -1264,8 +1264,25 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 break;
 
             case RecurringPayment::PAYPAL_REQUEST_TYPE_SALE_REFUND:
+                $saleTransactionId = $getData(
+                    RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID
+                );
+
+                if (empty($saleTransactionId)) {
+                    $saleTransactionId = $getData(
+                        RecurringPayment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID
+                    );
+                }
+
+                if (
+                    empty($saleTransactionId)
+                    && !empty($getData(RecurringPayment::ATTR_PAYPAL_SUBSCRIPTION_ID))
+                ) {
+                    $saleTransactionId = $getData(self::ATTR_PAYPAL_CAPTURE_ID);
+                }
+
                 $Request = new SaleRefundRequest(
-                    $getData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID)
+                    $saleTransactionId
                 );
                 break;
 

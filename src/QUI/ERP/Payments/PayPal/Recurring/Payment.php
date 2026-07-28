@@ -41,6 +41,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     const ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID = 'paypal-SubscriptionPlanId';
     const ATTR_PAYPAL_SUBSCRIPTION_ID = 'paypal-SubscriptionId';
     const ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL = 'paypal-SubscriptionApprovalUrl';
+    const ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID = 'paypal-SubscriptionTransactionId';
 
     /**
      * PayPal REST API request types for Billing
@@ -422,16 +423,40 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         float | int $amount,
         string $reason = ''
     ): void {
+        $subscriptionId = $Transaction->getData(self::ATTR_PAYPAL_SUBSCRIPTION_ID);
+        $isSubscriptionTransaction = !empty($subscriptionId);
+        $paypalTransactionId = $Transaction->getData(
+            self::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID
+        );
+
+        if ($isSubscriptionTransaction) {
+            $paypalTransactionId = $Transaction->getData(
+                self::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID
+            );
+
+            // Compatibility with transactions created before the dedicated
+            // subscription transaction attribute was introduced.
+            if (empty($paypalTransactionId)) {
+                $paypalTransactionId = $Transaction->getData(
+                    BasePayment::ATTR_PAYPAL_CAPTURE_ID
+                );
+            }
+        }
+
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
         $Process->addHistory(
-            Utils::getHistoryText('refund.billing_agreement.start', [
+            Utils::getHistoryText($isSubscriptionTransaction
+                ? 'refund.start'
+                : 'refund.billing_agreement.start', [
                 'transactionId' => $Transaction->getTxId()
             ])
         );
 
-        if (!$Transaction->getData(self::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID)) {
+        if (empty($paypalTransactionId)) {
             $Process->addHistory(
-                Utils::getHistoryText('refund.billing_agreement.error.not_transaction')
+                Utils::getHistoryText($isSubscriptionTransaction
+                    ? 'refund.error.not_captured'
+                    : 'refund.billing_agreement.error.not_transaction')
             );
 
             $this->throwPayPalException(self::PAYPAL_ERROR_NO_BILLING_AGREEMENT_TRANSACTION);
@@ -476,6 +501,24 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                 ],
                 $Transaction
             );
+
+            $response = Utils::requireApiResponse($response, ['state']);
+            $refundState = mb_strtoupper((string)$response['state']);
+
+            if (
+                $refundState === self::PAYPAL_REFUND_STATE_COMPLETED
+                || $refundState === self::PAYPAL_REFUND_STATE_PENDING
+            ) {
+                $response = Utils::requireApiResponse($response, ['id', 'amount']);
+
+                if (
+                    !is_array($response['amount'])
+                    || empty($response['amount']['total'])
+                    || empty($response['amount']['currency'])
+                ) {
+                    Utils::throwInvalidApiResponse();
+                }
+            }
         } catch (PayPalException $Exception) {
             $Process->addHistory(
                 Utils::getHistoryText('refund.error.request', [
@@ -490,9 +533,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             throw $Exception;
         }
 
-        $response = Utils::requireApiResponse($response, ['state']);
-
-        switch ($response['state']) {
+        switch ($refundState) {
             // SUCCESS
             case self::PAYPAL_REFUND_STATE_COMPLETED:
             case self::PAYPAL_REFUND_STATE_PENDING:
@@ -518,11 +559,14 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             // FAILURE
             default:
                 $Process->addHistory(
-                    Utils::getHistoryText('refund.billing_agreement.error.state', [
+                    Utils::getHistoryText($isSubscriptionTransaction
+                        ? 'refund.error.state'
+                        : 'refund.billing_agreement.error.state', [
                         'state' => $response['state']
                     ])
                 );
 
+                $RefundTransaction->error();
                 $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED);
         }
     }

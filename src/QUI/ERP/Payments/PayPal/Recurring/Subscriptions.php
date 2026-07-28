@@ -899,7 +899,7 @@ class Subscriptions
                     $Payment->getName(),
                     [
                         Payment::ATTR_PAYPAL_SUBSCRIPTION_ID => $subscriptionId,
-                        BasePayment::ATTR_PAYPAL_CAPTURE_ID => self::getTransactionId($transaction)
+                        Payment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID => self::getTransactionId($transaction)
                     ],
                     null,
                     $PayPalTransactionDate->getTimestamp(),
@@ -976,7 +976,7 @@ class Subscriptions
                     $Payment->getName(),
                     [
                         Payment::ATTR_PAYPAL_SUBSCRIPTION_ID => $subscriptionId,
-                        BasePayment::ATTR_PAYPAL_CAPTURE_ID => self::getTransactionId($transaction)
+                        Payment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID => self::getTransactionId($transaction)
                     ],
                     null,
                     false,

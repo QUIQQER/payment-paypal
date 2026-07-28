@@ -86,7 +86,7 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
         self::assertSame(TransactionHandler::STATUS_COMPLETE, $Transaction->getStatus());
         self::assertSame(
             $paypalTransactionId,
-            $Transaction->getData(Payment::ATTR_PAYPAL_CAPTURE_ID)
+            $Transaction->getData(Payment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID)
         );
         self::assertPayPalTransactionProcessed(
             $paypalTransactionId,
