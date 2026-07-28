@@ -439,6 +439,42 @@ class Subscriptions
     }
 
     /**
+     * Read Subscription data without hiding database errors from the webhook handler.
+     *
+     * @param string $subscriptionId
+     * @return array{
+     *     active: bool,
+     *     globalProcessId: string|null,
+     *     customer: array<string, mixed>|null,
+     *     subscriptionData: array<string, mixed>|null,
+     *     planId: string
+     * }|false
+     * @throws Exception
+     */
+    protected static function getSubscriptionDataForWebhook(string $subscriptionId): array|false
+    {
+        $data = QUI::getQueryBuilder()
+            ->select('*')
+            ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
+            ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+            ->setParameter('subscriptionId', $subscriptionId)
+            ->executeQuery()
+            ->fetchAssociative();
+
+        if ($data === false) {
+            return false;
+        }
+
+        return [
+            'active' => !empty($data['active']),
+            'globalProcessId' => $data['global_process_id'],
+            'customer' => json_decode($data['customer'], true),
+            'subscriptionData' => json_decode($data['subscription_data'] ?? '[]', true),
+            'planId' => $data['paypal_plan_id']
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $searchParams
      * @param bool $countOnly
      * @return array<int, array<string, mixed>>|int
@@ -948,14 +984,14 @@ class Subscriptions
             return true;
         }
 
-        self::processWebhookEvent($event);
-
-        return true;
+        return self::processWebhookEvent($event);
     }
 
     /**
      * @param array<string, mixed> $event
-     * @return bool|null - true if persisted, false if already known, null on database error
+     * @return bool|null
+     *     true if the event must be processed, false if already processed,
+     *     null on database error
      */
     protected static function persistWebhookEvent(array $event): ?bool
     {
@@ -963,8 +999,16 @@ class Subscriptions
         $subscriptionId = self::getSubscriptionIdFromResource($resource);
 
         try {
-            if (self::webhookEventExists($event['id'])) {
-                return false;
+            $processed = QUI::getQueryBuilder()
+                ->select(Doctrine::quoteIdentifier('processed'))
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionWebhookEventsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_event_id') . ' = :eventId')
+                ->setParameter('eventId', $event['id'])
+                ->executeQuery()
+                ->fetchOne();
+
+            if ($processed !== false) {
+                return empty($processed);
             }
 
             QUI::getDataBaseConnection()->insert(
@@ -988,25 +1032,27 @@ class Subscriptions
 
     /**
      * @param array<string, mixed> $event
-     * @return void
+     * @return bool
      */
-    protected static function processWebhookEvent(array $event): void
+    protected static function processWebhookEvent(array $event): bool
     {
         $resource = $event['resource'] ?? [];
         $subscriptionId = self::getSubscriptionIdFromResource($resource);
 
-        if ($subscriptionId === '') {
-            return;
-        }
-
         $eventType = $event['event_type'] ?? '';
 
         try {
-            if (str_starts_with($eventType, 'BILLING.SUBSCRIPTION.')) {
+            if (
+                $subscriptionId !== ''
+                && str_starts_with($eventType, 'BILLING.SUBSCRIPTION.')
+            ) {
                 self::processSubscriptionLifecycleEvent($subscriptionId, $resource);
             }
 
-            if (str_starts_with($eventType, 'PAYMENT.SALE.')) {
+            if (
+                $subscriptionId !== ''
+                && str_starts_with($eventType, 'PAYMENT.SALE.')
+            ) {
                 self::persistTransactionFromWebhook($subscriptionId, $resource, $eventType);
             }
 
@@ -1015,17 +1061,21 @@ class Subscriptions
                 ['processed' => 1],
                 ['paypal_event_id' => $event['id']]
             );
+
+            return true;
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
+            return false;
         }
     }
 
     /**
      * @param string $subscriptionId
      * @param array<string, mixed> $resource
-     * @return void
+     * @return bool
+     * @throws Exception
      */
-    protected static function processSubscriptionLifecycleEvent(string $subscriptionId, array $resource): void
+    protected static function processSubscriptionLifecycleEvent(string $subscriptionId, array $resource): bool
     {
         $status = $resource['status'] ?? '';
         $active = !in_array($status, [
@@ -1033,40 +1083,49 @@ class Subscriptions
             self::STATUS_EXPIRED
         ], true);
 
-        $data = self::getSubscriptionData($subscriptionId);
+        $data = self::getSubscriptionDataForWebhook($subscriptionId);
 
         if ($data === false) {
-            return;
+            return true;
         }
 
-        self::upsertSubscriptionRecord(
-            $subscriptionId,
-            $resource['plan_id'] ?? $data['planId'],
-            $resource['subscriber'] ?? $data['customer'] ?? [],
-            $data['globalProcessId'],
-            $resource,
-            $active
+        QUI::getDataBaseConnection()->update(
+            self::getSubscriptionsTable(),
+            [
+                'paypal_plan_id' => $resource['plan_id'] ?? $data['planId'],
+                'customer' => json_encode($resource['subscriber'] ?? $data['customer'] ?? []),
+                'subscription_data' => json_encode($resource),
+                'global_process_id' => $data['globalProcessId'],
+                'active' => (int)$active
+            ],
+            ['paypal_subscription_id' => $subscriptionId]
         );
+
+        return true;
     }
 
     /**
      * @param string $subscriptionId
      * @param array<string, mixed> $resource
      * @param string $eventType
-     * @return void
+     * @return bool
+     * @throws Exception
      */
-    protected static function persistTransactionFromWebhook(string $subscriptionId, array $resource, string $eventType): void
-    {
+    protected static function persistTransactionFromWebhook(
+        string $subscriptionId,
+        array $resource,
+        string $eventType
+    ): bool {
         $transactionId = self::getTransactionId($resource);
 
         if ($transactionId === '') {
-            return;
+            return true;
         }
 
-        $data = self::getSubscriptionData($subscriptionId);
+        $data = self::getSubscriptionDataForWebhook($subscriptionId);
 
         if ($data === false) {
-            return;
+            return true;
         }
 
         $transactionDate = self::formatDate(self::getTransactionTime($resource));
@@ -1074,34 +1133,32 @@ class Subscriptions
 
         $resource['status'] = $status;
 
-        try {
-            $result = QUI::getQueryBuilder()
-                ->select(Doctrine::quoteIdentifier('paypal_transaction_id'))
-                ->from(Doctrine::quoteIdentifier(self::getSubscriptionTransactionsTable()))
-                ->where(Doctrine::quoteIdentifier('paypal_transaction_id') . ' = :transactionId')
-                ->andWhere(Doctrine::quoteIdentifier('paypal_transaction_date') . ' = :transactionDate')
-                ->setParameter('transactionId', $transactionId)
-                ->setParameter('transactionDate', $transactionDate)
-                ->executeQuery()
-                ->fetchOne();
+        $result = QUI::getQueryBuilder()
+            ->select(Doctrine::quoteIdentifier('paypal_transaction_id'))
+            ->from(Doctrine::quoteIdentifier(self::getSubscriptionTransactionsTable()))
+            ->where(Doctrine::quoteIdentifier('paypal_transaction_id') . ' = :transactionId')
+            ->andWhere(Doctrine::quoteIdentifier('paypal_transaction_date') . ' = :transactionDate')
+            ->setParameter('transactionId', $transactionId)
+            ->setParameter('transactionDate', $transactionDate)
+            ->executeQuery()
+            ->fetchOne();
 
-            if ($result !== false) {
-                return;
-            }
-
-            QUI::getDataBaseConnection()->insert(
-                self::getSubscriptionTransactionsTable(),
-                [
-                    'paypal_transaction_id' => $transactionId,
-                    'paypal_subscription_id' => $subscriptionId,
-                    'paypal_transaction_data' => json_encode($resource),
-                    'paypal_transaction_date' => $transactionDate,
-                    'global_process_id' => $data['globalProcessId']
-                ]
-            );
-        } catch (Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
+        if ($result !== false) {
+            return true;
         }
+
+        QUI::getDataBaseConnection()->insert(
+            self::getSubscriptionTransactionsTable(),
+            [
+                'paypal_transaction_id' => $transactionId,
+                'paypal_subscription_id' => $subscriptionId,
+                'paypal_transaction_data' => json_encode($resource),
+                'paypal_transaction_date' => $transactionDate,
+                'global_process_id' => $data['globalProcessId']
+            ]
+        );
+
+        return true;
     }
 
     /**
@@ -1199,28 +1256,6 @@ class Subscriptions
         foreach ($response['transactions'] ?? [] as $transaction) {
             self::persistTransactionFromWebhook($subscriptionId, $transaction, '');
         }
-    }
-
-    /**
-     * @param string $eventId
-     * @return bool
-     */
-    protected static function webhookEventExists(string $eventId): bool
-    {
-        try {
-            $result = QUI::getQueryBuilder()
-                ->select(Doctrine::quoteIdentifier('paypal_event_id'))
-                ->from(Doctrine::quoteIdentifier(self::getSubscriptionWebhookEventsTable()))
-                ->where(Doctrine::quoteIdentifier('paypal_event_id') . ' = :eventId')
-                ->setParameter('eventId', $eventId)
-                ->executeQuery()
-                ->fetchOne();
-        } catch (Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
-            return false;
-        }
-
-        return $result !== false;
     }
 
     /**

@@ -113,6 +113,37 @@ final class SubscriptionsWebhookTest extends TestCase
         self::assertSame(1, (int)$eventRows[0]['processed']);
     }
 
+    public function testUnprocessedDuplicateWebhookIsRetried(): void
+    {
+        $this->setApiClient($this->verifiedClient());
+        $cancelledEvent = $this->event(Subscriptions::STATUS_CANCELLED);
+
+        $this->connection()->insert(
+            $this->webhookTable(),
+            [
+                'paypal_event_id' => self::EVENT_ID,
+                'paypal_event_type' => $cancelledEvent['event_type'],
+                'paypal_subscription_id' => self::SUBSCRIPTION_ID,
+                'paypal_event_data' => json_encode($cancelledEvent),
+                'paypal_event_date' => '2026-07-27 10:30:00',
+                'processed' => 0
+            ]
+        );
+
+        self::assertTrue(
+            Subscriptions::handleWebhook([], json_encode($cancelledEvent))
+        );
+
+        $data = Subscriptions::getSubscriptionData(self::SUBSCRIPTION_ID);
+        self::assertIsArray($data);
+        self::assertFalse($data['active']);
+        self::assertSame(
+            Subscriptions::STATUS_CANCELLED,
+            $data['subscriptionData']['status']
+        );
+        self::assertSame(1, $this->processedValue());
+    }
+
     public function testWebhookWithoutConfiguredIdIsRejected(): void
     {
         $this->Config->setValue('api', 'webhook_id', '');
