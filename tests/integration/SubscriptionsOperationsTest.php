@@ -392,6 +392,29 @@ final class SubscriptionsOperationsTest extends TestCase
         );
     }
 
+    public function testApproveSubscriptionRejectsPendingApproval(): void
+    {
+        $Client = $this->apiClientWithResponses([[
+            'id' => self::SUBSCRIPTION_ID,
+            'status' => Subscriptions::STATUS_APPROVAL_PENDING,
+            'plan_id' => 'PLAN-1'
+        ]]);
+        $this->setApiClient($Client);
+        $Order = new OrderDouble();
+
+        try {
+            Subscriptions::approveSubscription($Order, self::SUBSCRIPTION_ID);
+            self::fail('A subscription pending buyer approval was accepted.');
+        } catch (PayPalException) {
+            self::assertFalse(
+                (bool)$Order->getPaymentDataEntry(
+                    BasePayment::ATTR_PAYPAL_PAYMENT_SUCCESSFUL
+                )
+            );
+            self::assertSame([], $Order->history);
+        }
+    }
+
     private function apiClientWithResponses(array $responses): SubscriptionsApiClientDouble
     {
         $Client = new SubscriptionsApiClientDouble();

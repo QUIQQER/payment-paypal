@@ -156,7 +156,6 @@ class Subscriptions
         if (
             !in_array($status, [
                 self::STATUS_ACTIVE,
-                self::STATUS_APPROVAL_PENDING,
                 self::STATUS_APPROVED
             ], true)
         ) {
