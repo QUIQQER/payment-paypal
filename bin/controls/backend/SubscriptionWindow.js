@@ -9,8 +9,9 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/SubscriptionWindow',
     'qui/controls/buttons/Button',
     'package/quiqqer/payment-paypal/bin/PayPal',
     'Locale',
+    'Permissions',
     'css!package/quiqqer/payment-paypal/bin/controls/backend/SubscriptionWindow.css'
-], function(QUIPopup, QUIConfirm, QUIButton, PayPal, QUILocale) {
+], function(QUIPopup, QUIConfirm, QUIButton, PayPal, QUILocale, Permissions) {
     'use strict';
 
     const lg = 'quiqqer/payment-paypal';
@@ -41,6 +42,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/SubscriptionWindow',
             this.parent(options);
 
             this.$ActionButtons = {};
+            this.$CanManage = false;
 
             this.addEvents({
                 onOpen: this.$onOpen
@@ -51,8 +53,27 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/SubscriptionWindow',
             this.getElm().addClass(
                 'quiqqer-payment-paypal-backend-subscriptionwindow'
             );
-            this.$createActionButtons();
-            this.$load();
+
+            this.Loader.show(
+                QUILocale.get(
+                    lg,
+                    'controls.backend.SubscriptionWindow.loading'
+                )
+            );
+
+            Permissions.hasPermission(
+                'quiqqer.payments.paypal.subscriptions.manage'
+            ).then((canManage) => {
+                this.$CanManage = canManage;
+
+                if (canManage) {
+                    this.$createActionButtons();
+                }
+
+                this.$load();
+            }).catch(() => {
+                this.$load();
+            });
         },
 
         $createActionButtons: function() {
@@ -468,7 +489,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/SubscriptionWindow',
             const providerData = result.provider || {};
             const status = providerData.status || '';
 
-            if (!result.providerAvailable) {
+            if (!this.$CanManage || !result.providerAvailable) {
                 return;
             }
 
