@@ -1171,6 +1171,33 @@ class Subscriptions
         string $subscriptionId,
         string $status = self::TRANSACTION_STATE_COMPLETED
     ): array {
+        $transactions = self::getStoredUnprocessedTransactions(
+            $subscriptionId,
+            $status
+        );
+
+        if (!empty($transactions)) {
+            return $transactions;
+        }
+
+        self::refreshTransactionList($subscriptionId);
+
+        return self::getStoredUnprocessedTransactions(
+            $subscriptionId,
+            $status
+        );
+    }
+
+    /**
+     * @param string $subscriptionId
+     * @param string $status
+     * @return list<array<string, mixed>>
+     * @throws QUI\Database\Exception
+     */
+    protected static function getStoredUnprocessedTransactions(
+        string $subscriptionId,
+        string $status
+    ): array {
         $result = QUI::getQueryBuilder()
             ->select(Doctrine::quoteIdentifier('paypal_transaction_data'))
             ->from(Doctrine::quoteIdentifier(self::getSubscriptionTransactionsTable()))
@@ -1179,19 +1206,6 @@ class Subscriptions
             ->setParameter('subscriptionId', $subscriptionId)
             ->executeQuery()
             ->fetchAllAssociative();
-
-        if (empty($result)) {
-            self::refreshTransactionList($subscriptionId);
-
-            $result = QUI::getQueryBuilder()
-                ->select(Doctrine::quoteIdentifier('paypal_transaction_data'))
-                ->from(Doctrine::quoteIdentifier(self::getSubscriptionTransactionsTable()))
-                ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
-                ->andWhere(Doctrine::quoteIdentifier('quiqqer_transaction_id') . ' IS NULL')
-                ->setParameter('subscriptionId', $subscriptionId)
-                ->executeQuery()
-                ->fetchAllAssociative();
-        }
 
         $transactions = [];
 

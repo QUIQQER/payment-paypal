@@ -135,6 +135,36 @@ final class SubscriptionsTransactionsTest extends TestCase
         self::assertSame(self::PREFIX . 'completed', $transactions[0]['id']);
     }
 
+    public function testStoredNonMatchingTransactionTriggersRefresh(): void
+    {
+        $this->insertTransaction(
+            self::PREFIX . 'pending',
+            json_encode([
+                'id' => self::PREFIX . 'pending',
+                'status' => 'PENDING'
+            ]),
+            '2026-07-27 11:11:00'
+        );
+        $Client = $this->apiClient([
+            'transactions' => [[
+                'id' => self::PREFIX . 'completed',
+                'status' => Subscriptions::TRANSACTION_STATE_COMPLETED,
+                'time' => '2026-07-27T11:12:00Z'
+            ]]
+        ]);
+        $this->setApiClient($Client);
+
+        $transactions = $this->invoke(
+            'getUnprocessedTransactions',
+            self::SUBSCRIPTION_ID
+        );
+
+        self::assertCount(1, $transactions);
+        self::assertSame(self::PREFIX . 'completed', $transactions[0]['id']);
+        self::assertCount(1, $Client->requests);
+        self::assertSame(2, $this->transactionCount());
+    }
+
     public function testDeniedTransactionFilterReturnsDeniedRows(): void
     {
         $this->insertTransaction(
