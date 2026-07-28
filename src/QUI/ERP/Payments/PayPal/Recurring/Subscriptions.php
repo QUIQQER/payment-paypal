@@ -150,29 +150,39 @@ class Subscriptions
      */
     public static function approveSubscription(AbstractOrder $Order, string $subscriptionId): void
     {
-        $subscriptionData = self::getSubscriptionDetails($subscriptionId);
-        $status = $subscriptionData['status'] ?? '';
+        $orderSubscriptionId = (string)$Order->getPaymentDataEntry(
+            Payment::ATTR_PAYPAL_SUBSCRIPTION_ID
+        );
 
         if (
-            !in_array($status, [
+            $orderSubscriptionId === ''
+            || $subscriptionId !== $orderSubscriptionId
+        ) {
+            throw self::createInvalidSubscriptionException();
+        }
+
+        $subscriptionData = self::getSubscriptionDetails($subscriptionId);
+        $status = $subscriptionData['status'] ?? '';
+        $orderPlanId = (string)$Order->getPaymentDataEntry(
+            Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID
+        );
+
+        if (
+            ($subscriptionData['id'] ?? '') !== $orderSubscriptionId
+            || ($subscriptionData['custom_id'] ?? '') !== $Order->getUUID()
+            || $orderPlanId === ''
+            || ($subscriptionData['plan_id'] ?? '') !== $orderPlanId
+            || !in_array($status, [
                 self::STATUS_ACTIVE,
                 self::STATUS_APPROVED
             ], true)
         ) {
-            throw new PayPalException(
-                QUI::getLocale()->get(
-                    'quiqqer/payment-paypal',
-                    'exception.Recurring.order.error'
-                )
-            );
+            throw self::createInvalidSubscriptionException();
         }
-
-        $planId = $subscriptionData['plan_id']
-            ?? $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID);
 
         self::upsertSubscriptionRecord(
             $subscriptionId,
-            $planId,
+            $orderPlanId,
             $subscriptionData['subscriber'] ?? [],
             $Order->getGlobalProcessId(),
             $subscriptionData,
@@ -180,10 +190,20 @@ class Subscriptions
         );
 
         $Order->setPaymentData(Payment::ATTR_PAYPAL_SUBSCRIPTION_ID, $subscriptionId);
-        $Order->setPaymentData(Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID, $planId);
+        $Order->setPaymentData(Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID, $orderPlanId);
         $Order->setPaymentData(BasePayment::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, true);
         $Order->addHistory('PayPal :: Subscription approved: ' . $subscriptionId);
         Utils::saveOrder($Order);
+    }
+
+    protected static function createInvalidSubscriptionException(): PayPalException
+    {
+        return new PayPalException(
+            QUI::getLocale()->get(
+                'quiqqer/payment-paypal',
+                'exception.Recurring.order.error'
+            )
+        );
     }
 
     /**
