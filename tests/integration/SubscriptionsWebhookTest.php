@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Integration;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
 use QUI\ERP\Payments\PayPal\Settings;
 use ReflectionProperty;
@@ -55,7 +56,8 @@ final class SubscriptionsWebhookTest extends TestCase
                     'status' => Subscriptions::STATUS_ACTIVE
                 ]),
                 'global_process_id' => 'phpunit-process',
-                'active' => 1
+                'active' => 1,
+                'paypal_account_hash' => AccountContext::getHash()
             ]
         );
     }

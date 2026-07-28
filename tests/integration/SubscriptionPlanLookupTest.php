@@ -12,6 +12,7 @@ use QUI\ERP\Accounting\ArticleList;
 use QUI\ERP\Accounting\Calculations;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Currency\Currency;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
 use QUI\ERP\User;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
@@ -21,12 +22,17 @@ final class SubscriptionPlanLookupTest extends TestCase
 {
     private const PRODUCT_ID = 'phpunit_subscription_product';
     private const PLAN_ID = 'phpunit_subscription_plan';
+    private const FOREIGN_PLAN_ID = 'phpunit_subscription_foreign_plan';
 
     protected function tearDown(): void
     {
         $this->connection()->delete(
             SubscriptionsDouble::getSubscriptionPlansTableForTest(),
             ['paypal_plan_id' => self::PLAN_ID]
+        );
+        $this->connection()->delete(
+            SubscriptionsDouble::getSubscriptionPlansTableForTest(),
+            ['paypal_plan_id' => self::FOREIGN_PLAN_ID]
         );
 
         parent::tearDown();
@@ -43,6 +49,7 @@ final class SubscriptionPlanLookupTest extends TestCase
                 'paypal_product_id' => self::PRODUCT_ID,
                 'paypal_plan_id' => self::PLAN_ID,
                 'identification_hash' => $hash,
+                'paypal_account_hash' => AccountContext::getHash(),
                 'plan_data' => '{}'
             ]
         );
@@ -61,6 +68,29 @@ final class SubscriptionPlanLookupTest extends TestCase
     {
         self::assertFalse(
             SubscriptionsDouble::getPlanByOrderForTest($this->order())
+        );
+    }
+
+    public function testPlanFromAnotherAccountIsNotReused(): void
+    {
+        $Order = $this->order();
+
+        $this->connection()->insert(
+            SubscriptionsDouble::getSubscriptionPlansTableForTest(),
+            [
+                'paypal_product_id' => self::PRODUCT_ID,
+                'paypal_plan_id' => self::FOREIGN_PLAN_ID,
+                'identification_hash' => SubscriptionsDouble::getIdentificationHashForTest($Order),
+                'paypal_account_hash' => AccountContext::createHash(
+                    'foreign-client-id',
+                    true
+                ),
+                'plan_data' => '{}'
+            ]
+        );
+
+        self::assertFalse(
+            SubscriptionsDouble::getPlanByOrderForTest($Order)
         );
     }
 

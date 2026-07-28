@@ -41,10 +41,11 @@
             <field type="string" length="255">paypal_product_id</field>
             <field type="string" length="255">paypal_plan_id</field>
             <field type="string" length="255">identification_hash</field>
+            <field type="string" length="64" nullable="true" default="null">paypal_account_hash</field>
             <field type="text" nullable="true" default="null">plan_data</field>
 
             <index>paypal_plan_id</index>
-            <index>identification_hash</index>
+            <index>paypal_account_hash,identification_hash</index>
         </table>
 
         <table name="paypal_subscriptions">
@@ -54,10 +55,11 @@
             <field type="text" nullable="true" default="null">subscription_data</field>
             <field type="string" length="250" nullable="true" default="null">global_process_id</field>
             <field type="boolean" default="1">active</field>
+            <field type="string" length="64" nullable="true" default="null">paypal_account_hash</field>
 
             <index>paypal_plan_id</index>
             <index>global_process_id</index>
-            <index>active</index>
+            <index>paypal_account_hash,active</index>
         </table>
 
         <table name="paypal_subscription_transactions">

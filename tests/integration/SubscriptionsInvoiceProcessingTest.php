@@ -13,6 +13,7 @@ use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Handler as TransactionHandler;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Currency\Currency;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
 use Throwable;
@@ -53,7 +54,8 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
                 'customer' => '{}',
                 'subscription_data' => '{}',
                 'global_process_id' => self::PREFIX . 'process',
-                'active' => 1
+                'active' => 1,
+                'paypal_account_hash' => AccountContext::getHash()
             ]
         );
     }

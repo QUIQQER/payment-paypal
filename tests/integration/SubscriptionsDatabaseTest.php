@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Integration;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
 use Throwable;
 
@@ -35,6 +36,11 @@ final class SubscriptionsDatabaseTest extends TestCase
         $this->cleanupFixtures();
         $this->insertFixture('active', true);
         $this->insertFixture('inactive', false);
+        $this->insertFixture(
+            'foreign',
+            true,
+            AccountContext::createHash('foreign-client-id', true)
+        );
         $this->insertTransactionFixture();
     }
 
@@ -66,8 +72,10 @@ final class SubscriptionsDatabaseTest extends TestCase
 
         self::assertContains(self::PREFIX . 'active', $activeIds);
         self::assertNotContains(self::PREFIX . 'inactive', $activeIds);
+        self::assertNotContains(self::PREFIX . 'foreign', $activeIds);
         self::assertContains(self::PREFIX . 'active', $allIds);
         self::assertContains(self::PREFIX . 'inactive', $allIds);
+        self::assertNotContains(self::PREFIX . 'foreign', $allIds);
     }
 
     public function testSubscriptionDataIsDecodedFromStoredRecord(): void
@@ -174,8 +182,11 @@ final class SubscriptionsDatabaseTest extends TestCase
         );
     }
 
-    private function insertFixture(string $suffix, bool $active): void
-    {
+    private function insertFixture(
+        string $suffix,
+        bool $active,
+        ?string $accountHash = null
+    ): void {
         $this->connection()->insert(
             $this->table(),
             [
@@ -193,7 +204,8 @@ final class SubscriptionsDatabaseTest extends TestCase
                     'fixture' => $suffix
                 ]),
                 'global_process_id' => self::PREFIX . 'process_' . $suffix,
-                'active' => $active ? 1 : 0
+                'active' => $active ? 1 : 0,
+                'paypal_account_hash' => $accountHash ?? AccountContext::getHash()
             ]
         );
     }

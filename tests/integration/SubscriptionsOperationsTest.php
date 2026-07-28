@@ -11,6 +11,7 @@ use QUI\ERP\Accounting\Calculations;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Currency\Currency;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
@@ -64,7 +65,12 @@ final class SubscriptionsOperationsTest extends TestCase
     {
         $Client = new SubscriptionsApiClientDouble();
         $this->setApiClient($Client);
+        $this->insertSubscription();
         $Order = new OrderDouble();
+        $Order->setPaymentData(
+            Payment::ATTR_PAYPAL_SUBSCRIPTION_ID,
+            self::SUBSCRIPTION_ID
+        );
         $Order->setPaymentData(
             Payment::ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL,
             'https://paypal.example/approve'
@@ -589,7 +595,8 @@ final class SubscriptionsOperationsTest extends TestCase
                 'customer' => '{}',
                 'subscription_data' => '{}',
                 'global_process_id' => 'phpunit-process',
-                'active' => 1
+                'active' => 1,
+                'paypal_account_hash' => AccountContext::getHash()
             ]
         );
     }

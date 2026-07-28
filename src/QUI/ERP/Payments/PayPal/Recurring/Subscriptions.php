@@ -15,6 +15,7 @@ use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Handler as TransactionHandler;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Order\AbstractOrder;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Provider;
@@ -57,6 +58,11 @@ class Subscriptions
     protected static ?ApiClient $ApiClient = null;
 
     /**
+     * @var array<string, bool>
+     */
+    protected static array $legacyAccountMigrationAttempted = [];
+
+    /**
      * @param AbstractOrder $Order
      * @return string
      * @throws PayPalException
@@ -64,8 +70,19 @@ class Subscriptions
      */
     public static function createSubscription(AbstractOrder $Order): string
     {
-        if ($Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL)) {
-            return $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL);
+        $existingApprovalUrl = (string)$Order->getPaymentDataEntry(
+            Payment::ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL
+        );
+        $existingSubscriptionId = (string)$Order->getPaymentDataEntry(
+            Payment::ATTR_PAYPAL_SUBSCRIPTION_ID
+        );
+
+        if (
+            $existingApprovalUrl !== ''
+            && $existingSubscriptionId !== ''
+            && self::exists($existingSubscriptionId)
+        ) {
+            return $existingApprovalUrl;
         }
 
         [$productId, $planId] = static::getOrCreatePlanReferences($Order);
@@ -286,12 +303,16 @@ class Subscriptions
      */
     public static function exists(string $subscriptionId): bool
     {
+        self::adoptLegacySubscription($subscriptionId);
+
         try {
             $result = QUI::getQueryBuilder()
                 ->select(Doctrine::quoteIdentifier('paypal_subscription_id'))
                 ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
                 ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+                ->andWhere(Doctrine::quoteIdentifier('paypal_account_hash') . ' = :accountHash')
                 ->setParameter('subscriptionId', $subscriptionId)
+                ->setParameter('accountHash', AccountContext::getHash())
                 ->executeQuery()
                 ->fetchOne();
         } catch (Exception $Exception) {
@@ -339,12 +360,16 @@ class Subscriptions
      */
     public static function isSubscriptionActiveAtQuiqqer(string $subscriptionId): bool
     {
+        self::adoptLegacySubscription($subscriptionId);
+
         try {
             $result = QUI::getQueryBuilder()
                 ->select(Doctrine::quoteIdentifier('active'))
                 ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
                 ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+                ->andWhere(Doctrine::quoteIdentifier('paypal_account_hash') . ' = :accountHash')
                 ->setParameter('subscriptionId', $subscriptionId)
+                ->setParameter('accountHash', AccountContext::getHash())
                 ->executeQuery()
                 ->fetchOne();
         } catch (Exception $Exception) {
@@ -365,14 +390,18 @@ class Subscriptions
      */
     public static function getSubscriptionIds(bool $includeInactive = false): array
     {
+        self::migrateLegacyAccountContexts();
+
         try {
             $QueryBuilder = QUI::getQueryBuilder()
                 ->select(Doctrine::quoteIdentifier('paypal_subscription_id'))
-                ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()));
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_account_hash') . ' = :accountHash')
+                ->setParameter('accountHash', AccountContext::getHash());
 
             if (!$includeInactive) {
                 $QueryBuilder
-                    ->where(Doctrine::quoteIdentifier('active') . ' = :active')
+                    ->andWhere(Doctrine::quoteIdentifier('active') . ' = :active')
                     ->setParameter('active', 1);
             }
 
@@ -393,11 +422,16 @@ class Subscriptions
      */
     public static function setSubscriptionAsInactive(string $subscriptionId): void
     {
+        self::adoptLegacySubscription($subscriptionId);
+
         try {
             QUI::getDataBaseConnection()->update(
                 self::getSubscriptionsTable(),
                 ['active' => 0],
-                ['paypal_subscription_id' => $subscriptionId]
+                [
+                    'paypal_subscription_id' => $subscriptionId,
+                    'paypal_account_hash' => AccountContext::getHash()
+                ]
             );
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
@@ -416,12 +450,16 @@ class Subscriptions
      */
     public static function getSubscriptionData(string $subscriptionId): array|false
     {
+        self::adoptLegacySubscription($subscriptionId);
+
         try {
             $data = QUI::getQueryBuilder()
                 ->select('*')
                 ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
                 ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+                ->andWhere(Doctrine::quoteIdentifier('paypal_account_hash') . ' = :accountHash')
                 ->setParameter('subscriptionId', $subscriptionId)
+                ->setParameter('accountHash', AccountContext::getHash())
                 ->executeQuery()
                 ->fetchAssociative();
         } catch (Exception $Exception) {
@@ -457,11 +495,15 @@ class Subscriptions
      */
     protected static function getSubscriptionDataForWebhook(string $subscriptionId): array|false
     {
+        self::adoptLegacySubscription($subscriptionId);
+
         $data = QUI::getQueryBuilder()
             ->select('*')
             ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
             ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+            ->andWhere(Doctrine::quoteIdentifier('paypal_account_hash') . ' = :accountHash')
             ->setParameter('subscriptionId', $subscriptionId)
+            ->setParameter('accountHash', AccountContext::getHash())
             ->executeQuery()
             ->fetchAssociative();
 
@@ -485,6 +527,8 @@ class Subscriptions
      */
     public static function getSubscriptionList(array $searchParams, bool $countOnly = false): array|int
     {
+        self::migrateLegacyAccountContexts();
+
         $Grid = new QUI\Utils\Grid($searchParams);
         $gridParams = $Grid->parseDBParams($searchParams);
         $QueryBuilder = QUI::getQueryBuilder();
@@ -499,7 +543,9 @@ class Subscriptions
 
         $QueryBuilder->from(
             Doctrine::quoteIdentifier(self::getSubscriptionsTable())
-        );
+        )
+            ->where(Doctrine::quoteIdentifier('paypal_account_hash') . ' = :accountHash')
+            ->setParameter('accountHash', AccountContext::getHash());
 
         if (!empty($searchParams['search'])) {
             $searchColumns = [
@@ -514,7 +560,7 @@ class Subscriptions
             );
 
             $QueryBuilder
-                ->where('(' . implode(' OR ', $searchConditions) . ')')
+                ->andWhere('(' . implode(' OR ', $searchConditions) . ')')
                 ->setParameter('search', '%' . $searchParams['search'] . '%');
         }
 
@@ -577,6 +623,10 @@ class Subscriptions
         string $subscriptionId,
         int $limit = 50
     ): array {
+        if (self::getSubscriptionData($subscriptionId) === false) {
+            return [];
+        }
+
         try {
             $rows = QUI::getQueryBuilder()
                 ->select('*')
@@ -903,12 +953,16 @@ class Subscriptions
             return [];
         }
 
+        self::migrateLegacyAccountContexts();
+
         try {
             $rows = QUI::getQueryBuilder()
                 ->select(Doctrine::quoteIdentifier('global_process_id'))
                 ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
                 ->where(Doctrine::quoteIdentifier('global_process_id') . ' IN (:globalProcessIds)')
+                ->andWhere(Doctrine::quoteIdentifier('paypal_account_hash') . ' = :accountHash')
                 ->setParameter('globalProcessIds', $globalProcessIds, ArrayParameterType::STRING)
+                ->setParameter('accountHash', AccountContext::getHash())
                 ->executeQuery()
                 ->fetchAllAssociative();
 
@@ -1102,7 +1156,10 @@ class Subscriptions
                 'global_process_id' => $data['globalProcessId'],
                 'active' => (int)$active
             ],
-            ['paypal_subscription_id' => $subscriptionId]
+            [
+                'paypal_subscription_id' => $subscriptionId,
+                'paypal_account_hash' => AccountContext::getHash()
+            ]
         );
 
         return true;
@@ -1175,6 +1232,10 @@ class Subscriptions
         string $subscriptionId,
         string $status = self::TRANSACTION_STATE_COMPLETED
     ): array {
+        if (self::getSubscriptionData($subscriptionId) === false) {
+            return [];
+        }
+
         $transactions = self::getStoredUnprocessedTransactions(
             $subscriptionId,
             $status
@@ -1380,6 +1441,7 @@ class Subscriptions
      */
     protected static function getOrCreatePlanReferences(AbstractOrder $Order): array
     {
+        $accountHash = AccountContext::getHash();
         $existingPlan = self::getPlanByOrder($Order);
 
         if ($existingPlan !== false) {
@@ -1398,7 +1460,8 @@ class Subscriptions
             [
                 'paypal_product_id' => $productId,
                 'paypal_plan_id' => $planData['id'],
-                'identification_hash' => self::getIdentificationHash($Order),
+                'identification_hash' => self::getIdentificationHash($Order, $accountHash),
+                'paypal_account_hash' => $accountHash,
                 'plan_data' => json_encode($planData)
             ]
         );
@@ -1569,9 +1632,13 @@ class Subscriptions
      * @param AbstractOrder $Order
      * @return array{paypal_product_id: string, paypal_plan_id: string}|false
      * @throws QUI\Exception
+     * @throws PayPalException
      */
     protected static function getPlanByOrder(AbstractOrder $Order): array|false
     {
+        $accountHash = AccountContext::getHash();
+        $identificationHash = self::getIdentificationHash($Order, $accountHash);
+
         try {
             $result = QUI::getQueryBuilder()
                 ->select(
@@ -1580,7 +1647,9 @@ class Subscriptions
                 )
                 ->from(Doctrine::quoteIdentifier(self::getSubscriptionPlansTable()))
                 ->where(Doctrine::quoteIdentifier('identification_hash') . ' = :identificationHash')
-                ->setParameter('identificationHash', self::getIdentificationHash($Order))
+                ->andWhere(Doctrine::quoteIdentifier('paypal_account_hash') . ' = :accountHash')
+                ->setParameter('identificationHash', $identificationHash)
+                ->setParameter('accountHash', $accountHash)
                 ->executeQuery()
                 ->fetchAssociative();
         } catch (Exception $Exception) {
@@ -1589,12 +1658,89 @@ class Subscriptions
         }
 
         if ($result === false) {
-            return false;
+            return self::adoptLegacyPlan(
+                $Order,
+                $accountHash,
+                $identificationHash
+            );
         }
 
         return [
             'paypal_product_id' => (string)$result['paypal_product_id'],
             'paypal_plan_id' => (string)$result['paypal_plan_id']
+        ];
+    }
+
+    /**
+     * Adopt an unscoped plan only after PayPal confirms that the current
+     * application can access it.
+     *
+     * @param AbstractOrder $Order
+     * @param string $accountHash
+     * @param string $identificationHash
+     * @return array{paypal_product_id: string, paypal_plan_id: string}|false
+     * @throws PayPalException
+     */
+    private static function adoptLegacyPlan(
+        AbstractOrder $Order,
+        string $accountHash,
+        string $identificationHash
+    ): array|false {
+        try {
+            $legacyPlan = QUI::getQueryBuilder()
+                ->select(
+                    Doctrine::quoteIdentifier('id'),
+                    Doctrine::quoteIdentifier('paypal_product_id'),
+                    Doctrine::quoteIdentifier('paypal_plan_id')
+                )
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionPlansTable()))
+                ->where(Doctrine::quoteIdentifier('identification_hash') . ' = :identificationHash')
+                ->andWhere(Doctrine::quoteIdentifier('paypal_account_hash') . ' IS NULL')
+                ->setParameter('identificationHash', self::getLegacyIdentificationHash($Order))
+                ->setMaxResults(1)
+                ->executeQuery()
+                ->fetchAssociative();
+        } catch (Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return false;
+        }
+
+        if ($legacyPlan === false) {
+            return false;
+        }
+
+        $planId = (string)$legacyPlan['paypal_plan_id'];
+
+        try {
+            $planData = self::getApiClient()->get('/v1/billing/plans/' . $planId);
+        } catch (PayPalException $Exception) {
+            if (AccountContext::isMissingResource($Exception)) {
+                return false;
+            }
+
+            throw $Exception;
+        }
+
+        if (
+            ($planData['id'] ?? '') !== $planId
+            || ($planData['status'] ?? '') !== self::STATUS_ACTIVE
+        ) {
+            return false;
+        }
+
+        QUI::getDataBaseConnection()->update(
+            self::getSubscriptionPlansTable(),
+            [
+                'identification_hash' => $identificationHash,
+                'paypal_account_hash' => $accountHash,
+                'plan_data' => json_encode($planData)
+            ],
+            ['id' => $legacyPlan['id']]
+        );
+
+        return [
+            'paypal_product_id' => (string)$legacyPlan['paypal_product_id'],
+            'paypal_plan_id' => $planId
         ];
     }
 
@@ -1615,6 +1761,8 @@ class Subscriptions
         array $subscriptionData,
         bool $active
     ): void {
+        $accountHash = AccountContext::getHash();
+
         try {
             if (self::exists($subscriptionId)) {
                 QUI::getDataBaseConnection()->update(
@@ -1624,10 +1772,12 @@ class Subscriptions
                         'customer' => json_encode($customer),
                         'subscription_data' => json_encode($subscriptionData),
                         'global_process_id' => $globalProcessId,
-                        'active' => (int)$active
+                        'active' => (int)$active,
+                        'paypal_account_hash' => $accountHash
                     ],
                     [
-                        'paypal_subscription_id' => $subscriptionId
+                        'paypal_subscription_id' => $subscriptionId,
+                        'paypal_account_hash' => $accountHash
                     ]
                 );
 
@@ -1642,7 +1792,8 @@ class Subscriptions
                     'customer' => json_encode($customer),
                     'subscription_data' => json_encode($subscriptionData),
                     'global_process_id' => $globalProcessId,
-                    'active' => (int)$active
+                    'active' => (int)$active,
+                    'paypal_account_hash' => $accountHash
                 ]
             );
         } catch (Exception $Exception) {
@@ -1679,7 +1830,38 @@ class Subscriptions
      * @return string
      * @throws QUI\Exception
      */
-    protected static function getIdentificationHash(AbstractOrder $Order): string
+    protected static function getIdentificationHash(
+        AbstractOrder $Order,
+        ?string $accountHash = null
+    ): string {
+        $accountHash ??= AccountContext::getHash();
+
+        return hash(
+            'sha256',
+            self::getIdentificationSource($Order) . '|' . $accountHash
+        );
+    }
+
+    /**
+     * @param AbstractOrder $Order
+     * @return string
+     * @throws QUI\Exception
+     */
+    private static function getLegacyIdentificationHash(AbstractOrder $Order): string
+    {
+        return hash(
+            'sha256',
+            self::getIdentificationSource($Order)
+            . (Provider::getApiSetting('sandbox') ? '_sandbox' : '_production')
+        );
+    }
+
+    /**
+     * @param AbstractOrder $Order
+     * @return string
+     * @throws QUI\Exception
+     */
+    private static function getIdentificationSource(AbstractOrder $Order): string
     {
         $productIds = [];
 
@@ -1699,7 +1881,7 @@ class Subscriptions
 
         $lang = $Order->getCustomer()->getLang();
         $totalSum = $Order->getPriceCalculation()->getSum()->get();
-        $hashedString = implode('|', [
+        return implode('|', [
             $lang,
             $Order->getCurrency()->getCode(),
             $totalSum,
@@ -1708,9 +1890,92 @@ class Subscriptions
             $planDetails['duration_interval'] ?? '',
             !empty($planDetails['auto_extend']) ? '1' : '0'
         ]);
-        $hashedString .= Provider::getApiSetting('sandbox') ? '_sandbox' : '_production';
+    }
 
-        return hash('sha256', $hashedString);
+    /**
+     * Assign legacy subscriptions without account context to the current PayPal
+     * application after verifying that the API can resolve them.
+     *
+     * @return void
+     * @throws PayPalException
+     * @throws QUI\Database\Exception
+     */
+    public static function migrateLegacyAccountContexts(): void
+    {
+        $accountHash = AccountContext::getHash();
+        $migrationKey = $accountHash . '|all';
+
+        if (isset(self::$legacyAccountMigrationAttempted[$migrationKey])) {
+            return;
+        }
+
+        $legacySubscriptions = QUI::getQueryBuilder()
+            ->select(Doctrine::quoteIdentifier('paypal_subscription_id'))
+            ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
+            ->where(Doctrine::quoteIdentifier('paypal_account_hash') . ' IS NULL')
+            ->executeQuery()
+            ->fetchFirstColumn();
+
+        foreach ($legacySubscriptions as $subscriptionId) {
+            self::adoptLegacySubscription((string)$subscriptionId);
+        }
+
+        self::$legacyAccountMigrationAttempted[$migrationKey] = true;
+    }
+
+    /**
+     * @param string $subscriptionId
+     * @return void
+     * @throws PayPalException
+     * @throws QUI\Database\Exception
+     */
+    private static function adoptLegacySubscription(string $subscriptionId): void
+    {
+        $accountHash = AccountContext::getHash();
+        $migrationKey = $accountHash . '|' . $subscriptionId;
+
+        if (isset(self::$legacyAccountMigrationAttempted[$migrationKey])) {
+            return;
+        }
+
+        $legacySubscriptionId = QUI::getQueryBuilder()
+            ->select(Doctrine::quoteIdentifier('paypal_subscription_id'))
+            ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
+            ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+            ->andWhere(Doctrine::quoteIdentifier('paypal_account_hash') . ' IS NULL')
+            ->setParameter('subscriptionId', $subscriptionId)
+            ->setMaxResults(1)
+            ->executeQuery()
+            ->fetchOne();
+
+        if ($legacySubscriptionId === false) {
+            self::$legacyAccountMigrationAttempted[$migrationKey] = true;
+            return;
+        }
+
+        try {
+            $subscriptionData = self::getSubscriptionDetails($subscriptionId);
+        } catch (PayPalException $Exception) {
+            if (AccountContext::isMissingResource($Exception)) {
+                self::$legacyAccountMigrationAttempted[$migrationKey] = true;
+                return;
+            }
+
+            throw $Exception;
+        }
+
+        if (($subscriptionData['id'] ?? '') !== $subscriptionId) {
+            self::$legacyAccountMigrationAttempted[$migrationKey] = true;
+            return;
+        }
+
+        QUI::getDataBaseConnection()->update(
+            self::getSubscriptionsTable(),
+            ['paypal_account_hash' => $accountHash],
+            ['paypal_subscription_id' => $subscriptionId]
+        );
+
+        self::$legacyAccountMigrationAttempted[$migrationKey] = true;
     }
 
     protected static function updateStoredSubscriptionStatus(
@@ -1734,7 +1999,10 @@ class Subscriptions
                     'subscription_data' => json_encode($subscriptionData),
                     'active' => (int)$active
                 ],
-                ['paypal_subscription_id' => $subscriptionId]
+                [
+                    'paypal_subscription_id' => $subscriptionId,
+                    'paypal_account_hash' => AccountContext::getHash()
+                ]
             );
         } catch (Exception $Exception) {
             QUI\System\Log::writeException($Exception);
