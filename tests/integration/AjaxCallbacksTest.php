@@ -146,6 +146,11 @@ final class AjaxCallbacksTest extends TestCase
         self::assertIsCallable(
             $this->registeredCallback('recurring/activateSubscription')
         );
+        self::assertIsCallable(
+            $this->registeredCallback(
+                'recurring/deleteUnassignedSubscription'
+            )
+        );
     }
 
     public function testWebhookCallbackRejectsEmptyPayload(): void

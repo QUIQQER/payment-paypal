@@ -24,7 +24,10 @@ final class SubscriptionAccountMigrationTest extends TestCase
         try {
             $this->connection()
                 ->createQueryBuilder()
-                ->select('paypal_account_hash')
+                ->select(
+                    'paypal_account_hash',
+                    'paypal_account_check_hash'
+                )
                 ->from($this->table())
                 ->setMaxResults(1)
                 ->executeQuery()
@@ -67,6 +70,14 @@ final class SubscriptionAccountMigrationTest extends TestCase
                 [self::SUBSCRIPTION_ID]
             )
         );
+        self::assertSame(
+            AccountContext::getHash(),
+            $this->connection()->fetchOne(
+                'SELECT paypal_account_check_hash FROM ' . $this->table()
+                . ' WHERE paypal_subscription_id = ?',
+                [self::SUBSCRIPTION_ID]
+            )
+        );
     }
 
     public function testMissingLegacySubscriptionRemainsUnassigned(): void
@@ -88,6 +99,22 @@ final class SubscriptionAccountMigrationTest extends TestCase
                 [self::SUBSCRIPTION_ID]
             )
         );
+        self::assertSame(
+            AccountContext::getHash(),
+            $this->connection()->fetchOne(
+                'SELECT paypal_account_check_hash FROM ' . $this->table()
+                . ' WHERE paypal_subscription_id = ?',
+                [self::SUBSCRIPTION_ID]
+            )
+        );
+
+        $this->resetStatics();
+        $SecondClient = new SubscriptionsApiClientDouble();
+        $SecondClient->setAccessToken('test-token');
+        $this->setApiClient($SecondClient);
+
+        self::assertFalse(Subscriptions::exists(self::SUBSCRIPTION_ID));
+        self::assertSame([], $SecondClient->requests);
     }
 
     private function insertLegacySubscription(): void
@@ -101,7 +128,8 @@ final class SubscriptionAccountMigrationTest extends TestCase
                 'subscription_data' => '{}',
                 'global_process_id' => 'phpunit-paypal-legacy-process',
                 'active' => 1,
-                'paypal_account_hash' => null
+                'paypal_account_hash' => null,
+                'paypal_account_check_hash' => null
             ]
         );
     }

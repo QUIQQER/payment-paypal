@@ -8,19 +8,23 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
     'qui/controls/Control',
     'qui/controls/loader/Loader',
     'qui/controls/buttons/Button',
+    'qui/controls/windows/Confirm',
     'controls/grid/Grid',
     'package/quiqqer/payment-paypal/bin/PayPal',
     'package/quiqqer/payment-paypal/bin/controls/backend/SubscriptionWindow',
     'Locale',
+    'Permissions',
     'css!package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions.css'
 ], function(
     QUIControl,
     QUILoader,
     QUIButton,
+    QUIConfirm,
     Grid,
     PayPal,
     SubscriptionWindow,
-    QUILocale
+    QUILocale,
+    Permissions
 ) {
     'use strict';
 
@@ -35,7 +39,9 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
             '$onCreate',
             '$onImport',
             '$onResize',
-            '$openDetails'
+            '$openDetails',
+            '$deleteUnassigned',
+            '$updateButtons'
         ],
 
         initialize: function(options) {
@@ -48,6 +54,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
             this.$Panel = null;
             this.$SearchButton = null;
             this.$SearchInput = null;
+            this.$CanManage = false;
             this.Loader = new QUILoader();
 
             this.addEvents({
@@ -76,6 +83,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
                 const Buttons = this.$Grid.getAttribute('buttons');
 
                 Buttons.details.disable();
+                Buttons.deleteUnassigned.disable();
 
                 result.data.forEach((row) => {
                     const subscriptionData = row.subscription_data || {};
@@ -89,15 +97,32 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
                     ].join(' ').trim();
                     const email = customer.email_address || customer.email || '';
 
-                    row.active_status = new Element('span', {
-                        'class': row.active
-                            ? 'fa fa-check quiqqer-payment-paypal-subscriptions-active'
-                            : 'fa fa-close quiqqer-payment-paypal-subscriptions-inactive'
-                    });
+                    if (row.account_context_valid === false) {
+                        row.active_status = new Element('span', {
+                            'class': 'fa fa-warning '
+                                + 'quiqqer-payment-paypal-subscriptions-unassigned',
+                            title: QUILocale.get(
+                                lg,
+                                'controls.backend.Subscriptions.status.unassigned'
+                            )
+                        });
+                    } else {
+                        row.active_status = new Element('span', {
+                            'class': row.active
+                                ? 'fa fa-check quiqqer-payment-paypal-subscriptions-active'
+                                : 'fa fa-close quiqqer-payment-paypal-subscriptions-inactive'
+                        });
+                    }
+
                     row.status_badge = new Element('span', {
                         'class': 'quiqqer-payment-paypal-subscriptions-status '
                             + 'status-' + statusClass,
-                        text: status
+                        text: status === 'UNASSIGNED'
+                            ? QUILocale.get(
+                                lg,
+                                'controls.backend.Subscriptions.status.unassigned'
+                            )
+                            : status
                     });
                     row.customer_text = customerName && email
                         ? customerName + ' (' + email + ')'
@@ -198,6 +223,17 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
                     events: {
                         onClick: this.$openDetails
                     }
+                }, {
+                    name: 'deleteUnassigned',
+                    text: QUILocale.get(
+                        lg,
+                        'controls.backend.Subscriptions.tbl.btn.delete_unassigned'
+                    ),
+                    textimage: 'fa fa-trash',
+                    disabled: true,
+                    events: {
+                        onClick: this.$deleteUnassigned
+                    }
                 }],
                 columnModel: [{
                     header: QUILocale.get(
@@ -261,17 +297,18 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
 
             this.$Grid.addEvents({
                 onRefresh: this.refresh,
-                onClick: () => {
-                    const Buttons = this.$Grid.getAttribute('buttons');
-                    const hasSelection = this.$Grid.getSelectedData().length === 1;
-
-                    if (hasSelection) {
-                        Buttons.details.enable();
-                    } else {
-                        Buttons.details.disable();
-                    }
-                },
+                onClick: this.$updateButtons,
                 onDblClick: this.$openDetails
+            });
+
+            Permissions.hasPermission(
+                'quiqqer.payments.paypal.subscriptions.manage'
+            ).then((canManage) => {
+                this.$CanManage = canManage;
+                this.$updateButtons();
+            }).catch(() => {
+                this.$CanManage = false;
+                this.$updateButtons();
             });
 
             this.$Panel = QUI.Controls.getById(
@@ -323,6 +360,91 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
                 subscriptionId: selected[0].paypal_subscription_id,
                 events: {
                     onUpdateSubscription: () => this.refresh()
+                }
+            }).open();
+        },
+
+        $updateButtons: function() {
+            if (!this.$Grid) {
+                return;
+            }
+
+            const Buttons = this.$Grid.getAttribute('buttons');
+            const selected = this.$Grid.getSelectedData();
+            const hasSelection = selected.length === 1;
+            const canDelete = hasSelection
+                && this.$CanManage
+                && selected[0].account_context_valid === false;
+
+            if (hasSelection) {
+                Buttons.details.enable();
+            } else {
+                Buttons.details.disable();
+            }
+
+            if (canDelete) {
+                Buttons.deleteUnassigned.enable();
+            } else {
+                Buttons.deleteUnassigned.disable();
+            }
+        },
+
+        $deleteUnassigned: function() {
+            const selected = this.$Grid.getSelectedData();
+
+            if (
+                selected.length !== 1
+                || selected[0].account_context_valid !== false
+                || !this.$CanManage
+            ) {
+                return;
+            }
+
+            const subscriptionId = selected[0].paypal_subscription_id;
+
+            new QUIConfirm({
+                maxHeight: 360,
+                maxWidth: 620,
+                autoclose: false,
+                information: QUILocale.get(
+                    lg,
+                    'controls.backend.Subscriptions.delete_unassigned.information'
+                ),
+                title: QUILocale.get(
+                    lg,
+                    'controls.backend.Subscriptions.delete_unassigned.title'
+                ),
+                texticon: 'fa fa-warning',
+                text: QUILocale.get(
+                    lg,
+                    'controls.backend.Subscriptions.delete_unassigned.text',
+                    {subscriptionId: subscriptionId}
+                ),
+                icon: 'fa fa-trash',
+                cancel_button: {
+                    text: false,
+                    textimage: 'icon-remove fa fa-remove'
+                },
+                ok_button: {
+                    text: QUILocale.get(
+                        lg,
+                        'controls.backend.Subscriptions.delete_unassigned.confirm'
+                    ),
+                    textimage: 'fa fa-trash'
+                },
+                events: {
+                    onSubmit: (Popup) => {
+                        Popup.Loader.show();
+
+                        PayPal.deleteUnassignedSubscription(
+                            subscriptionId
+                        ).then(() => {
+                            Popup.close();
+                            this.refresh();
+                        }).catch(() => {
+                            Popup.Loader.hide();
+                        });
+                    }
                 }
             }).open();
         }

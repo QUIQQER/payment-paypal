@@ -484,6 +484,10 @@
             <de><![CDATA[Die Subscription [subscriptionId] wurde erfolgreich aktiviert.]]></de>
             <en><![CDATA[The Subscription [subscriptionId] has been activated successfully.]]></en>
         </locale>
+        <locale name="message.ajax.recurring.deleteUnassignedSubscription.success">
+            <de><![CDATA[Der nicht zugeordnete lokale Subscription-Datensatz [subscriptionId] wurde gelöscht.]]></de>
+            <en><![CDATA[The unassigned local Subscription record [subscriptionId] was deleted.]]></en>
+        </locale>
 
         <!-- Payment -->
         <locale name="payment.step.title">
@@ -540,6 +544,10 @@
         <locale name="exception.admin.subscription.not_found">
             <de><![CDATA[Die PayPal-Subscription wurde in QUIQQER nicht gefunden.]]></de>
             <en><![CDATA[The PayPal Subscription was not found in QUIQQER.]]></en>
+        </locale>
+        <locale name="exception.admin.subscription.delete_unassigned">
+            <de><![CDATA[Der Subscription-Datensatz konnte nicht gelöscht werden. Nur nicht zugeordnete lokale Datensätze dürfen auf diesem Weg entfernt werden.]]></de>
+            <en><![CDATA[The Subscription record could not be deleted. Only unassigned local records can be removed this way.]]></en>
         </locale>
         <locale name="exception.Recurring.subscription.capture_not_implemented">
             <de><![CDATA[Die automatische Verbuchung für PayPal-Subscriptions ist in diesem Stand noch nicht vollständig implementiert. Bitte den Legacy-Recurring-Pfad verwenden oder die nächste Ausbaustufe abschließen.]]></de>
@@ -702,6 +710,30 @@
             <de><![CDATA[Details anzeigen]]></de>
             <en><![CDATA[Show details]]></en>
         </locale>
+        <locale name="controls.backend.Subscriptions.tbl.btn.delete_unassigned">
+            <de><![CDATA[Lokal löschen]]></de>
+            <en><![CDATA[Delete locally]]></en>
+        </locale>
+        <locale name="controls.backend.Subscriptions.status.unassigned">
+            <de><![CDATA[Nicht zugeordnet]]></de>
+            <en><![CDATA[Unassigned]]></en>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_unassigned.title">
+            <de><![CDATA[Nicht zugeordneten Datensatz löschen]]></de>
+            <en><![CDATA[Delete unassigned record]]></en>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_unassigned.information">
+            <de><![CDATA[Es wird ausschließlich der lokale QUIQQER-Datensatz einschließlich seiner lokal gespeicherten Transaktionen und Webhook-Ereignisse gelöscht. Bei PayPal wird nichts verändert.]]></de>
+            <en><![CDATA[Only the local QUIQQER record, including its locally stored transactions and webhook events, will be deleted. Nothing will be changed at PayPal.]]></en>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_unassigned.text">
+            <de><![CDATA[Soll der nicht zugeordnete Subscription-Datensatz [subscriptionId] wirklich lokal gelöscht werden?]]></de>
+            <en><![CDATA[Do you really want to delete the unassigned Subscription record [subscriptionId] locally?]]></en>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_unassigned.confirm">
+            <de><![CDATA[Lokal löschen]]></de>
+            <en><![CDATA[Delete locally]]></en>
+        </locale>
         <locale name="controls.backend.Subscriptions.tbl.active">
             <de><![CDATA[Lokal aktiv]]></de>
             <en><![CDATA[Locally active]]></en>
@@ -755,6 +787,10 @@
         <locale name="controls.backend.SubscriptionWindow.provider_unavailable" html="true">
             <de><![CDATA[PayPal ist momentan nicht erreichbar. Es werden die zuletzt in QUIQQER gespeicherten Daten angezeigt; Verwaltungsaktionen sind deaktiviert.]]></de>
             <en><![CDATA[PayPal is currently unavailable. The latest data stored in QUIQQER is shown and management actions are disabled.]]></en>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.unassigned" html="true">
+            <de><![CDATA[Diese Subscription konnte mit dem aktuell konfigurierten PayPal-Konto und Modus nicht gefunden werden. Der lokale Datensatz ist nicht zugeordnet; Provider-Aktionen sind deaktiviert.]]></de>
+            <en><![CDATA[This Subscription could not be found with the currently configured PayPal account and mode. The local record is unassigned and provider actions are disabled.]]></en>
         </locale>
         <locale name="controls.backend.SubscriptionWindow.section.overview">
             <de><![CDATA[Übersicht]]></de>

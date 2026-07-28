@@ -5,6 +5,7 @@ namespace QUI\ERP\Payments\PayPal\Recurring;
 use DateInterval;
 use DateTime;
 use Doctrine\DBAL\ArrayParameterType;
+use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Query\QueryBuilder;
 use Exception;
 use QUI;
@@ -51,6 +52,7 @@ class Subscriptions
     public const STATUS_SUSPENDED = 'SUSPENDED';
     public const STATUS_CANCELLED = 'CANCELLED';
     public const STATUS_EXPIRED = 'EXPIRED';
+    public const STATUS_UNASSIGNED = 'UNASSIGNED';
 
     public const TRANSACTION_STATE_COMPLETED = 'COMPLETED';
     public const TRANSACTION_STATE_DENIED = 'DENIED';
@@ -325,12 +327,19 @@ class Subscriptions
 
     /**
      * @param string $subscriptionId
+     * @param bool $notFoundExpected
      * @return array<string, mixed>
      * @throws PayPalException
      */
-    public static function getSubscriptionDetails(string $subscriptionId): array
-    {
-        return self::getApiClient()->get('/v1/billing/subscriptions/' . $subscriptionId);
+    public static function getSubscriptionDetails(
+        string $subscriptionId,
+        bool $notFoundExpected = false
+    ): array {
+        return self::getApiClient()->get(
+            '/v1/billing/subscriptions/' . $subscriptionId,
+            [],
+            $notFoundExpected ? [404] : []
+        );
     }
 
     /**
@@ -532,6 +541,7 @@ class Subscriptions
         $Grid = new QUI\Utils\Grid($searchParams);
         $gridParams = $Grid->parseDBParams($searchParams);
         $QueryBuilder = QUI::getQueryBuilder();
+        $accountHash = AccountContext::getHash();
 
         if ($countOnly) {
             $QueryBuilder->select(
@@ -544,8 +554,14 @@ class Subscriptions
         $QueryBuilder->from(
             Doctrine::quoteIdentifier(self::getSubscriptionsTable())
         )
-            ->where(Doctrine::quoteIdentifier('paypal_account_hash') . ' = :accountHash')
-            ->setParameter('accountHash', AccountContext::getHash());
+            ->where(
+                '('
+                . Doctrine::quoteIdentifier('paypal_account_hash')
+                . ' = :accountHash OR '
+                . Doctrine::quoteIdentifier('paypal_account_hash')
+                . ' IS NULL)'
+            )
+            ->setParameter('accountHash', $accountHash);
 
         if (!empty($searchParams['search'])) {
             $searchColumns = [
@@ -600,17 +616,161 @@ class Subscriptions
         }
 
         return array_map(
-            static function (array $row): array {
+            static function (array $row) use ($accountHash): array {
+                $accountContextValid = $row['paypal_account_hash'] === $accountHash;
                 $row['active'] = !empty($row['active']);
                 $row['customer'] = json_decode($row['customer'] ?? '[]', true);
-                $row['subscription_data'] = json_decode(
+                $subscriptionData = json_decode(
                     $row['subscription_data'] ?? '[]',
                     true
+                );
+
+                if (!is_array($subscriptionData)) {
+                    $subscriptionData = [];
+                }
+
+                $row['subscription_data'] = $subscriptionData;
+                $row['account_context_valid'] = $accountContextValid;
+
+                if (!$accountContextValid) {
+                    $row['subscription_data']['status'] = self::STATUS_UNASSIGNED;
+                }
+
+                unset(
+                    $row['paypal_account_hash'],
+                    $row['paypal_account_check_hash']
                 );
 
                 return $row;
             },
             $Result->fetchAllAssociative()
+        );
+    }
+
+    /**
+     * Read a current or unassigned Subscription for backend inspection.
+     *
+     * @param string $subscriptionId
+     * @return array{
+     *     active: bool,
+     *     globalProcessId: string|null,
+     *     customer: array<string, mixed>|null,
+     *     subscriptionData: array<string, mixed>|null,
+     *     planId: string,
+     *     accountContextValid: bool
+     * }|false
+     */
+    public static function getSubscriptionDataForAdministration(
+        string $subscriptionId
+    ): array|false {
+        self::adoptLegacySubscription($subscriptionId);
+        $accountHash = AccountContext::getHash();
+
+        try {
+            $data = QUI::getQueryBuilder()
+                ->select('*')
+                ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
+                ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+                ->andWhere(
+                    '('
+                    . Doctrine::quoteIdentifier('paypal_account_hash')
+                    . ' = :accountHash OR '
+                    . Doctrine::quoteIdentifier('paypal_account_hash')
+                    . ' IS NULL)'
+                )
+                ->setParameter('subscriptionId', $subscriptionId)
+                ->setParameter('accountHash', $accountHash)
+                ->executeQuery()
+                ->fetchAssociative();
+        } catch (Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+            return false;
+        }
+
+        if ($data === false) {
+            return false;
+        }
+
+        $accountContextValid = $data['paypal_account_hash'] === $accountHash;
+        $subscriptionData = json_decode(
+            $data['subscription_data'] ?? '[]',
+            true
+        );
+
+        if (!is_array($subscriptionData)) {
+            $subscriptionData = [];
+        }
+
+        if (!$accountContextValid) {
+            $subscriptionData['status'] = self::STATUS_UNASSIGNED;
+        }
+
+        return [
+            'active' => !empty($data['active']),
+            'globalProcessId' => $data['global_process_id'],
+            'customer' => json_decode($data['customer'], true),
+            'subscriptionData' => $subscriptionData,
+            'planId' => $data['paypal_plan_id'],
+            'accountContextValid' => $accountContextValid
+        ];
+    }
+
+    /**
+     * Delete an unassigned local Subscription and its local auxiliary records.
+     *
+     * Provider-owned Subscriptions and records assigned to the current account
+     * cannot be deleted with this method.
+     *
+     * @param string $subscriptionId
+     * @return bool
+     * @throws Exception
+     */
+    public static function deleteUnassignedSubscription(string $subscriptionId): bool
+    {
+        $Connection = QUI::getDataBaseConnection();
+        $accountHash = AccountContext::getHash();
+
+        return $Connection->transactional(
+            static function (
+                Connection $Connection
+            ) use (
+                $subscriptionId,
+                $accountHash
+            ): bool {
+                $QueryBuilder = $Connection->createQueryBuilder();
+                $deleted = $QueryBuilder
+                    ->delete(self::getSubscriptionsTable())
+                    ->where(
+                        Doctrine::quoteIdentifier('paypal_subscription_id')
+                        . ' = :subscriptionId'
+                    )
+                    ->andWhere(
+                        Doctrine::quoteIdentifier('paypal_account_hash')
+                        . ' IS NULL'
+                    )
+                    ->andWhere(
+                        Doctrine::quoteIdentifier('paypal_account_check_hash')
+                        . ' = :accountHash'
+                    )
+                    ->setParameter('subscriptionId', $subscriptionId)
+                    ->setParameter('accountHash', $accountHash)
+                    ->executeStatement();
+
+                if ($deleted !== 1) {
+                    return false;
+                }
+
+                $Connection->delete(
+                    self::getSubscriptionTransactionsTable(),
+                    ['paypal_subscription_id' => $subscriptionId]
+                );
+                $Connection->delete(
+                    self::getSubscriptionWebhookEventsTable(),
+                    ['paypal_subscription_id' => $subscriptionId]
+                );
+
+                return true;
+            }
         );
     }
 
@@ -1712,7 +1872,11 @@ class Subscriptions
         $planId = (string)$legacyPlan['paypal_plan_id'];
 
         try {
-            $planData = self::getApiClient()->get('/v1/billing/plans/' . $planId);
+            $planData = self::getApiClient()->get(
+                '/v1/billing/plans/' . $planId,
+                [],
+                [404]
+            );
         } catch (PayPalException $Exception) {
             if (AccountContext::isMissingResource($Exception)) {
                 return false;
@@ -1773,7 +1937,8 @@ class Subscriptions
                         'subscription_data' => json_encode($subscriptionData),
                         'global_process_id' => $globalProcessId,
                         'active' => (int)$active,
-                        'paypal_account_hash' => $accountHash
+                        'paypal_account_hash' => $accountHash,
+                        'paypal_account_check_hash' => $accountHash
                     ],
                     [
                         'paypal_subscription_id' => $subscriptionId,
@@ -1793,7 +1958,8 @@ class Subscriptions
                     'subscription_data' => json_encode($subscriptionData),
                     'global_process_id' => $globalProcessId,
                     'active' => (int)$active,
-                    'paypal_account_hash' => $accountHash
+                    'paypal_account_hash' => $accountHash,
+                    'paypal_account_check_hash' => $accountHash
                 ]
             );
         } catch (Exception $Exception) {
@@ -1913,6 +2079,14 @@ class Subscriptions
             ->select(Doctrine::quoteIdentifier('paypal_subscription_id'))
             ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
             ->where(Doctrine::quoteIdentifier('paypal_account_hash') . ' IS NULL')
+            ->andWhere(
+                '('
+                . Doctrine::quoteIdentifier('paypal_account_check_hash')
+                . ' IS NULL OR '
+                . Doctrine::quoteIdentifier('paypal_account_check_hash')
+                . ' != :accountHash)'
+            )
+            ->setParameter('accountHash', $accountHash)
             ->executeQuery()
             ->fetchFirstColumn();
 
@@ -1943,7 +2117,15 @@ class Subscriptions
             ->from(Doctrine::quoteIdentifier(self::getSubscriptionsTable()))
             ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
             ->andWhere(Doctrine::quoteIdentifier('paypal_account_hash') . ' IS NULL')
+            ->andWhere(
+                '('
+                . Doctrine::quoteIdentifier('paypal_account_check_hash')
+                . ' IS NULL OR '
+                . Doctrine::quoteIdentifier('paypal_account_check_hash')
+                . ' != :accountHash)'
+            )
             ->setParameter('subscriptionId', $subscriptionId)
+            ->setParameter('accountHash', $accountHash)
             ->setMaxResults(1)
             ->executeQuery()
             ->fetchOne();
@@ -1954,9 +2136,17 @@ class Subscriptions
         }
 
         try {
-            $subscriptionData = self::getSubscriptionDetails($subscriptionId);
+            $subscriptionData = self::getSubscriptionDetails(
+                $subscriptionId,
+                true
+            );
         } catch (PayPalException $Exception) {
             if (AccountContext::isMissingResource($Exception)) {
+                QUI::getDataBaseConnection()->update(
+                    self::getSubscriptionsTable(),
+                    ['paypal_account_check_hash' => $accountHash],
+                    ['paypal_subscription_id' => $subscriptionId]
+                );
                 self::$legacyAccountMigrationAttempted[$migrationKey] = true;
                 return;
             }
@@ -1965,13 +2155,21 @@ class Subscriptions
         }
 
         if (($subscriptionData['id'] ?? '') !== $subscriptionId) {
+            QUI::getDataBaseConnection()->update(
+                self::getSubscriptionsTable(),
+                ['paypal_account_check_hash' => $accountHash],
+                ['paypal_subscription_id' => $subscriptionId]
+            );
             self::$legacyAccountMigrationAttempted[$migrationKey] = true;
             return;
         }
 
         QUI::getDataBaseConnection()->update(
             self::getSubscriptionsTable(),
-            ['paypal_account_hash' => $accountHash],
+            [
+                'paypal_account_hash' => $accountHash,
+                'paypal_account_check_hash' => $accountHash
+            ],
             ['paypal_subscription_id' => $subscriptionId]
         );
 

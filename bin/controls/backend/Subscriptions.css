@@ -67,6 +67,10 @@
     color: #cf222e;
 }
 
+.quiqqer-payment-paypal-subscriptions-unassigned {
+    color: #bf8700;
+}
+
 .quiqqer-payment-paypal-subscriptions-status {
     background: #eef2f6;
     border-radius: 999px;
@@ -103,4 +107,9 @@
 .quiqqer-payment-paypal-subscriptions-status.status-expired {
     background: #ffebe9;
     color: #a40e26;
+}
+
+.quiqqer-payment-paypal-subscriptions-status.status-unassigned {
+    background: #fff8c5;
+    color: #7d4e00;
 }

@@ -60,6 +60,16 @@ final class DatabaseSchemaTest extends TestCase
             self::assertSame('true', (string)$Field['nullable']);
             self::assertSame('null', (string)$Field['default']);
         }
+
+        $CheckField = $this->getField(
+            'paypal_subscriptions',
+            'paypal_account_check_hash'
+        );
+
+        self::assertSame('string', (string)$CheckField['type']);
+        self::assertSame('64', (string)$CheckField['length']);
+        self::assertSame('true', (string)$CheckField['nullable']);
+        self::assertSame('null', (string)$CheckField['default']);
     }
 
     private function loadSchema(): SimpleXMLElement

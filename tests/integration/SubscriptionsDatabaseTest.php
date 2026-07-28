@@ -41,6 +41,7 @@ final class SubscriptionsDatabaseTest extends TestCase
             true,
             AccountContext::createHash('foreign-client-id', true)
         );
+        $this->insertUnassignedFixture();
         $this->insertTransactionFixture();
     }
 
@@ -130,9 +131,9 @@ final class SubscriptionsDatabaseTest extends TestCase
         ];
         $subscriptions = Subscriptions::getSubscriptionList($searchParams);
 
-        self::assertCount(2, $subscriptions);
+        self::assertCount(3, $subscriptions);
         self::assertSame(
-            2,
+            3,
             Subscriptions::getSubscriptionList($searchParams, true)
         );
         self::assertSame(
@@ -149,6 +150,19 @@ final class SubscriptionsDatabaseTest extends TestCase
             $subscriptions[0]['subscription_data']['status']
         );
 
+        $unassigned = array_values(array_filter(
+            $subscriptions,
+            static fn(array $row): bool => $row['paypal_subscription_id']
+                === self::PREFIX . 'unassigned'
+        ));
+
+        self::assertCount(1, $unassigned);
+        self::assertFalse($unassigned[0]['account_context_valid']);
+        self::assertSame(
+            Subscriptions::STATUS_UNASSIGNED,
+            $unassigned[0]['subscription_data']['status']
+        );
+
         $filtered = Subscriptions::getSubscriptionList([
             'search' => 'process_inactive',
             'page' => 1,
@@ -159,6 +173,27 @@ final class SubscriptionsDatabaseTest extends TestCase
         self::assertSame(
             self::PREFIX . 'inactive',
             $filtered[0]['paypal_subscription_id']
+        );
+    }
+
+    public function testOnlyUnassignedSubscriptionCanBeDeletedLocally(): void
+    {
+        self::assertFalse(
+            Subscriptions::deleteUnassignedSubscription(
+                self::PREFIX . 'active'
+            )
+        );
+        self::assertTrue(
+            Subscriptions::deleteUnassignedSubscription(
+                self::PREFIX . 'unassigned'
+            )
+        );
+        self::assertFalse(
+            (bool)$this->connection()->fetchOne(
+                'SELECT paypal_subscription_id FROM ' . $this->table()
+                . ' WHERE paypal_subscription_id = ?',
+                [self::PREFIX . 'unassigned']
+            )
         );
     }
 
@@ -228,6 +263,25 @@ final class SubscriptionsDatabaseTest extends TestCase
                 'quiqqer_transaction_id' => self::PREFIX . 'quiqqer',
                 'quiqqer_transaction_completed' => 1,
                 'global_process_id' => self::PREFIX . 'process_active'
+            ]
+        );
+    }
+
+    private function insertUnassignedFixture(): void
+    {
+        $this->connection()->insert(
+            $this->table(),
+            [
+                'paypal_subscription_id' => self::PREFIX . 'unassigned',
+                'paypal_plan_id' => self::PREFIX . 'unassigned_plan',
+                'customer' => '{}',
+                'subscription_data' => json_encode([
+                    'status' => Subscriptions::STATUS_ACTIVE
+                ]),
+                'global_process_id' => self::PREFIX . 'process_unassigned',
+                'active' => 1,
+                'paypal_account_hash' => null,
+                'paypal_account_check_hash' => AccountContext::getHash()
             ]
         );
     }

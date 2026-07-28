@@ -160,6 +160,23 @@ final class SubscriptionsApiClientTest extends TestCase
         }
     }
 
+    public function testExpectedGetErrorStillThrowsWithStatus(): void
+    {
+        $Client = $this->createAuthenticatedClient();
+        $Client->responses[] = [
+            'body' => '{"message":"Not found"}',
+            'status' => 404
+        ];
+
+        try {
+            $Client->get('/v1/resource', [], [404]);
+            self::fail('PayPalException was not thrown.');
+        } catch (PayPalException $Exception) {
+            self::assertSame('Not found', $Exception->getMessage());
+            self::assertSame(404, $Exception->getCode());
+        }
+    }
+
     public function testTransportFailureThrowsPayPalException(): void
     {
         $Client = $this->createAuthenticatedClient();

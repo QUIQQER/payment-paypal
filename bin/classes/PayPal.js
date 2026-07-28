@@ -251,6 +251,26 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
         },
 
         /**
+         * Delete an unassigned Subscription from the local QUIQQER database.
+         *
+         * @param {String} subscriptionId
+         * @return {Promise}
+         */
+        deleteUnassignedSubscription: function(subscriptionId) {
+            return new Promise((resolve, reject) => {
+                QUIAjax.post(
+                    'package_quiqqer_payment-paypal_ajax_recurring_deleteUnassignedSubscription',
+                    resolve,
+                    {
+                        'package': pkg,
+                        subscriptionId: subscriptionId,
+                        onError: reject
+                    }
+                );
+            });
+        },
+
+        /**
          * Get PayPal API client ID
          *
          * @return {Promise}

@@ -194,7 +194,9 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/SubscriptionWindow',
                     'class': 'messages-message message-warning box',
                     html: QUILocale.get(
                         lg,
-                        'controls.backend.SubscriptionWindow.provider_unavailable'
+                        result.accountContextValid === false
+                            ? 'controls.backend.SubscriptionWindow.unassigned'
+                            : 'controls.backend.SubscriptionWindow.provider_unavailable'
                     )
                 }).inject(Content);
             }
