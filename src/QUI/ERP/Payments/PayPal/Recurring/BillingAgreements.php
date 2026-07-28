@@ -73,7 +73,7 @@ class BillingAgreements
 
         $Order->addHistory(
             Utils::getHistoryText('order.billing_plan_created', [
-                'billingPlandId' => $billingPlanId
+                'billingPlanId' => $billingPlanId
             ])
         );
 
@@ -143,13 +143,13 @@ class BillingAgreements
                 $Order
             );
         } catch (PayPalException $Exception) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $Order->addHistory(Utils::getHistoryText('api.error'));
             Utils::saveOrder($Order);
             throw $Exception;
         }
 
         if (empty($response['links'])) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $Order->addHistory(Utils::getHistoryText('api.error'));
             Utils::saveOrder($Order);
 
             QUI\System\Log::addError(
@@ -179,7 +179,7 @@ class BillingAgreements
             }
         }
 
-        $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+        $Order->addHistory(Utils::getHistoryText('api.error'));
         Utils::saveOrder($Order);
 
         QUI\System\Log::addError(
@@ -737,7 +737,7 @@ class BillingAgreements
                 ]
             );
         } catch (PayPalException $Exception) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $Order->addHistory(Utils::getHistoryText('api.error'));
             Utils::saveOrder($Order);
 
             QUI\System\Log::writeException($Exception);

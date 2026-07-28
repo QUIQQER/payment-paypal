@@ -9,6 +9,7 @@ use PHPUnit\Framework\TestCase;
 use QUI;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
+use QUI\ERP\Payments\PayPal\Utils;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
 use QUI\ERP\User;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\BillingAgreementsDouble;
@@ -116,7 +117,7 @@ final class BillingAgreementExecutionTest extends TestCase
             self::fail('The legacy execution failure was not propagated.');
         } catch (PayPalException) {
             self::assertContains(
-                'PayPal :: PayPal API ERROR. Please check error logs.',
+                Utils::getHistoryText('api.error'),
                 $Order->history
             );
             self::assertNotNull($Order->updateUser);

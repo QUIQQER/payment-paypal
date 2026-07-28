@@ -423,11 +423,15 @@ class Payment extends BasePayment implements RecurringPaymentInterface
         string $reason = ''
     ): void {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
-        $Process->addHistory('PayPal :: Start Billing Agreement refund for transaction #' . $Transaction->getTxId());
+        $Process->addHistory(
+            Utils::getHistoryText('refund.billing_agreement.start', [
+                'transactionId' => $Transaction->getTxId()
+            ])
+        );
 
         if (!$Transaction->getData(self::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID)) {
             $Process->addHistory(
-                'PayPal :: Transaction cannot be refunded because it is not a PayPal Billing Agreement transaction.'
+                Utils::getHistoryText('refund.billing_agreement.error.not_transaction')
             );
 
             $this->throwPayPalException(self::PAYPAL_ERROR_NO_BILLING_AGREEMENT_TRANSACTION);
@@ -474,10 +478,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             );
         } catch (PayPalException $Exception) {
             $Process->addHistory(
-                'PayPal :: Refund operation failed.'
-                . ' Reason: "' . $Exception->getMessage() . '".'
-                . ' ReasonCode: "' . $Exception->getCode() . '".'
-                . ' Transaction #' . $Transaction->getTxId()
+                Utils::getHistoryText('refund.error.request', [
+                    'reason' => $Exception->getMessage(),
+                    'reasonCode' => $Exception->getCode(),
+                    'transactionId' => $Transaction->getTxId()
+                ])
             );
 
             $RefundTransaction->error();
@@ -495,15 +500,11 @@ class Payment extends BasePayment implements RecurringPaymentInterface
                 $RefundTransaction->updateData();
 
                 $Process->addHistory(
-                    QUI::getLocale()->get(
-                        'quiqqer/payment-paypal',
-                        'history.refund',
-                        [
-                            'refundId' => $response['id'],
-                            'amount' => $response['amount']['total'],
-                            'currency' => $response['amount']['currency']
-                        ]
-                    )
+                    Utils::getHistoryText('refund', [
+                        'refundId' => $response['id'],
+                        'amount' => $response['amount']['total'],
+                        'currency' => $response['amount']['currency']
+                    ])
                 );
 
                 $RefundTransaction->complete();
@@ -517,8 +518,9 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             // FAILURE
             default:
                 $Process->addHistory(
-                    'PayPal :: Billing Agreement transaction refund was not completed by PayPal because of an unknown error.'
-                    . ' Refund state: ' . $response['state']
+                    Utils::getHistoryText('refund.billing_agreement.error.state', [
+                        'state' => $response['state']
+                    ])
                 );
 
                 $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED);

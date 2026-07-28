@@ -282,10 +282,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     public function createPayPalOrder(AbstractOrder $Order): void
     {
-        $Order->addHistory('PayPal :: Create Order');
+        $Order->addHistory(Utils::getHistoryText('order.create.start'));
 
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
-            $Order->addHistory('PayPal :: Order already created - updating with new details');
+            $Order->addHistory(Utils::getHistoryText('order.create.already_exists'));
             $this->updatePayPalOrder($Order);
             return;
         }
@@ -295,14 +295,14 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         try {
             $response = $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_CREATE_ORDER, $body, $Order);
         } catch (PayPalException $Exception) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $Order->addHistory(Utils::getHistoryText('api.error'));
             $this->saveOrder($Order);
             throw $Exception;
         }
 
         $response = Utils::requireApiResponse($response, ['id']);
 
-        $Order->addHistory('PayPal :: Order successfully created');
+        $Order->addHistory(Utils::getHistoryText('order.create.success'));
         $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, $response['id']);
         $this->saveOrder($Order);
     }
@@ -318,10 +318,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     public function updatePayPalOrder(AbstractOrder $Order): void
     {
-        $Order->addHistory('PayPal :: Update Order');
+        $Order->addHistory(Utils::getHistoryText('order.update.start'));
 
         if (!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
-            $Order->addHistory('PayPal :: Order cannot be updated since it has not been created yet');
+            $Order->addHistory(Utils::getHistoryText('order.update.not_created'));
             return;
         }
 
@@ -339,12 +339,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         try {
             $this->payPalApiRequest(self::PAYPAL_REQUEST_TYPE_UPDATE_ORDER, $body, $Order);
         } catch (PayPalException $Exception) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $Order->addHistory(Utils::getHistoryText('api.error'));
             $this->saveOrder($Order);
             throw $Exception;
         }
 
-        $Order->addHistory('PayPal :: Order successfully updated');
+        $Order->addHistory(Utils::getHistoryText('order.update.success'));
         $this->saveOrder($Order);
     }
 
@@ -363,10 +363,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     public function authorizePayPalOrder(AbstractOrder $Order): void
     {
-        $Order->addHistory('PayPal :: Authorize Order');
+        $Order->addHistory(Utils::getHistoryText('order.authorize.start'));
 
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_AUTHORIZATION_ID)) {
-            $Order->addHistory('PayPal :: Order already authorized');
+            $Order->addHistory(Utils::getHistoryText('order.authorize.already_authorized'));
             $this->saveOrder($Order);
             return;
         }
@@ -386,7 +386,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $Order
             );
         } catch (PayPalException $Exception) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $Order->addHistory(Utils::getHistoryText('api.error'));
             $this->saveOrder($Order);
             throw $Exception;
         }
@@ -399,11 +399,13 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         ) {
             if (empty($response['reason_code'])) {
                 $Order->addHistory(
-                    'PayPal :: Order was not authorized by PayPal because of an unknown error'
+                    Utils::getHistoryText('order.authorize.error.unknown')
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order was not authorized by PayPal. Reason: "' . $response['reason_code'] . '"'
+                    Utils::getHistoryText('order.authorize.error.reason', [
+                        'reason' => $response['reason_code']
+                    ])
                 );
             }
 
@@ -413,7 +415,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $Order->setPaymentData(self::ATTR_PAYPAL_AUTHORIZATION_ID, $response['id']);
-        $Order->addHistory('PayPal :: Order successfully authorized and ready for capture');
+        $Order->addHistory(Utils::getHistoryText('order.authorize.success'));
 
         $this->saveOrder($Order);
     }
@@ -430,10 +432,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     public function capturePayPalOrder(AbstractOrder $Order): void
     {
-        $Order->addHistory('PayPal :: Capture Order');
+        $Order->addHistory(Utils::getHistoryText('order.capture.start'));
 
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL)) {
-            $Order->addHistory('PayPal :: Order already captured');
+            $Order->addHistory(Utils::getHistoryText('order.capture.already_captured'));
             $this->saveOrder($Order);
             return;
         }
@@ -482,7 +484,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             $checkOrderCaptureStatus($response);
         } catch (PayPalException) {
-            $Order->addHistory('PayPal :: PayPal API ERROR. Please check error logs.');
+            $Order->addHistory(Utils::getHistoryText('api.error'));
             $this->saveOrder($Order);
 
             // it may happen that the capture was actually completed and the PHP SDK just
@@ -492,8 +494,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             if ($captured) {
                 $Order->addHistory(
-                    'PayPal :: Order capture REST request failed. But Order capture was still completed on PayPal site.'
-                    . ' Continuing payment process.'
+                    Utils::getHistoryText('order.capture.api_error_but_completed')
                 );
             }
 
@@ -511,13 +512,16 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
             if (!empty($response['reason_code'])) {
                 $Order->addHistory(
-                    'PayPal :: Order capture was not completed by PayPal. Reason code: "' . $response['reason_code'] . '"'
-                    . ' | Capture failed because: ' . $captureFailReason
+                    Utils::getHistoryText('order.capture.error.reason', [
+                        'reasonCode' => $response['reason_code'],
+                        'captureFailure' => $captureFailReason
+                    ])
                 );
             } else {
                 $Order->addHistory(
-                    'PayPal :: Order capture was not completed by PayPal. Unknown reason code.'
-                    . ' | Capture failed because: ' . $captureFailReason
+                    Utils::getHistoryText('order.capture.error.unknown', [
+                        'captureFailure' => $captureFailReason
+                    ])
                 );
             }
 
@@ -535,16 +539,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
 
         $Order->setPaymentData(self::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, true);
 
-        $Order->addHistory('PayPal :: Order capture request was successful. Checking capture status...');
+        $Order->addHistory(Utils::getHistoryText('order.capture.request_success'));
 
         $Order->addHistory(
-            QUI::getLocale()->get(
-                'quiqqer/payment-paypal',
-                'history.capture_id',
-                [
-                    'captureId' => $captureId
-                ]
-            )
+            Utils::getHistoryText('capture_id', [
+                'captureId' => $captureId
+            ])
         );
 
         $this->saveOrder($Order);
@@ -552,7 +552,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->setSuccessfulStatus();
 
         // Gateway purchase
-        $Order->addHistory('PayPal :: Set Gateway purchase');
+        $Order->addHistory(Utils::getHistoryText('gateway.purchase.start'));
 
         if (!$pending) {
             $Transaction = $this->purchaseCapturedOrder(
@@ -574,7 +574,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             $Transaction->updateData();
 
             $Order->addHistory(
-                'PayPal :: Order capture was completed. Transaction ' . $Transaction->getTxId() . ' added.'
+                Utils::getHistoryText('order.capture.completed', [
+                    'transactionId' => $Transaction->getTxId()
+                ])
             );
 
             // so we get the new order status if transaction change stuff
@@ -585,12 +587,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             }
         } else {
             $Order->addHistory(
-                'PayPal :: Order capture was not completed immediately.'
-                . ' Payment is PENDING and has to be added manually to the order or checked via cronjob.'
+                Utils::getHistoryText('order.capture.pending')
             );
         }
 
-        $Order->addHistory('PayPal :: Gateway purchase completed.');
+        $Order->addHistory(Utils::getHistoryText('gateway.purchase.completed'));
         $this->saveOrder($Order);
     }
 
@@ -629,11 +630,15 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         string $reason = ''
     ): void {
         $Process = new QUI\ERP\Process($Transaction->getGlobalProcessId());
-        $Process->addHistory('PayPal :: Start refund for transaction #' . $Transaction->getTxId());
+        $Process->addHistory(
+            Utils::getHistoryText('refund.start', [
+                'transactionId' => $Transaction->getTxId()
+            ])
+        );
 
         if (!$Transaction->getData(self::ATTR_PAYPAL_CAPTURE_ID)) {
             $Process->addHistory(
-                'PayPal :: Transaction cannot be refunded because it is not yet captured / completed.'
+                Utils::getHistoryText('refund.error.not_captured')
             );
 
             $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED_ORDER_NOT_CAPTURED);
@@ -680,10 +685,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             );
         } catch (PayPalException $Exception) {
             $Process->addHistory(
-                'PayPal :: Refund operation failed.'
-                . ' Reason: "' . $Exception->getMessage() . '".'
-                . ' ReasonCode: "' . $Exception->getCode() . '".'
-                . ' Transaction #' . $Transaction->getTxId()
+                Utils::getHistoryText('refund.error.request', [
+                    'reason' => $Exception->getMessage(),
+                    'reasonCode' => $Exception->getCode(),
+                    'transactionId' => $Transaction->getTxId()
+                ])
             );
 
             $RefundTransaction->error();
@@ -701,15 +707,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $RefundTransaction->updateData();
 
                 $Process->addHistory(
-                    QUI::getLocale()->get(
-                        'quiqqer/payment-paypal',
-                        'history.refund',
-                        [
-                            'refundId' => $response['id'],
-                            'amount' => $response['amount']['value'],
-                            'currency' => $response['amount']['currency_code']
-                        ]
-                    )
+                    Utils::getHistoryText('refund', [
+                        'refundId' => $response['id'],
+                        'amount' => $response['amount']['value'],
+                        'currency' => $response['amount']['currency_code']
+                    ])
                 );
 
                 $RefundTransaction->complete();
@@ -723,8 +725,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             // FAILURE
             default:
                 $Process->addHistory(
-                    'PayPal :: Order refund was not completed by PayPal because of an unknown error.'
-                    . ' Refund state: ' . $response['status']
+                    Utils::getHistoryText('refund.error.state', [
+                        'state' => $response['status']
+                    ])
                 );
 
                 $this->throwPayPalException(self::PAYPAL_ERROR_ORDER_NOT_REFUNDED);
@@ -1005,12 +1008,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     protected function voidPayPalOrder(AbstractOrder $Order): void
     {
-        $Order->addHistory('PayPal :: Void Order');
+        $Order->addHistory(Utils::getHistoryText('order.void.start'));
 
         if (!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
             $Order->addHistory(
-                'PayPal :: Order cannot be voided because it has not been created yet'
-                . ' or was voided before'
+                Utils::getHistoryText('order.void.not_possible')
             );
 
             $this->saveOrder($Order);
@@ -1018,7 +1020,7 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         }
 
         $Order->addHistory(
-            'PayPal :: Order voided.'
+            Utils::getHistoryText('order.void.success')
         );
 
         $this->saveOrder($Order);
@@ -1568,7 +1570,9 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $Transaction->updateData();
 
                 $Order->addHistory(
-                    'PayPal :: Pending order capture was completed. Transaction ' . $Transaction->getTxId() . ' added.'
+                    Utils::getHistoryText('order.capture.pending_completed', [
+                        'transactionId' => $Transaction->getTxId()
+                    ])
                 );
                 $this->saveOrder($Order);
             } catch (Exception $Exception) {

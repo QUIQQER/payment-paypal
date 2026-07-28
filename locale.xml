@@ -354,6 +354,182 @@
         </locale>
 
         <!-- History -->
+        <locale name="history.api.error">
+            <de><![CDATA[PayPal :: PayPal-API-FEHLER. Bitte prüfen Sie die Fehlerprotokolle.]]></de>
+            <en><![CDATA[PayPal :: PayPal API ERROR. Please check error logs.]]></en>
+        </locale>
+        <locale name="history.order.create.start">
+            <de><![CDATA[PayPal :: Bestellung erstellen]]></de>
+            <en><![CDATA[PayPal :: Create Order]]></en>
+        </locale>
+        <locale name="history.order.create.already_exists">
+            <de><![CDATA[PayPal :: Bestellung wurde bereits erstellt – Aktualisierung mit neuen Daten]]></de>
+            <en><![CDATA[PayPal :: Order already created - updating with new details]]></en>
+        </locale>
+        <locale name="history.order.create.success">
+            <de><![CDATA[PayPal :: Bestellung erfolgreich erstellt]]></de>
+            <en><![CDATA[PayPal :: Order successfully created]]></en>
+        </locale>
+        <locale name="history.order.update.start">
+            <de><![CDATA[PayPal :: Bestellung aktualisieren]]></de>
+            <en><![CDATA[PayPal :: Update Order]]></en>
+        </locale>
+        <locale name="history.order.update.not_created">
+            <de><![CDATA[PayPal :: Bestellung kann nicht aktualisiert werden, da sie noch nicht erstellt wurde]]></de>
+            <en><![CDATA[PayPal :: Order cannot be updated since it has not been created yet]]></en>
+        </locale>
+        <locale name="history.order.update.success">
+            <de><![CDATA[PayPal :: Bestellung erfolgreich aktualisiert]]></de>
+            <en><![CDATA[PayPal :: Order successfully updated]]></en>
+        </locale>
+        <locale name="history.order.authorize.start">
+            <de><![CDATA[PayPal :: Bestellung autorisieren]]></de>
+            <en><![CDATA[PayPal :: Authorize Order]]></en>
+        </locale>
+        <locale name="history.order.authorize.already_authorized">
+            <de><![CDATA[PayPal :: Bestellung wurde bereits autorisiert]]></de>
+            <en><![CDATA[PayPal :: Order already authorized]]></en>
+        </locale>
+        <locale name="history.order.authorize.error.unknown">
+            <de><![CDATA[PayPal :: Bestellung wurde aufgrund eines unbekannten Fehlers nicht von PayPal autorisiert]]></de>
+            <en><![CDATA[PayPal :: Order was not authorized by PayPal because of an unknown error]]></en>
+        </locale>
+        <locale name="history.order.authorize.error.reason">
+            <de><![CDATA[PayPal :: Bestellung wurde nicht von PayPal autorisiert. Grund: „[reason]“]]></de>
+            <en><![CDATA[PayPal :: Order was not authorized by PayPal. Reason: "[reason]"]]></en>
+        </locale>
+        <locale name="history.order.authorize.success">
+            <de><![CDATA[PayPal :: Bestellung erfolgreich autorisiert und bereit zur Erfassung]]></de>
+            <en><![CDATA[PayPal :: Order successfully authorized and ready for capture]]></en>
+        </locale>
+        <locale name="history.order.capture.start">
+            <de><![CDATA[PayPal :: Bestellung erfassen]]></de>
+            <en><![CDATA[PayPal :: Capture Order]]></en>
+        </locale>
+        <locale name="history.order.capture.already_captured">
+            <de><![CDATA[PayPal :: Bestellung wurde bereits erfasst]]></de>
+            <en><![CDATA[PayPal :: Order already captured]]></en>
+        </locale>
+        <locale name="history.order.capture.api_error_but_completed">
+            <de><![CDATA[PayPal :: Die REST-Anfrage zur Zahlungserfassung ist fehlgeschlagen, die Erfassung wurde bei PayPal jedoch erfolgreich abgeschlossen. Der Zahlungsprozess wird fortgesetzt.]]></de>
+            <en><![CDATA[PayPal :: Order capture REST request failed. But Order capture was still completed on PayPal site. Continuing payment process.]]></en>
+        </locale>
+        <locale name="history.order.capture.error.reason">
+            <de><![CDATA[PayPal :: Die Bestellung wurde von PayPal nicht erfasst. Grundcode: „[reasonCode]“ | Ursache der fehlgeschlagenen Erfassung: [captureFailure]]]></de>
+            <en><![CDATA[PayPal :: Order capture was not completed by PayPal. Reason code: "[reasonCode]" | Capture failed because: [captureFailure]]]></en>
+        </locale>
+        <locale name="history.order.capture.error.unknown">
+            <de><![CDATA[PayPal :: Die Bestellung wurde von PayPal nicht erfasst. Unbekannter Grundcode. | Ursache der fehlgeschlagenen Erfassung: [captureFailure]]]></de>
+            <en><![CDATA[PayPal :: Order capture was not completed by PayPal. Unknown reason code. | Capture failed because: [captureFailure]]]></en>
+        </locale>
+        <locale name="history.order.capture.request_success">
+            <de><![CDATA[PayPal :: Anfrage zur Zahlungserfassung erfolgreich. Status der Erfassung wird geprüft …]]></de>
+            <en><![CDATA[PayPal :: Order capture request was successful. Checking capture status...]]></en>
+        </locale>
+        <locale name="history.gateway.purchase.start">
+            <de><![CDATA[PayPal :: Gateway-Zahlung setzen]]></de>
+            <en><![CDATA[PayPal :: Set Gateway purchase]]></en>
+        </locale>
+        <locale name="history.order.capture.completed">
+            <de><![CDATA[PayPal :: Zahlungserfassung abgeschlossen. Transaktion [transactionId] wurde hinzugefügt.]]></de>
+            <en><![CDATA[PayPal :: Order capture was completed. Transaction [transactionId] added.]]></en>
+        </locale>
+        <locale name="history.order.capture.pending">
+            <de><![CDATA[PayPal :: Die Zahlungserfassung wurde nicht sofort abgeschlossen. Die Zahlung ist AUSSTEHEND und muss manuell zur Bestellung hinzugefügt oder durch den Cronjob geprüft werden.]]></de>
+            <en><![CDATA[PayPal :: Order capture was not completed immediately. Payment is PENDING and has to be added manually to the order or checked via cronjob.]]></en>
+        </locale>
+        <locale name="history.gateway.purchase.completed">
+            <de><![CDATA[PayPal :: Gateway-Zahlung abgeschlossen.]]></de>
+            <en><![CDATA[PayPal :: Gateway purchase completed.]]></en>
+        </locale>
+        <locale name="history.refund.start">
+            <de><![CDATA[PayPal :: Erstattung für Transaktion #[transactionId] starten]]></de>
+            <en><![CDATA[PayPal :: Start refund for transaction #[transactionId]]]></en>
+        </locale>
+        <locale name="history.refund.error.not_captured">
+            <de><![CDATA[PayPal :: Transaktion kann nicht erstattet werden, da sie noch nicht erfasst bzw. abgeschlossen wurde.]]></de>
+            <en><![CDATA[PayPal :: Transaction cannot be refunded because it is not yet captured / completed.]]></en>
+        </locale>
+        <locale name="history.refund.error.request">
+            <de><![CDATA[PayPal :: Erstattung fehlgeschlagen. Grund: „[reason]“. Grundcode: „[reasonCode]“. Transaktion #[transactionId]]]></de>
+            <en><![CDATA[PayPal :: Refund operation failed. Reason: "[reason]". ReasonCode: "[reasonCode]". Transaction #[transactionId]]]></en>
+        </locale>
+        <locale name="history.refund.error.state">
+            <de><![CDATA[PayPal :: Die Erstattung der Bestellung wurde aufgrund eines unbekannten Fehlers nicht von PayPal abgeschlossen. Erstattungsstatus: [state]]]></de>
+            <en><![CDATA[PayPal :: Order refund was not completed by PayPal because of an unknown error. Refund state: [state]]]></en>
+        </locale>
+        <locale name="history.order.void.start">
+            <de><![CDATA[PayPal :: Bestellung aufheben]]></de>
+            <en><![CDATA[PayPal :: Void Order]]></en>
+        </locale>
+        <locale name="history.order.void.not_possible">
+            <de><![CDATA[PayPal :: Bestellung kann nicht aufgehoben werden, da sie noch nicht erstellt oder bereits zuvor aufgehoben wurde]]></de>
+            <en><![CDATA[PayPal :: Order cannot be voided because it has not been created yet or was voided before]]></en>
+        </locale>
+        <locale name="history.order.void.success">
+            <de><![CDATA[PayPal :: Bestellung aufgehoben.]]></de>
+            <en><![CDATA[PayPal :: Order voided.]]></en>
+        </locale>
+        <locale name="history.order.capture.pending_completed">
+            <de><![CDATA[PayPal :: Die ausstehende Zahlungserfassung wurde abgeschlossen. Transaktion [transactionId] wurde hinzugefügt.]]></de>
+            <en><![CDATA[PayPal :: Pending order capture was completed. Transaction [transactionId] added.]]></en>
+        </locale>
+        <locale name="history.express.payment.start">
+            <de><![CDATA[PayPal Express :: Zahlungsart der Bestellung setzen]]></de>
+            <en><![CDATA[PayPal Express :: Set Order Payment]]></en>
+        </locale>
+        <locale name="history.express.payment.error.not_configured">
+            <de><![CDATA[PayPal Express :: Zahlungsart der Bestellung konnte nicht gesetzt werden, da keine PayPal-Express-Zahlungsart vorhanden ist]]></de>
+            <en><![CDATA[PayPal Express :: Could not set Order Payment because a PayPal Express payment method does not exist]]></en>
+        </locale>
+        <locale name="history.express.payment.success">
+            <de><![CDATA[PayPal Express :: Zahlungsart der Bestellung erfolgreich gesetzt (Zahlungsart-ID: #[paymentId])]]></de>
+            <en><![CDATA[PayPal Express :: Order Payment successfully set (Payment ID: #[paymentId])]]></en>
+        </locale>
+        <locale name="history.express.invoice_address.start">
+            <de><![CDATA[PayPal Express :: Rechnungsadresse der Bestellung setzen]]></de>
+            <en><![CDATA[PayPal Express :: Set Order invoice address]]></en>
+        </locale>
+        <locale name="history.express.invoice_address.error.no_data">
+            <de><![CDATA[PayPal Express :: Rechnungsadresse konnte nicht gesetzt werden, da PayPal keine Adressdaten geliefert hat]]></de>
+            <en><![CDATA[PayPal Express :: Could not set invoice address because PayPal did not deliver address data]]></en>
+        </locale>
+        <locale name="history.express.invoice_address.create">
+            <de><![CDATA[PayPal Express :: PayPal-Adresse beim QUIQQER-Benutzer gefunden – QUIQQER-PayPal-Adresse wird hinzugefügt]]></de>
+            <en><![CDATA[PayPal Express :: PayPal Address found in QUIQQER User -> Adding PayPal QUIQQER Address]]></en>
+        </locale>
+        <locale name="history.express.invoice_address.default">
+            <de><![CDATA[PayPal Express :: QUIQQER-PayPal-Adresse als Standardadresse gesetzt]]></de>
+            <en><![CDATA[PayPal Express :: PayPal QUIQQER Address set as default address]]></en>
+        </locale>
+        <locale name="history.express.invoice_address.created">
+            <de><![CDATA[PayPal Express :: QUIQQER-PayPal-Adresse erfolgreich erstellt]]></de>
+            <en><![CDATA[PayPal Express :: PayPal QUIQQER address successfully created]]></en>
+        </locale>
+        <locale name="history.express.invoice_address.success">
+            <de><![CDATA[PayPal Express :: Rechnungsadresse der Bestellung gesetzt (QUIQQER-Adress-ID: #[addressId])]]></de>
+            <en><![CDATA[PayPal Express :: Order invoice address set (QUIQQER address ID: #[addressId])]]></en>
+        </locale>
+        <locale name="history.refund.billing_agreement.start">
+            <de><![CDATA[PayPal :: Erstattung der Abrechnungsvereinbarung für Transaktion #[transactionId] starten]]></de>
+            <en><![CDATA[PayPal :: Start Billing Agreement refund for transaction #[transactionId]]]></en>
+        </locale>
+        <locale name="history.refund.billing_agreement.error.not_transaction">
+            <de><![CDATA[PayPal :: Transaktion kann nicht erstattet werden, da sie keine PayPal-Abrechnungsvereinbarungs-Transaktion ist.]]></de>
+            <en><![CDATA[PayPal :: Transaction cannot be refunded because it is not a PayPal Billing Agreement transaction.]]></en>
+        </locale>
+        <locale name="history.refund.billing_agreement.error.state">
+            <de><![CDATA[PayPal :: Die Erstattung der Abrechnungsvereinbarungs-Transaktion wurde aufgrund eines unbekannten Fehlers nicht von PayPal abgeschlossen. Erstattungsstatus: [state]]]></de>
+            <en><![CDATA[PayPal :: Billing Agreement transaction refund was not completed by PayPal because of an unknown error. Refund state: [state]]]></en>
+        </locale>
+        <locale name="history.order.subscription.created">
+            <de><![CDATA[PayPal :: Abonnement erstellt: [subscriptionId]]]></de>
+            <en><![CDATA[PayPal :: Subscription created: [subscriptionId]]]></en>
+        </locale>
+        <locale name="history.order.subscription.approved">
+            <de><![CDATA[PayPal :: Abonnement bestätigt: [subscriptionId]]]></de>
+            <en><![CDATA[PayPal :: Subscription approved: [subscriptionId]]]></en>
+        </locale>
         <locale name="history.order.no_longer_exists_at_paypal">
             <de><![CDATA[Der Zahlungsstatus dieser Bestellung kann bei PayPal nicht mehr überprüft werden, da PayPal keine Daten mehr zu dieser Bestellung gespeichert hat. Der Zahlungsstatus bleibt daher ab jetzt unverändert. Bitte ändern Sie die Zahlungsart und prüfen Sie den Zahlungseingang zu dieser Bestellung händisch.]]></de>
             <en><![CDATA[The payment status of this order can no longer be checked at PayPal, because PayPal has no longer stored any data about this order. The payment status therefore remains unchanged from now on. Please change the payment method and check the receipt of payment for this order manually.]]></en>

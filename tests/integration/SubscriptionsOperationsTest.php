@@ -16,6 +16,7 @@ use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
+use QUI\ERP\Payments\PayPal\Utils;
 use QUI\ERP\Plans\Handler as PlansHandler;
 use QUI\ERP\Products\Product\Product;
 use QUI\Locale;
@@ -127,7 +128,9 @@ final class SubscriptionsOperationsTest extends TestCase
             $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID)
         );
         self::assertContains(
-            'PayPal :: Subscription created: ' . self::SUBSCRIPTION_ID,
+            Utils::getHistoryText('order.subscription.created', [
+                'subscriptionId' => self::SUBSCRIPTION_ID
+            ]),
             $Order->history
         );
 
@@ -396,7 +399,9 @@ final class SubscriptionsOperationsTest extends TestCase
         );
         self::assertNotNull($Order->updateUser);
         self::assertContains(
-            'PayPal :: Subscription approved: ' . self::SUBSCRIPTION_ID,
+            Utils::getHistoryText('order.subscription.approved', [
+                'subscriptionId' => self::SUBSCRIPTION_ID
+            ]),
             $Order->history
         );
 

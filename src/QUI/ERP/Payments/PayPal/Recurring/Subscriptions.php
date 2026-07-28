@@ -138,7 +138,11 @@ class Subscriptions
         $Order->setPaymentData(Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID, $planId);
         $Order->setPaymentData(Payment::ATTR_PAYPAL_SUBSCRIPTION_ID, $response['id']);
         $Order->setPaymentData(Payment::ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL, $approvalUrl);
-        $Order->addHistory('PayPal :: Subscription created: ' . $response['id']);
+        $Order->addHistory(
+            Utils::getHistoryText('order.subscription.created', [
+                'subscriptionId' => $response['id']
+            ])
+        );
         Utils::saveOrder($Order);
 
         static::upsertSubscriptionRecord(
@@ -216,7 +220,11 @@ class Subscriptions
         $Order->setPaymentData(Payment::ATTR_PAYPAL_SUBSCRIPTION_ID, $subscriptionId);
         $Order->setPaymentData(Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID, $orderPlanId);
         $Order->setPaymentData(BasePayment::ATTR_PAYPAL_PAYMENT_SUCCESSFUL, true);
-        $Order->addHistory('PayPal :: Subscription approved: ' . $subscriptionId);
+        $Order->addHistory(
+            Utils::getHistoryText('order.subscription.approved', [
+                'subscriptionId' => $subscriptionId
+            ])
+        );
         Utils::saveOrder($Order);
     }
 
