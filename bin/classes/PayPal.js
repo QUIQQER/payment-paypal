@@ -10,7 +10,7 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
 ], function(QUIAjax) {
     'use strict';
 
-    var pkg = 'quiqqer/payment-paypal';
+    const pkg = 'quiqqer/payment-paypal';
 
     return new Class({
 

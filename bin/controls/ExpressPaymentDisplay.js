@@ -16,7 +16,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
 ], function (QUIControl, QUIButton, QUIControlUtils, QUIAjax, QUILocale) {
     "use strict";
 
-    var pkg = 'quiqqer/payment-paypal';
+    const pkg = 'quiqqer/payment-paypal';
 
     return new Class({
 
@@ -48,8 +48,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
          * Event: onImport
          */
         $onImport: function () {
-            var self = this;
-            var Elm  = this.getElm();
+            const Elm = this.getElm();
 
             if (!Elm.getElement('.quiqqer-payment-paypal-content')) {
                 return;
@@ -60,28 +59,26 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
 
             QUIControlUtils.getControlByElement(
                 Elm.getParent('[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]')
-            ).then(function (OrderProcess) {
-                self.$OrderProcess = OrderProcess;
+            ).then((OrderProcess) => {
+                this.$OrderProcess = OrderProcess;
 
-                (function () {
+                (() => {
                     OrderProcess.Loader.show(
                         QUILocale.get(pkg, 'ExpressPaymentDisplay.order.execute')
                     );
                 }).delay(1000);
 
-                var onError = function () {
+                const onError = () => {
                     OrderProcess.Loader.hide();
 
-                    self.$showErrorMsg(
+                    this.$showErrorMsg(
                         QUILocale.get(pkg, 'ExpressPaymentDisplay.msg.error')
                     );
 
-                    (function () {
-                        OrderProcess.previous();
-                    }).delay(5000);
+                    (() => OrderProcess.previous()).delay(5000);
                 };
 
-                self.$expressCheckout().then(function (success) {
+                this.$expressCheckout().then((success) => {
                     if (success) {
                         OrderProcess.next();
                         return;
@@ -98,14 +95,12 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressPaymentDisplay', [
          * @return {Promise}
          */
         $expressCheckout: function () {
-            var self = this;
-
-            return new Promise(function (resolve, reject) {
+            return new Promise((resolve, reject) => {
                 QUIAjax.post('package_quiqqer_payment-paypal_ajax_expressCheckout', resolve, {
                     'package': pkg,
-                    orderHash: self.getAttribute('orderhash'),
+                    orderHash: this.getAttribute('orderhash'),
                     onError  : reject
-                })
+                });
             });
         },
 

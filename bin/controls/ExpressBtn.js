@@ -80,7 +80,6 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 this.$toCheckout();
             }
 
-            const self = this;
             const Elm = this.getElm();
 
             Elm.addClass('quiqqer-payment-paypal-express');
@@ -107,8 +106,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.Loader.inject(Elm);
             this.Loader.show();
 
-            //self.$loadPayPalWidgets();    // can be re-enabled if PayPal fixes their JavaScript SDK
-            self.$loadPayPalWidgetsV1();
+            // this.$loadPayPalWidgets(); // can be re-enabled if PayPal fixes their JavaScript SDK
+            this.$loadPayPalWidgetsV1();
 
             // load context parent
             let contextParentControlSelector = false;
@@ -133,13 +132,13 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
             QUIControlUtils.getControlByElement(
                 Elm.getParent(contextParentControlSelector)
-            ).then(function(ContextControl) {
-                self.$ContextParent = ContextControl;
+            ).then((ContextControl) => {
+                this.$ContextParent = ContextControl;
 
-                if (self.$widgetsLoaded) {
-                    self.Loader.hide();
+                if (this.$widgetsLoaded) {
+                    this.Loader.hide();
                 }
-            }, function() {
+            }, () => {
                 // @todo error handling
                 console.error('OrderProcess not found.');
             });
@@ -157,8 +156,6 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
          * Load PayPal Pay widgets
          */
         $loadPayPalWidgets: function() {
-            const self = this;
-
             if (document.id('paypal-checkout-api')) {
                 this.$renderPayPalBtn();
                 return;
@@ -167,7 +164,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             Promise.all([
                 PayPalApi.getClientId(),
                 PayPalApi.getOrderDetails()
-            ]).then(function(result) {
+            ]).then((result) => {
                 const OrderDetails = result[1];
                 let widgetUrl = 'https://www.paypal.com/sdk/js?client-id=' + result[0];
 
@@ -187,7 +184,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                     id: 'paypal-checkout-api'
                 }).inject(document.body);
 
-                self.$renderPayPalBtn();
+                this.$renderPayPalBtn();
             });
         },
 
@@ -195,7 +192,6 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
          * Load PayPal Pay widgets using the old checkout.js SDK
          */
         $loadPayPalWidgetsV1: function() {
-            const self = this;
             const widgetUrl = 'https://www.paypalobjects.com/api/checkout.js';
 
             if (document.id('paypal-checkout-api')) {
@@ -209,7 +205,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 id: 'paypal-checkout-api'
             }).inject(document.body);
 
-            self.$renderPayPalBtnV1();
+            this.$renderPayPalBtnV1();
         },
 
         /**
@@ -217,13 +213,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
          */
         $renderPayPalBtn: function() {
             if (typeof paypal === 'undefined') {
-                (function() {
-                    this.$renderPayPalBtn();
-                }).delay(200, this);
+                (() => this.$renderPayPalBtn()).delay(200);
                 return;
             }
-
-            const self = this;
 
             // re-display if button was previously rendered and hidden
             this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
@@ -239,57 +231,57 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 },
 
                 // createOrder() is called when the button is clicked
-                createOrder: function() {
-                    self.$showLoader(QUILocale.get(pkg, 'ExpressBtn.confirm_payment'));
+                createOrder: () => {
+                    this.$showLoader(QUILocale.get(pkg, 'ExpressBtn.confirm_payment'));
 
                     return PayPalApi.createOrder(
-                        self.$hash,
-                        self.getAttribute('basketid'),
+                        this.$hash,
+                        this.getAttribute('basketid'),
                         true
-                    ).then(function(Order) {
-                        self.$hash = Order.hash;
+                    ).then((Order) => {
+                        this.$hash = Order.hash;
                         return Order.payPalOrderId;
-                    }, function(Error) {
-                        self.$hideLoader();
-                        self.$showErrorMsg(Error.getMessage());
+                    }, (Error) => {
+                        this.$hideLoader();
+                        this.$showErrorMsg(Error.getMessage());
                     });
                 },
 
-                onCancel: function() {
-                    self.$hideLoader();
+                onCancel: () => {
+                    this.$hideLoader();
                 },
 
                 // onApprove() is called when the buyer approves the payment
-                onApprove: function(data) {
-                    self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
+                onApprove: () => {
+                    this.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
 
-                    PayPalApi.executeOrder(self.$hash, true).then(function(success) {
+                    PayPalApi.executeOrder(this.$hash, true).then((success) => {
                         if (success) {
-                            self.$toCheckout();
+                            this.$toCheckout();
                             return;
                         }
 
-                        self.$hideLoader();
+                        this.$hideLoader();
 
-                        self.$showErrorMsg(
+                        this.$showErrorMsg(
                             QUILocale.get(pkg, 'ExpressBtn.processing_error')
                         );
-                    }, function(Error) {
-                        self.$hideLoader();
-                        self.$showErrorMsg(Error.getMessage());
+                    }, (Error) => {
+                        this.$hideLoader();
+                        this.$showErrorMsg(Error.getMessage());
                     });
                 },
 
-                onError: function() {
-                    self.$showErrorMsg(
+                onError: () => {
+                    this.$showErrorMsg(
                         QUILocale.get(pkg, 'ExpressBtn.processing_error')
                     );
 
-                    self.$renderPayPalBtn();
+                    this.$renderPayPalBtn();
                 }
-            }).render(this.$PayPalBtnElm).then(function() {
-                if (self.$ContextParent) {
-                    self.Loader.hide();
+            }).render(this.$PayPalBtnElm).then(() => {
+                if (this.$ContextParent) {
+                    this.Loader.hide();
                 }
 
                 window.paypalV1ButtonRendered = false;
@@ -303,13 +295,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
          */
         $renderPayPalBtnV1: function() {
             if (typeof paypal === 'undefined') {
-                (function() {
-                    this.$renderPayPalBtnV1();
-                }).delay(200, this);
+                (() => this.$renderPayPalBtnV1()).delay(200);
                 return;
             }
-
-            const self = this;
 
             // re-display if button was previously rendered and hidden
             this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
@@ -328,57 +316,57 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 },
 
                 // payment() is called when the button is clicked
-                payment: function() {
-                    self.$showLoader(QUILocale.get(pkg, 'ExpressBtn.confirm_payment'));
+                payment: () => {
+                    this.$showLoader(QUILocale.get(pkg, 'ExpressBtn.confirm_payment'));
 
                     return PayPalApi.createOrder(
-                        self.$hash,
-                        self.getAttribute('basketid'),
+                        this.$hash,
+                        this.getAttribute('basketid'),
                         true
-                    ).then(function(Order) {
-                        self.$hash = Order.hash;
+                    ).then((Order) => {
+                        this.$hash = Order.hash;
                         return Order.payPalOrderId;
-                    }, function(Error) {
-                        self.$hideLoader();
-                        self.$showErrorMsg(Error.getMessage());
+                    }, (Error) => {
+                        this.$hideLoader();
+                        this.$showErrorMsg(Error.getMessage());
                     });
                 },
 
-                onCancel: function() {
-                    self.$hideLoader();
+                onCancel: () => {
+                    this.$hideLoader();
                 },
 
                 // onAuthorize() is called when the buyer approves the payment
-                onAuthorize: function(data) {
-                    self.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
+                onAuthorize: () => {
+                    this.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
 
-                    PayPalApi.executeOrder(self.$hash, true).then(function(success) {
+                    PayPalApi.executeOrder(this.$hash, true).then((success) => {
                         if (success) {
-                            self.$toCheckout();
+                            this.$toCheckout();
                             return;
                         }
 
-                        self.$hideLoader();
+                        this.$hideLoader();
 
-                        self.$showErrorMsg(
+                        this.$showErrorMsg(
                             QUILocale.get(pkg, 'ExpressBtn.processing_error')
                         );
-                    }, function(Error) {
-                        self.$hideLoader();
-                        self.$showErrorMsg(Error.getMessage());
+                    }, (Error) => {
+                        this.$hideLoader();
+                        this.$showErrorMsg(Error.getMessage());
                     });
                 },
 
-                onError: function() {
-                    self.$showErrorMsg(
+                onError: () => {
+                    this.$showErrorMsg(
                         QUILocale.get(pkg, 'ExpressBtn.processing_error')
                     );
 
-                    self.$renderPayPalBtnV1();
+                    this.$renderPayPalBtnV1();
                 }
-            }, this.$PayPalBtnElm).then(function() {
-                if (self.$ContextParent) {
-                    self.Loader.hide();
+            }, this.$PayPalBtnElm).then(() => {
+                if (this.$ContextParent) {
+                    this.Loader.hide();
                 }
 
                 window.paypalV1ButtonRendered = true;

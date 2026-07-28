@@ -23,7 +23,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
 ], function (QUIPopup, QUIConfirm, QUILoader, QUIButton, QUILocale, QUIAjax, PayPal) {
     "use strict";
 
-    var lg = 'quiqqer/payment-paypal';
+    const lg = 'quiqqer/payment-paypal';
 
     return new Class({
         Extends: QUIPopup,
@@ -63,8 +63,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
          * Build content
          */
         $onOpen: function () {
-            var self = this,
-                CancelBtn;
+            let CancelBtn;
 
             this.getElm().addClass('quiqqer-payment-paypal-backend-billingagreementwindow');
 
@@ -72,20 +71,20 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
                 QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.loading_data')
             );
 
-            PayPal.getBillingAgreement(this.getAttribute('billingAgreementId')).then(function (BillingAgreement) {
-                self.Loader.hide();
+            PayPal.getBillingAgreement(this.getAttribute('billingAgreementId')).then((BillingAgreement) => {
+                this.Loader.hide();
 
                 if (!BillingAgreement) {
-                    self.setContent(
+                    this.setContent(
                         QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.load_error')
                     );
 
                     return;
                 }
 
-                self.setContent('<pre>' + JSON.stringify(BillingAgreement, null, 2) + '</pre>');
+                this.setContent('<pre>' + JSON.stringify(BillingAgreement, null, 2) + '</pre>');
 
-                var isActive;
+                let isActive;
 
                 switch (BillingAgreement.state) {
                     case 'Active':
@@ -103,10 +102,10 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
                     new Element('div', {
                         'class': 'messages-message message-error box',
                         html   : QUILocale.get(lg, 'controls.backend.BillingAgreementWindow.inactive_warning')
-                    }).inject(self.getContent(), 'top');
+                    }).inject(this.getContent(), 'top');
                 }
-            }, function () {
-                self.close();
+            }, () => {
+                this.close();
             });
 
             CancelBtn = new QUIButton({
@@ -125,8 +124,6 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
          * Confirm Billing Agreement cancellation
          */
         $confirmCancel: function () {
-            var self = this;
-
             new QUIConfirm({
                 maxHeight: 300,
                 maxWidth : 600,
@@ -148,16 +145,16 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWind
                 },
 
                 events: {
-                    onSubmit: function (Popup) {
+                    onSubmit: (Popup) => {
                         Popup.Loader.show();
 
-                        PayPal.cancelBillingAgreement(self.getAttribute('billingAgreementId')).then(function () {
-                            self.close();
+                        PayPal.cancelBillingAgreement(this.getAttribute('billingAgreementId')).then(() => {
+                            this.close();
                             Popup.close();
-                            self.fireEvent('cancelBillingAgreement', [self]);
-                        }, function () {
+                            this.fireEvent('cancelBillingAgreement', [this]);
+                        }, () => {
                             Popup.Loader.hide();
-                        })
+                        });
                     }
                 }
             }).open();

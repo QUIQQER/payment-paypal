@@ -42,8 +42,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
          * Event: onImport
          */
         $onInject: function () {
-            var Elm     = this.getElm();
-            var context = this.getAttribute('context');
+            const Elm = this.getElm();
+            const context = this.getAttribute('context');
 
             if (context === 'basket') {
                 new ExpressBtn({
@@ -60,13 +60,13 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader', [
             }
 
             if (context === 'smallbasket') {
-                var MiniBasketElm = Elm.getParent('.quiqqer-order-basket-small-container');
+                const MiniBasketElm = Elm.getParent('.quiqqer-order-basket-small-container');
 
                 if (!MiniBasketElm) {
                     return;
                 }
 
-                var MiniBasketBtnElm = MiniBasketElm.getElement('.quiqqer-order-basket-small-buttons');
+                const MiniBasketBtnElm = MiniBasketElm.getElement('.quiqqer-order-basket-small-buttons');
 
                 if (!MiniBasketBtnElm) {
                     return;
