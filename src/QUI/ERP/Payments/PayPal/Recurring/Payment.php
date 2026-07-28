@@ -239,6 +239,7 @@ class Payment extends BasePayment implements RecurringPaymentInterface
     {
         $Control = new PaymentDisplay();
         $Control->setAttribute('Order', $Order);
+        $Step?->addCSSClass('quiqqer-payment-paypal-recurring-step');
 
         $Step?->setTitle(
             QUI::getLocale()->get(

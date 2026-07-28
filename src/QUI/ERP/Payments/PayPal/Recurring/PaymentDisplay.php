@@ -26,6 +26,7 @@ class PaymentDisplay extends QUI\Control
     {
         parent::__construct($attributes);
 
+        $this->addCSSClass('quiqqer-payment-paypal-recurring');
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay');
 
 //        if (Provider::isApiSetUp() === false) {
