@@ -15,7 +15,7 @@ final class SubscriptionsInvoiceTest extends TestCase
     public function testBillingRequiresSubscriptionReference(): void
     {
         $Invoice = $this->createMock(Invoice::class);
-        $Invoice->method('getPaymentDataEntry')->willReturn(null);
+        $Invoice->method('getPaymentData')->willReturn(null);
         $Invoice->method('getId')->willReturn(42);
 
         try {
@@ -29,7 +29,7 @@ final class SubscriptionsInvoiceTest extends TestCase
     public function testBillingRejectsUnknownSubscription(): void
     {
         $Invoice = $this->createMock(Invoice::class);
-        $Invoice->method('getPaymentDataEntry')->willReturn(
+        $Invoice->method('getPaymentData')->willReturn(
             'phpunit_missing_subscription'
         );
 
@@ -57,6 +57,9 @@ final class SubscriptionsInvoiceTest extends TestCase
     {
         $Invoice = $this->createMock(Invoice::class);
         $Invoice->method('getPaymentDataEntry')->willReturn(
+            'phpunit_missing_subscription'
+        );
+        $Invoice->method('getPaymentData')->willReturn(
             'phpunit_missing_subscription'
         );
 

@@ -16,6 +16,7 @@ use QUI\ERP\Currency\Currency;
 use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
 use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\User as ErpUser;
 use ReflectionProperty;
 use Throwable;
 
@@ -23,6 +24,7 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
 {
     private const PREFIX = 'phpunit_legacy_invoice_';
     private const AGREEMENT_ID = self::PREFIX . 'agreement';
+    private const CUSTOMER_UUID = self::PREFIX . 'customer';
 
     /** @var list<string> */
     private array $transactionIds = [];
@@ -86,6 +88,7 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
 
         self::assertSame(19.95, $Transaction->getAmount());
         self::assertSame(TransactionHandler::STATUS_COMPLETE, $Transaction->getStatus());
+        self::assertSame(self::CUSTOMER_UUID, $Transaction->getAttribute('uid'));
         self::assertSame(
             $paypalTransactionId,
             $Transaction->getData(Payment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID)
@@ -115,6 +118,7 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
         $this->transactionIds[] = $Transaction->getTxId();
 
         self::assertSame(TransactionHandler::STATUS_ERROR, $Transaction->getStatus());
+        self::assertSame(self::CUSTOMER_UUID, $Transaction->getAttribute('uid'));
         self::assertPayPalTransactionProcessed(
             $paypalTransactionId,
             $Transaction->getTxId()
@@ -183,6 +187,8 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
             'code' => 'EUR',
             'sign' => '€'
         ]);
+        $Customer = $this->createMock(ErpUser::class);
+        $Customer->method('getUUID')->willReturn(self::CUSTOMER_UUID);
 
         $Invoice = $this->createMock(Invoice::class);
         $Invoice->method('getPaymentDataEntry')->willReturn(self::AGREEMENT_ID);
@@ -190,6 +196,7 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
             ['toPay', 10.0]
         ]);
         $Invoice->method('getCurrency')->willReturn($Currency);
+        $Invoice->method('getCustomer')->willReturn($Customer);
         $Invoice->method('getUUID')->willReturn(self::PREFIX . 'invoice');
         $Invoice->method('getGlobalProcessId')->willReturn(self::PREFIX . 'process');
         $Invoice->method('addTransaction')->willReturnCallback(

@@ -11,6 +11,7 @@ use Exception;
 use QUI;
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
 use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Accounting\Payments\Payments;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Handler as TransactionHandler;
@@ -837,14 +838,14 @@ class Subscriptions
     }
 
     /**
-     * @param Invoice $Invoice
+     * @param Invoice|InvoiceTemporary $Invoice
      * @return void
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public static function billSubscriptionInvoice(Invoice $Invoice): void
+    public static function billSubscriptionInvoice(Invoice|InvoiceTemporary $Invoice): void
     {
-        $subscriptionId = $Invoice->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_ID);
+        $subscriptionId = $Invoice->getPaymentData(Payment::ATTR_PAYPAL_SUBSCRIPTION_ID);
 
         if (empty($subscriptionId)) {
             throw new PayPalException(
@@ -901,7 +902,7 @@ class Subscriptions
                         Payment::ATTR_PAYPAL_SUBSCRIPTION_ID => $subscriptionId,
                         Payment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID => self::getTransactionId($transaction)
                     ],
-                    null,
+                    $Invoice->getCustomer(),
                     $PayPalTransactionDate->getTimestamp(),
                     $Invoice->getGlobalProcessId()
                 );
@@ -978,7 +979,7 @@ class Subscriptions
                         Payment::ATTR_PAYPAL_SUBSCRIPTION_ID => $subscriptionId,
                         Payment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID => self::getTransactionId($transaction)
                     ],
-                    null,
+                    $Invoice->getCustomer(),
                     false,
                     $Invoice->getGlobalProcessId()
                 );
@@ -1028,7 +1029,10 @@ class Subscriptions
                 $invoiceIds[$globalProcessId] = [];
             }
 
-            $invoiceIds[$globalProcessId][] = $row['id'];
+            $invoiceIds[$globalProcessId][] = [
+                'id' => $row['id'],
+                'temporary' => !empty($row['temporary'])
+            ];
         }
 
         if (empty($invoiceIds)) {
@@ -1045,13 +1049,18 @@ class Subscriptions
                     continue;
                 }
 
-                foreach ($invoices as $invoiceId) {
+                foreach ($invoices as $invoiceReference) {
                     try {
                         $Invoice = static::getInvoiceById(
                             $Invoices,
-                            $invoiceId
+                            $invoiceReference['id'],
+                            $invoiceReference['temporary']
                         );
-                        static::processInvoiceDeniedTransactions($Invoice);
+
+                        if ($Invoice instanceof Invoice) {
+                            static::processInvoiceDeniedTransactions($Invoice);
+                        }
+
                         static::billInvoiceSubscription($Invoice);
                     } catch (Exception $Exception) {
                         QUI\System\Log::writeException($Exception);
@@ -1095,11 +1104,10 @@ class Subscriptions
         InvoiceHandler $Invoices,
         array $paymentTypeIds
     ): array {
-        return $Invoices->search([
+        $params = [
             'select' => ['id', 'global_process_id'],
             'where' => [
                 'paid_status' => 0,
-                'type' => QUI\ERP\Constants::TYPE_INVOICE,
                 'payment_method' => [
                     'type' => 'IN',
                     'value' => $paymentTypeIds
@@ -1107,7 +1115,25 @@ class Subscriptions
             ],
             'order' => 'date ASC',
             'limit' => 99999
-        ]);
+        ];
+
+        $params['where']['type'] = QUI\ERP\Constants::TYPE_INVOICE;
+        $invoices = $Invoices->search($params);
+
+        foreach ($invoices as &$invoice) {
+            $invoice['temporary'] = false;
+        }
+        unset($invoice);
+
+        $params['where']['type'] = QUI\ERP\Constants::TYPE_INVOICE_TEMPORARY;
+        $temporaryInvoices = $Invoices->searchTemporaryInvoices($params);
+
+        foreach ($temporaryInvoices as &$temporaryInvoice) {
+            $temporaryInvoice['temporary'] = true;
+        }
+        unset($temporaryInvoice);
+
+        return array_values(array_merge($invoices, $temporaryInvoices));
     }
 
     /**
@@ -1148,13 +1174,14 @@ class Subscriptions
 
     protected static function getInvoiceById(
         InvoiceHandler $Invoices,
-        int|string $invoiceId
-    ): Invoice {
-        $Invoice = $Invoices->get($invoiceId);
-
-        if (!$Invoice instanceof Invoice) {
-            throw new \UnexpectedValueException('Expected a persistent invoice.');
+        int|string $invoiceId,
+        bool $temporary = false
+    ): Invoice|InvoiceTemporary {
+        if ($temporary) {
+            return $Invoices->getTemporaryInvoice($invoiceId);
         }
+
+        $Invoice = $Invoices->getInvoice($invoiceId);
 
         return $Invoice;
     }
@@ -1166,7 +1193,7 @@ class Subscriptions
     }
 
     protected static function billInvoiceSubscription(
-        Invoice $Invoice
+        Invoice|InvoiceTemporary $Invoice
     ): void {
         self::billSubscriptionInvoice($Invoice);
     }

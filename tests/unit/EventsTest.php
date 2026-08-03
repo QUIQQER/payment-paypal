@@ -6,10 +6,12 @@ namespace QUITests\ERP\Payments\PayPal\Unit;
 
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Accounting\Payments\Exceptions\PaymentCanNotBeUsed;
 use QUI\ERP\Accounting\Payments\Types\Payment;
 use QUI\ERP\Order\OrderInterface;
 use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
+use QUI\Package\Package;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\EventsDouble;
 
 final class EventsTest extends TestCase
@@ -18,6 +20,13 @@ final class EventsTest extends TestCase
     {
         EventsDouble::$plansInstalled = false;
         EventsDouble::$planDetails = [];
+        EventsDouble::$billedSubscriptionInvoice = null;
+        EventsDouble::$subscriptionInvoicePaid = true;
+        EventsDouble::$subscriptionInvoiceBillingAttempts = 0;
+        EventsDouble::$subscriptionTransactionWaits = 0;
+        EventsDouble::$subscriptionCronRows = [];
+        EventsDouble::$subscriptionCronsAdded = 0;
+        EventsDouble::$subscriptionCronsUpdated = [];
     }
 
     public function testRecurringPaymentRequiresPlansPackage(): void
@@ -34,6 +43,56 @@ final class EventsTest extends TestCase
                 $Exception->getMessage()
             );
         }
+    }
+
+    public function testPackageSetupCreatesMissingSubscriptionCron(): void
+    {
+        $Package = $this->createMock(Package::class);
+        $Package->method('getName')->willReturn('quiqqer/payment-paypal');
+
+        EventsDouble::onPackageSetup($Package);
+
+        self::assertSame(1, EventsDouble::$subscriptionCronsAdded);
+        self::assertSame([], EventsDouble::$subscriptionCronsUpdated);
+    }
+
+    public function testPackageSetupUpdatesSubscriptionCronInterval(): void
+    {
+        $cron = [
+            'id' => 54,
+            'min' => '5',
+            'hour' => '*',
+            'day' => '*',
+            'month' => '*',
+            'dayOfWeek' => '*'
+        ];
+        EventsDouble::$subscriptionCronRows = [$cron];
+        $Package = $this->createMock(Package::class);
+        $Package->method('getName')->willReturn('quiqqer/payment-paypal');
+
+        EventsDouble::onPackageSetup($Package);
+
+        self::assertSame(0, EventsDouble::$subscriptionCronsAdded);
+        self::assertSame([$cron], EventsDouble::$subscriptionCronsUpdated);
+    }
+
+    public function testPackageSetupKeepsCurrentSubscriptionCronInterval(): void
+    {
+        EventsDouble::$subscriptionCronRows = [[
+            'id' => 54,
+            'min' => '*/5',
+            'hour' => '*',
+            'day' => '*',
+            'month' => '*',
+            'dayOfWeek' => '*'
+        ]];
+        $Package = $this->createMock(Package::class);
+        $Package->method('getName')->willReturn('quiqqer/payment-paypal');
+
+        EventsDouble::onPackageSetup($Package);
+
+        self::assertSame(0, EventsDouble::$subscriptionCronsAdded);
+        self::assertSame([], EventsDouble::$subscriptionCronsUpdated);
     }
 
     public function testRecurringPaymentRejectsInvoiceIntervalOverOneYear(): void
@@ -69,5 +128,45 @@ final class EventsTest extends TestCase
             $Payment,
             $this->createMock(OrderInterface::class)
         );
+    }
+
+    public function testContractInvoiceCreationSynchronizesSubscriptionPayment(): void
+    {
+        $Invoice = $this->createMock(InvoiceTemporary::class);
+        $Invoice->method('getPaymentData')
+            ->with(RecurringPayment::ATTR_PAYPAL_SUBSCRIPTION_ID)
+            ->willReturn('I-PHPUNIT');
+
+        EventsDouble::onQuiqqerContractsCreateInvoiceEnd(new \stdClass(), $Invoice);
+
+        self::assertSame($Invoice, EventsDouble::$billedSubscriptionInvoice);
+        self::assertSame(1, EventsDouble::$subscriptionInvoiceBillingAttempts);
+        self::assertSame(0, EventsDouble::$subscriptionTransactionWaits);
+    }
+
+    public function testContractInvoiceCreationIgnoresNonSubscriptionPayment(): void
+    {
+        $Invoice = $this->createMock(InvoiceTemporary::class);
+        $Invoice->method('getPaymentData')
+            ->with(RecurringPayment::ATTR_PAYPAL_SUBSCRIPTION_ID)
+            ->willReturn(null);
+
+        EventsDouble::onQuiqqerContractsCreateInvoiceEnd(new \stdClass(), $Invoice);
+
+        self::assertNull(EventsDouble::$billedSubscriptionInvoice);
+    }
+
+    public function testContractInvoiceCreationRetriesDelayedSubscriptionTransaction(): void
+    {
+        EventsDouble::$subscriptionInvoicePaid = false;
+        $Invoice = $this->createMock(InvoiceTemporary::class);
+        $Invoice->method('getPaymentData')
+            ->with(RecurringPayment::ATTR_PAYPAL_SUBSCRIPTION_ID)
+            ->willReturn('I-PHPUNIT');
+
+        EventsDouble::onQuiqqerContractsCreateInvoiceEnd(new \stdClass(), $Invoice);
+
+        self::assertSame(3, EventsDouble::$subscriptionInvoiceBillingAttempts);
+        self::assertSame(2, EventsDouble::$subscriptionTransactionWaits);
     }
 }

@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Unit;
 use PHPUnit\Framework\TestCase;
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
 use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\BillingAgreementsDouble;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\SubscriptionsDouble;
 
@@ -80,6 +81,36 @@ final class UnpaidInvoiceProcessingTest extends TestCase
             ['denied', $Invoice],
             ['bill', $Invoice]
         ], BillingAgreementsDouble::$processedInvoices);
+    }
+
+    public function testModernSubscriptionsProcessTemporaryInvoices(): void
+    {
+        $Invoice = $this->createMock(InvoiceTemporary::class);
+        SubscriptionsDouble::$Invoices = $this->createMock(
+            InvoiceHandler::class
+        );
+        SubscriptionsDouble::$paymentTypeIds = [7];
+        SubscriptionsDouble::$unpaidInvoiceRows = [
+            [
+                'id' => 301,
+                'global_process_id' => 'PROCESS-MODERN-TEMPORARY',
+                'temporary' => true
+            ]
+        ];
+        SubscriptionsDouble::$processRows = [
+            [
+                'global_process_id' => 'PROCESS-MODERN-TEMPORARY'
+            ]
+        ];
+        SubscriptionsDouble::$invoicesById = [
+            301 => $Invoice
+        ];
+
+        SubscriptionsDouble::processUnpaidInvoices();
+
+        self::assertSame([
+            ['bill', $Invoice]
+        ], SubscriptionsDouble::$processedInvoices);
     }
 
     public function testEmptyPaymentTypesStopBothProcessors(): void

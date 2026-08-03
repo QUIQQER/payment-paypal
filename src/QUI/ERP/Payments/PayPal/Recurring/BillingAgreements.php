@@ -302,7 +302,7 @@ class BillingAgreements
                     [
                         RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID => $transaction['transaction_id']
                     ],
-                    null,
+                    $Invoice->getCustomer(),
                     $PayPalTransactionDate->getTimestamp(),
                     $Invoice->getGlobalProcessId()
                 );
@@ -1018,7 +1018,7 @@ class BillingAgreements
                     $Invoice->getUUID(),
                     $Payment->getName(),
                     [],
-                    null,
+                    $Invoice->getCustomer(),
                     false,
                     $Invoice->getGlobalProcessId()
                 );
