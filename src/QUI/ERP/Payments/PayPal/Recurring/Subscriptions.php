@@ -34,6 +34,8 @@ use function json_encode;
 use function json_decode;
 use function mb_strtoupper;
 use function sort;
+use function str_starts_with;
+use function strtotime;
 use function strlen;
 use function substr;
 
@@ -57,6 +59,9 @@ class Subscriptions
 
     public const TRANSACTION_STATE_COMPLETED = 'COMPLETED';
     public const TRANSACTION_STATE_DENIED = 'DENIED';
+
+    protected const CONFIRMED_LAST_PAYMENT_PREFIX = 'confirmed-last-payment-';
+    protected const LAST_PAYMENT_RECONCILIATION_TOLERANCE = 300;
 
     protected static ?ApiClient $ApiClient = null;
 
@@ -1403,6 +1408,18 @@ class Subscriptions
             return true;
         }
 
+        if (
+            !str_starts_with($transactionId, self::CONFIRMED_LAST_PAYMENT_PREFIX)
+            && self::reconcileConfirmedLastPayment(
+                $subscriptionId,
+                $transactionId,
+                $transactionDate,
+                $resource
+            )
+        ) {
+            return true;
+        }
+
         QUI::getDataBaseConnection()->insert(
             self::getSubscriptionTransactionsTable(),
             [
@@ -1441,6 +1458,17 @@ class Subscriptions
         }
 
         self::refreshTransactionList($subscriptionId);
+
+        $transactions = self::getStoredUnprocessedTransactions(
+            $subscriptionId,
+            $status
+        );
+
+        if (!empty($transactions) || $status !== self::TRANSACTION_STATE_COMPLETED) {
+            return $transactions;
+        }
+
+        self::persistConfirmedLastPayment($subscriptionId);
 
         return self::getStoredUnprocessedTransactions(
             $subscriptionId,
@@ -1533,6 +1561,146 @@ class Subscriptions
     }
 
     /**
+     * Persist PayPal's confirmed last payment while the transactions endpoint is still eventually consistent.
+     */
+    protected static function persistConfirmedLastPayment(string $subscriptionId): void
+    {
+        try {
+            $subscription = self::getSubscriptionDetails($subscriptionId);
+            $lastPayment = $subscription['billing_info']['last_payment'] ?? null;
+
+            if (!is_array($lastPayment)) {
+                return;
+            }
+
+            $amount = $lastPayment['amount'] ?? null;
+
+            if (!is_array($amount)) {
+                return;
+            }
+
+            $value = (string)($amount['value'] ?? '');
+            $currency = (string)($amount['currency_code'] ?? '');
+            $time = (string)($lastPayment['time'] ?? '');
+
+            if ($value === '' || $currency === '' || $time === '') {
+                return;
+            }
+
+            $fallbackId = self::CONFIRMED_LAST_PAYMENT_PREFIX . hash(
+                'sha256',
+                $subscriptionId . '|' . $time . '|' . $value . '|' . $currency
+            );
+
+            self::persistTransactionFromWebhook(
+                $subscriptionId,
+                [
+                    'id' => $fallbackId,
+                    'status' => self::TRANSACTION_STATE_COMPLETED,
+                    'amount' => [
+                        'value' => $value,
+                        'currency_code' => $currency
+                    ],
+                    'time' => $time,
+                    'quiqqer_confirmed_last_payment' => true
+                ],
+                ''
+            );
+
+            QUI::getDataBaseConnection()->update(
+                self::getSubscriptionsTable(),
+                ['subscription_data' => json_encode($subscription)],
+                [
+                    'paypal_subscription_id' => $subscriptionId,
+                    'paypal_account_hash' => AccountContext::getHash()
+                ]
+            );
+        } catch (Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+        }
+    }
+
+    /**
+     * Replace a processed last-payment fallback with PayPal's eventually available transaction.
+     *
+     * @param array<string, mixed> $resource
+     */
+    protected static function reconcileConfirmedLastPayment(
+        string $subscriptionId,
+        string $transactionId,
+        string $transactionDate,
+        array $resource
+    ): bool {
+        $fallbackRows = QUI::getQueryBuilder()
+            ->select(
+                Doctrine::quoteIdentifier('paypal_transaction_id'),
+                Doctrine::quoteIdentifier('paypal_transaction_date'),
+                Doctrine::quoteIdentifier('paypal_transaction_data'),
+                Doctrine::quoteIdentifier('quiqqer_transaction_id')
+            )
+            ->from(Doctrine::quoteIdentifier(self::getSubscriptionTransactionsTable()))
+            ->where(Doctrine::quoteIdentifier('paypal_subscription_id') . ' = :subscriptionId')
+            ->andWhere(Doctrine::quoteIdentifier('paypal_transaction_id') . ' LIKE :fallbackPrefix')
+            ->andWhere(Doctrine::quoteIdentifier('quiqqer_transaction_id') . ' IS NOT NULL')
+            ->setParameter('subscriptionId', $subscriptionId)
+            ->setParameter('fallbackPrefix', self::CONFIRMED_LAST_PAYMENT_PREFIX . '%')
+            ->executeQuery()
+            ->fetchAllAssociative();
+
+        $transactionTimestamp = strtotime($transactionDate);
+
+        if ($transactionTimestamp === false) {
+            return false;
+        }
+
+        foreach ($fallbackRows as $fallbackRow) {
+            $fallback = json_decode((string)$fallbackRow['paypal_transaction_data'], true);
+            $fallbackTimestamp = strtotime((string)$fallbackRow['paypal_transaction_date']);
+
+            if (
+                !is_array($fallback)
+                || $fallbackTimestamp === false
+                || abs($fallbackTimestamp - $transactionTimestamp)
+                    > self::LAST_PAYMENT_RECONCILIATION_TOLERANCE
+                || self::getTransactionAmount($fallback) !== self::getTransactionAmount($resource)
+                || self::getTransactionCurrency($fallback) !== self::getTransactionCurrency($resource)
+            ) {
+                continue;
+            }
+
+            QUI::getDataBaseConnection()->update(
+                self::getSubscriptionTransactionsTable(),
+                [
+                    'paypal_transaction_id' => $transactionId,
+                    'paypal_transaction_date' => $transactionDate,
+                    'paypal_transaction_data' => json_encode($resource)
+                ],
+                [
+                    'paypal_transaction_id' => $fallbackRow['paypal_transaction_id'],
+                    'paypal_transaction_date' => $fallbackRow['paypal_transaction_date']
+                ]
+            );
+
+            try {
+                $Transaction = TransactionHandler::getInstance()->get(
+                    (string)$fallbackRow['quiqqer_transaction_id']
+                );
+                $Transaction->setData(
+                    Payment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID,
+                    $transactionId
+                );
+                $Transaction->updateData();
+            } catch (Exception $Exception) {
+                QUI\System\Log::writeException($Exception);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
      * @param array<string, mixed> $resource
      * @return string
      */
@@ -1586,6 +1754,7 @@ class Subscriptions
         return (string)($transaction['create_time']
             ?? $transaction['update_time']
             ?? $transaction['time_stamp']
+            ?? $transaction['time']
             ?? 'now');
     }
 
