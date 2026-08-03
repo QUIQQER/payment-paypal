@@ -19,7 +19,7 @@ final class OneTimePaymentTest extends TestCase
         $Payment = new OneTimePaymentDouble();
         $Payment->createPayPalOrder($Order);
 
-        self::assertSame('PAYPAL-ORDER-ID', $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_ID));
+        self::assertSame('PAYPAL-ORDER-ID-NEW', $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_ID));
         self::assertSame(Payment::PAYPAL_REQUEST_TYPE_CREATE_ORDER, $Payment->requestType);
         self::assertSame(['intent' => 'CAPTURE'], $Payment->requestBody);
         self::assertSame($Order, $Payment->requestTransaction);
@@ -53,7 +53,53 @@ final class OneTimePaymentTest extends TestCase
         $Payment->createPayPalOrder($Order);
 
         self::assertTrue($Payment->updated);
-        self::assertNull($Payment->requestType);
+        self::assertSame(Payment::PAYPAL_REQUEST_TYPE_GET_ORDER, $Payment->requestType);
+        self::assertFalse($Payment->saved);
+    }
+
+    /**
+     * @dataProvider nonReusableOrderStatusProvider
+     */
+    public function testApprovedOrVoidedPayPalOrderIsReplaced(string $status): void
+    {
+        $Order = new OrderDouble();
+        $Order->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'PAYPAL-ORDER-ID-OLD');
+
+        $Payment = new OneTimePaymentDouble();
+        $Payment->existingOrderStatus = $status;
+        $Payment->createPayPalOrder($Order);
+
+        self::assertSame(
+            'PAYPAL-ORDER-ID-NEW',
+            $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_ID)
+        );
+        self::assertSame(Payment::PAYPAL_REQUEST_TYPE_CREATE_ORDER, $Payment->requestType);
+        self::assertFalse($Payment->updated);
+        self::assertTrue($Payment->saved);
+    }
+
+    public static function nonReusableOrderStatusProvider(): array
+    {
+        return [
+            'approved' => [Payment::PAYPAL_ORDER_STATE_APPROVED_V2],
+            'voided' => [Payment::PAYPAL_ORDER_STATE_VOIDED_V2]
+        ];
+    }
+
+    public function testCompletedPayPalOrderIsNeverReplaced(): void
+    {
+        $Order = new OrderDouble();
+        $Order->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'PAYPAL-ORDER-ID-COMPLETED');
+
+        $Payment = new OneTimePaymentDouble();
+        $Payment->existingOrderStatus = Payment::PAYPAL_ORDER_STATE_COMPLETED;
+        $Payment->createPayPalOrder($Order);
+
+        self::assertSame(
+            'PAYPAL-ORDER-ID-COMPLETED',
+            $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_ID)
+        );
+        self::assertTrue($Payment->updated);
         self::assertFalse($Payment->saved);
     }
 }

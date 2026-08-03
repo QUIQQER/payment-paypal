@@ -62,6 +62,7 @@ class PaymentDisplay extends QUI\Control
         ]);
 
         $this->setJavaScriptControlOption('orderhash', $Order->getUUID());
+        $this->setJavaScriptControlOption('currency', $Order->getCurrency()->getCode());
 
         // Check if an PayPal authorization already exists (i.e. Order is successful / can be processed)
         $this->setJavaScriptControlOption('successful', $Order->isSuccessful());
