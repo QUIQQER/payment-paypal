@@ -9,9 +9,6 @@
 {else}
 <div class="quiqqer-payment-paypal-message"></div>
 <div class="quiqqer-payment-paypal-content">
-    <div id="quiqqer-payment-paypal-btn-pay"
-         data-size="{$btn_size}"
-         data-color="{$btn_color}"
-         data-shape="{$btn_shape}"></div>
+    <paypal-button data-name="paypal-button" type="pay" hidden></paypal-button>
 </div>
 {/if}

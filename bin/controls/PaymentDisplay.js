@@ -1,44 +1,36 @@
 /**
  * PaymentDisplay for PayPal
- *
- * @author Patrick Müller (www.pcsg.de)
  */
 define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
     'qui/controls/Control',
-    'qui/controls/buttons/Button',
-
     'utils/Controls',
     'package/quiqqer/payment-paypal/bin/PayPal',
-
-    'Ajax',
+    'package/quiqqer/payment-paypal/bin/classes/WebSdk',
     'Locale',
 
     'css!package/quiqqer/payment-paypal/bin/controls/PaymentDisplay.css'
 
-], function (QUIControl, QUIButton, QUIControlUtils, PayPalApi, QUIAjax, QUILocale) {
-    "use strict";
+], function (QUIControl, QUIControlUtils, PayPalApi, WebSdk, QUILocale) {
+    'use strict';
 
     const pkg = 'quiqqer/payment-paypal';
 
     return new Class({
 
         Extends: QUIControl,
-        Type   : 'package/quiqqer/payment-paypal/bin/controls/PaymentDisplay',
+        Type: 'package/quiqqer/payment-paypal/bin/controls/PaymentDisplay',
 
         Binds: [
+            '$onDestroy',
             '$onImport',
-            '$renderPayPalBtn',
-            '$onPayPalLoginReady',
-            '$showPayPalWallet',
-            '$showErrorMsg',
             '$onPayBtnClick'
         ],
 
         options: {
-            sandbox   : true,
-            orderhash : '',
-            currency  : '',
+            sandbox: true,
+            orderhash: '',
+            currency: '',
             successful: false
         },
 
@@ -46,10 +38,14 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             this.parent(options);
 
             this.$PayPalBtnElm = null;
-            this.$MsgElm       = null;
+            this.$MsgElm = null;
             this.$OrderProcess = null;
+            this.$PaymentSession = null;
+            this.$hash = null;
+            this.$flowErrorHandled = false;
 
             this.addEvents({
+                onDestroy: this.$onDestroy,
                 onImport: this.$onImport
             });
         },
@@ -64,8 +60,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                 return;
             }
 
-            this.$MsgElm       = Elm.getElement('.quiqqer-payment-paypal-message');
-            this.$PayPalBtnElm = Elm.getElement('#quiqqer-payment-paypal-btn-pay');
+            this.$MsgElm = Elm.getElement('.quiqqer-payment-paypal-message');
+            this.$PayPalBtnElm = Elm.getElement('[data-name="paypal-button"]');
 
             this.$showMsg(QUILocale.get(pkg, 'PaymentDisplay.info'));
 
@@ -84,264 +80,173 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
         },
 
         /**
-         * Load PayPal Pay widgets
+         * Remove the button listener when the control is destroyed.
+         */
+        $onDestroy: function () {
+            if (this.$PayPalBtnElm) {
+                this.$PayPalBtnElm.removeEventListener('click', this.$onPayBtnClick);
+            }
+        },
+
+        /**
+         * Initialize the v6 SDK, check eligibility and display the PayPal button.
          */
         $loadPayPalWidgets: function () {
-            /*
-             * In case the express button was shown in a previous step in the order process,
-             * the new button cannot be rendered currently. Thus we have to load the button in
-             * the legacy way.
-             */
-            if (typeof paypal !== 'undefined') {
-                if (!('paypalV1ButtonRendered' in window) || !window.paypalV1ButtonRendered) {
-                    this.$renderPayPalBtn();
-                } else {
-                    this.$renderPayPalBtnV1();
-                }
+            this.$OrderProcess.Loader.show();
 
+            WebSdk.getInstance(this.getAttribute('sandbox')).then((Sdk) => {
+                return Sdk.findEligibleMethods({
+                    currencyCode: String(this.getAttribute('currency')).toUpperCase()
+                }).then((Methods) => {
+                    if (!Methods.isEligible('paypal')) {
+                        throw new Error('PayPal is not eligible for this order.');
+                    }
+
+                    this.$PaymentSession = Sdk.createPayPalOneTimePaymentSession({
+                        onApprove: () => this.$executeOrder(),
+                        onCancel: () => this.$handleCancel(),
+                        onError: () => this.$handleProcessingError()
+                    });
+
+                    this.$PayPalBtnElm.addEventListener('click', this.$onPayBtnClick);
+                    this.$PayPalBtnElm.removeAttribute('hidden');
+                    this.$OrderProcess.resize();
+                    this.$OrderProcess.Loader.hide();
+                });
+            }).catch(() => {
+                this.$OrderProcess.Loader.hide();
+                this.$handleProcessingError();
+            });
+        },
+
+        /**
+         * Start a PayPal v6 one-time payment session.
+         */
+        $onPayBtnClick: function () {
+            if (!this.$PaymentSession) {
                 return;
             }
 
-            PayPalApi.getClientId().then((clientId) => {
-                let widgetUrl = "https://www.paypal.com/sdk/js?client-id=" + clientId;
+            this.$flowErrorHandled = false;
+            this.$OrderProcess.Loader.show(
+                QUILocale.get(pkg, 'PaymentDisplay.confirm_payment')
+            );
 
-                widgetUrl += '&currency=' + encodeURIComponent(this.getAttribute('currency'));
-                widgetUrl += '&intent=capture';
-                widgetUrl += '&commit=true';
+            const orderPromise = PayPalApi.createOrder(
+                this.getAttribute('orderhash'),
+                this.getAttribute('basketid'),
+                false
+            ).then((Order) => {
+                if (!Order || !Order.hash || !Order.payPalOrderId) {
+                    throw new Error('PayPal order could not be created.');
+                }
 
-                widgetUrl += '&disable-funding=card,credit,venmo,sepa,bancontact,eps,giropay,ideal,mybank';
-                widgetUrl += ',p24,sofort';
+                this.$hash = Order.hash;
+                return Order.payPalOrderId;
+            }).catch((Error) => {
+                this.$handleApiError(Error);
+                throw Error;
+            });
 
-                //widgetUrl += '&disable-card=card,credit,venmo,sepa,bancontact,eps,giropay,ideal,mybank';
-                //widgetUrl += ',p24,sofort';
-
-                new Element('script', {
-                    async: "async",
-                    src  : widgetUrl,
-                    id   : 'paypal-checkout-api'
-                }).inject(document.body);
-
-                this.$renderPayPalBtn();
+            this.$PaymentSession.start(
+                {presentationMode: 'auto'},
+                orderPromise
+            ).catch(() => {
+                this.$handleProcessingError();
             });
         },
 
         /**
-         * Show PayPal Pay Button widget (btn)
+         * Capture the approved PayPal order on the server.
+         *
+         * @return {Promise<Object>}
          */
-        $renderPayPalBtn: function () {
-            if (typeof paypal === 'undefined') {
-                (() => this.$renderPayPalBtn()).delay(200);
+        $executeOrder: function () {
+            this.$OrderProcess.Loader.show(
+                QUILocale.get(pkg, 'PaymentDisplay.execute_payment')
+            );
 
+            return PayPalApi.executeOrder(this.$hash, false).then((success) => {
+                if (!success) {
+                    throw new Error('PayPal order could not be captured.');
+                }
+
+                this.$OrderProcess.next();
+                return {success: true};
+            }).catch((Error) => {
+                this.$handleApiError(Error);
+                throw Error;
+            });
+        },
+
+        /**
+         * Handle a buyer cancellation.
+         */
+        $handleCancel: function () {
+            this.$flowErrorHandled = true;
+            this.$OrderProcess.Loader.hide();
+            this.$showErrorMsg(QUILocale.get(pkg, 'PaymentDisplay.user_cancel'));
+            this.fireEvent('processingError', [this]);
+        },
+
+        /**
+         * Handle a PayPal or SDK processing error.
+         */
+        $handleProcessingError: function () {
+            if (this.$flowErrorHandled) {
                 return;
             }
 
-            this.$OrderProcess.Loader.show();
-
-            // re-display if button was previously rendered and hidden
-            this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
-            this.$PayPalBtnElm.set('html', '');
-
-            paypal.Buttons({
-                style: {
-                    label: 'pay',
-                    size : this.$PayPalBtnElm.get('data-size'),
-                    shape: this.$PayPalBtnElm.get('data-shape'),
-                    color: this.$PayPalBtnElm.get('data-color')
-                },
-
-                // createOrder() is called when the button is clicked
-                createOrder: () => {
-                    this.$OrderProcess.Loader.show(
-                        QUILocale.get(pkg, 'PaymentDisplay.confirm_payment')
-                    );
-
-                    return PayPalApi.createOrder(
-                        this.getAttribute('orderhash'),
-                        this.getAttribute('basketid'),
-                        false
-                    ).then((Order) => {
-                        this.$hash = Order.hash;
-                        return Order.payPalOrderId;
-                    }, (Error) => {
-                        this.$OrderProcess.Loader.hide();
-                        this.$showErrorMsg(Error.getMessage());
-                        this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
-
-                        this.fireEvent('processingError', [this]);
-                        throw Error;
-                    });
-                },
-
-                // onApprove() is called when the buyer approves the payment
-                onApprove: () => {
-                    this.$OrderProcess.Loader.show(
-                        QUILocale.get(pkg, 'PaymentDisplay.execute_payment')
-                    );
-
-                    PayPalApi.executeOrder(this.$hash, false).then((success) => {
-                        if (success) {
-                            this.$OrderProcess.next();
-                            return;
-                        }
-
-                        this.$OrderProcess.Loader.hide();
-
-                        this.$showErrorMsg(
-                            QUILocale.get(pkg, 'PaymentDisplay.processing_error')
-                        );
-                    }, (Error) => {
-                        this.$OrderProcess.Loader.hide();
-                        this.$showErrorMsg(Error.getMessage());
-
-                        this.fireEvent('processingError', [this]);
-                    });
-                },
-
-                onCancel: () => {
-                    this.$showErrorMsg(
-                        QUILocale.get(pkg, 'PaymentDisplay.user_cancel')
-                    );
-
-                    this.$renderPayPalBtn();
-
-                    this.fireEvent('processingError', [this]);
-                },
-
-                onError: () => {
-                    this.$showErrorMsg(
-                        QUILocale.get(pkg, 'PaymentDisplay.processing_error')
-                    );
-
-                    this.$renderPayPalBtn();
-
-                    this.fireEvent('processingError', [this]);
-                }
-            }).render(this.$PayPalBtnElm).then(() => {
-                this.$OrderProcess.resize();
-                this.$OrderProcess.Loader.hide();
-
-                window.paypalV1ButtonRendered = false;
-            });
+            this.$flowErrorHandled = true;
+            this.$OrderProcess.Loader.hide();
+            this.$showErrorMsg(QUILocale.get(pkg, 'PaymentDisplay.processing_error'));
+            this.fireEvent('processingError', [this]);
         },
 
         /**
-         * Show PayPal Pay Button widget using the old checkout.js SDK
+         * Handle an error returned by a QUIQQER AJAX call.
+         *
+         * @param {Error|Object} Error
          */
-        $renderPayPalBtnV1: function () {
-            this.$OrderProcess.Loader.show();
+        $handleApiError: function (Error) {
+            if (this.$flowErrorHandled) {
+                return;
+            }
 
-            // re-display if button was previously rendered and hidden
-            this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
-            this.$PayPalBtnElm.set('html', '');
+            this.$flowErrorHandled = true;
+            this.$OrderProcess.Loader.hide();
 
-            window.paypal.Button.render({
-                env   : !this.getAttribute('sandbox') ? 'production' : 'sandbox',
-                commit: true,
+            if (Error && typeof Error.getMessage === 'function') {
+                this.$showErrorMsg(Error.getMessage());
+            } else {
+                this.$showErrorMsg(QUILocale.get(pkg, 'PaymentDisplay.processing_error'));
+            }
 
-                style: {
-                    label: 'pay',
-                    size : this.$PayPalBtnElm.get('data-size'),
-                    shape: this.$PayPalBtnElm.get('data-shape'),
-                    color: this.$PayPalBtnElm.get('data-color')
-                },
-
-                // payment() is called when the button is clicked
-                payment: () => {
-                    this.$OrderProcess.Loader.show(
-                        QUILocale.get(pkg, 'PaymentDisplay.confirm_payment')
-                    );
-
-                    return PayPalApi.createOrder(
-                        this.getAttribute('orderhash'),
-                        this.getAttribute('basketid'),
-                        false
-                    ).then((Order) => {
-                        this.$hash = Order.hash;
-                        return Order.payPalOrderId;
-                    }, (Error) => {
-                        this.$OrderProcess.Loader.hide();
-                        this.$showErrorMsg(Error.getMessage());
-                        this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
-
-                        this.fireEvent('processingError', [this]);
-                        throw Error;
-                    });
-                },
-
-                // onAuthorize() is called when the buyer approves the payment
-                onAuthorize: () => {
-                    this.$OrderProcess.Loader.show(
-                        QUILocale.get(pkg, 'PaymentDisplay.execute_payment')
-                    );
-
-                    PayPalApi.executeOrder(this.$hash, false).then((success) => {
-                        if (success) {
-                            this.$OrderProcess.next();
-                            return;
-                        }
-
-                        this.$OrderProcess.Loader.hide();
-
-                        this.$showErrorMsg(
-                            QUILocale.get(pkg, 'PaymentDisplay.processing_error')
-                        );
-                    }, (Error) => {
-                        this.$OrderProcess.Loader.hide();
-                        this.$showErrorMsg(Error.getMessage());
-
-                        this.fireEvent('processingError', [this]);
-                    });
-                },
-
-                onCancel: () => {
-                    this.$showErrorMsg(
-                        QUILocale.get(pkg, 'PaymentDisplay.user_cancel')
-                    );
-
-                    this.$renderPayPalBtnV1();
-
-                    this.fireEvent('processingError', [this]);
-                },
-
-                onError: () => {
-                    this.$showErrorMsg(
-                        QUILocale.get(pkg, 'PaymentDisplay.processing_error')
-                    );
-
-                    this.$renderPayPalBtnV1();
-
-                    this.fireEvent('processingError', [this]);
-                }
-            }, this.$PayPalBtnElm).then(() => {
-                this.$OrderProcess.resize();
-                this.$OrderProcess.Loader.hide();
-
-                window.paypalV1ButtonRendered = true;
-            });
+            this.fireEvent('processingError', [this]);
         },
 
         /**
-         * Show error msg
+         * Show error message.
          *
          * @param {String} msg
          */
         $showErrorMsg: function (msg) {
-            this.$MsgElm.set(
-                'html',
-                '<p class="message-error">' + msg + '</p>'
-            );
+            this.$MsgElm.set('html', '');
+
+            new Element('p', {
+                'class': 'message-error',
+                text: msg
+            }).inject(this.$MsgElm);
         },
 
         /**
-         * Show normal msg
+         * Show normal message.
          *
          * @param {String} msg
          */
         $showMsg: function (msg) {
-            this.$MsgElm.set(
-                'html',
-                '<p>' + msg + '</p>'
-            );
+            this.$MsgElm.set('html', '');
+            new Element('p', {text: msg}).inject(this.$MsgElm);
         }
     });
 });
