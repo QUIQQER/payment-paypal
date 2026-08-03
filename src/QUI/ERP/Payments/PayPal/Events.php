@@ -232,12 +232,14 @@ class Events
 
         $sandbox = static::getApiSetting('sandbox') ? 1 : 0;
         $basketId = $Basket instanceof BasketGuest ? 0 : $Basket->getId();
+        $currency = $Order->getCurrency()->getCode();
 
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="basket"
                   data-qui-options-basketid="' . $basketId . '"
                   data-qui-options-sandbox="' . $sandbox . '"
+                  data-qui-options-currency="' . $currency . '"
                   data-qui-options-orderhash="' . $orderHash . '"
                   data-qui-options-checkout="' . $checkout . '"
                   data-qui-options-displaysize="' . static::getWidgetSetting('btn_express_size') . '"
@@ -286,12 +288,14 @@ class Events
         }
 
         $sandbox = static::getApiSetting('sandbox') ? 1 : 0;
+        $currency = $Order->getCurrency()->getCode();
 
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtn"
                   data-qui-options-context="simple-checkout"
                   data-qui-options-orderid="' . $Order->getUUID() . '"
                   data-qui-options-sandbox="' . $sandbox . '"
+                  data-qui-options-currency="' . $currency . '"
                   data-qui-options-orderhash="' . $orderHash . '"
                   data-qui-options-checkout="' . $checkout . '"
                   data-qui-options-displaysize="' . static::getWidgetSetting('btn_express_size') . '"
@@ -359,10 +363,12 @@ class Events
         }
 
         $checkout = 0;
+        $currency = QUI\ERP\Defaults::getCurrency()->getCode();
 
         if ($Basket->hasOrder()) {
             $Order = $Basket->getOrder();
             $Payment = $Order->getPayment();
+            $currency = $Order->getCurrency()->getCode();
 
             if (
                 $Order->getPaymentDataEntry(PayPalPayment::ATTR_PAYPAL_ORDER_ID)
@@ -373,10 +379,14 @@ class Events
             }
         }
 
+        $sandbox = static::getApiSetting('sandbox') ? 1 : 0;
+
         $Collector->append(
             '<div data-qui="package/quiqqer/payment-paypal/bin/controls/ExpressBtnLoader"
                   data-qui-options-context="smallbasket"
                   data-qui-options-basketid="' . $Basket->getId() . '"
+                  data-qui-options-sandbox="' . $sandbox . '"
+                  data-qui-options-currency="' . $currency . '"
                   data-qui-options-checkout="' . $checkout . '"
                   data-qui-options-displaysize="' . static::getWidgetSetting('btn_express_size_smallbasket') . '"
                   data-qui-options-displaycolor="' . static::getWidgetSetting('btn_express_color') . '"

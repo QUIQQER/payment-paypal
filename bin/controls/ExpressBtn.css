@@ -6,3 +6,13 @@
 .quiqqer-payment-paypal-express .qui-loader {
     z-index: 1000 !important;
 }
+
+.quiqqer-payment-paypal-express paypal-button {
+    display: block;
+    max-width: 100%;
+    width: 100%;
+}
+
+.quiqqer-payment-paypal-express paypal-button[hidden] {
+    display: none;
+}

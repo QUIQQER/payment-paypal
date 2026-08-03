@@ -6,6 +6,7 @@ namespace QUITests\ERP\Payments\PayPal\Unit;
 
 use PHPUnit\Framework\TestCase;
 use QUI\ERP\Accounting\Payments\Types\Payment;
+use QUI\ERP\Currency\Currency;
 use QUI\ERP\Order\Basket\Basket;
 use QUI\ERP\Order\Basket\BasketGuest;
 use QUI\ERP\Payments\PayPal\PaymentExpress;
@@ -36,8 +37,7 @@ final class EventsRenderingTest extends TestCase
         $Collector = new Collector();
         $Basket = $this->createMock(Basket::class);
         $Basket->method('getId')->willReturn(17);
-        $Order = new OrderDouble();
-        $Order->uuidValue = 'ORDER-EVENT';
+        $Order = $this->createOrder('ORDER-EVENT', 'USD');
 
         EventsDouble::templateOrderProcessBasketEnd(
             $Collector,
@@ -54,6 +54,10 @@ final class EventsRenderingTest extends TestCase
             $Collector->getContent()
         );
         self::assertStringContainsString(
+            'data-qui-options-currency="USD"',
+            $Collector->getContent()
+        );
+        self::assertStringContainsString(
             'https://example.test/checkout',
             $Collector->getContent()
         );
@@ -63,8 +67,7 @@ final class EventsRenderingTest extends TestCase
     {
         $Collector = new Collector();
         $Basket = $this->createMock(BasketGuest::class);
-        $Order = new OrderDouble();
-        $Order->uuidValue = 'ORDER-GUEST-EVENT';
+        $Order = $this->createOrder('ORDER-GUEST-EVENT', 'GBP');
 
         EventsDouble::templateOrderProcessBasketEnd(
             $Collector,
@@ -80,13 +83,16 @@ final class EventsRenderingTest extends TestCase
             'data-qui-options-orderhash="ORDER-GUEST-EVENT"',
             $Collector->getContent()
         );
+        self::assertStringContainsString(
+            'data-qui-options-currency="GBP"',
+            $Collector->getContent()
+        );
     }
 
     public function testSimpleCheckoutRendersExpressButton(): void
     {
         $Collector = new Collector();
-        $Order = new OrderDouble();
-        $Order->uuidValue = 'ORDER-SIMPLE-EVENT';
+        $Order = $this->createOrder('ORDER-SIMPLE-EVENT', 'CHF');
 
         EventsDouble::templateOrderSimpleExpressButtons($Collector, $Order);
 
@@ -96,6 +102,10 @@ final class EventsRenderingTest extends TestCase
         );
         self::assertStringContainsString(
             'data-qui-options-orderid="ORDER-SIMPLE-EVENT"',
+            $Collector->getContent()
+        );
+        self::assertStringContainsString(
+            'data-qui-options-currency="CHF"',
             $Collector->getContent()
         );
     }
@@ -135,5 +145,17 @@ final class EventsRenderingTest extends TestCase
         );
 
         self::assertSame('', $Collector->getContent());
+    }
+
+    private function createOrder(string $uuid, string $currencyCode): OrderDouble
+    {
+        $Currency = $this->createMock(Currency::class);
+        $Currency->method('getCode')->willReturn($currencyCode);
+
+        $Order = new OrderDouble();
+        $Order->uuidValue = $uuid;
+        $Order->CurrencyValue = $Currency;
+
+        return $Order;
     }
 }

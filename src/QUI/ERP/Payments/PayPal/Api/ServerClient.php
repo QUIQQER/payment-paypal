@@ -74,16 +74,16 @@ final class ServerClient implements ServerClientInterface
     /**
      * @param array<mixed> $body
      * @return array<mixed>|null
-     * @throws JsonException
      */
     public function patchOrder(string $orderId, array $body): ?array
     {
-        return $this->normalizeResponse(
-            $this->Client->getOrdersController()->patchOrder([
-                'id' => $orderId,
-                'body' => $body
-            ])
-        );
+        $this->Client->getOrdersController()->patchOrder([
+            'id' => $orderId,
+            'body' => $body
+        ]);
+
+        // PayPal returns 204 No Content for successful order updates.
+        return null;
     }
 
     /**
@@ -93,12 +93,17 @@ final class ServerClient implements ServerClientInterface
      */
     public function captureOrder(string $orderId, array $body): ?array
     {
+        $options = [
+            'id' => $orderId,
+            'prefer' => 'return=representation'
+        ];
+
+        if (!empty($body)) {
+            $options['body'] = $body;
+        }
+
         return $this->normalizeResponse(
-            $this->Client->getOrdersController()->captureOrder([
-                'id' => $orderId,
-                'body' => $body,
-                'prefer' => 'return=representation'
-            ])
+            $this->Client->getOrdersController()->captureOrder($options)
         );
     }
 

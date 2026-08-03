@@ -4,10 +4,16 @@
     width: 100%;
 }
 
-#quiqqer-payment-paypal-btn-pay {
+.quiqqer-payment-paypal-content paypal-button {
+    display: block;
     margin: 35px 0 0 0;
     max-width: 100%;
     text-align: center;
+    width: 100%;
+}
+
+.quiqqer-payment-paypal-content paypal-button[hidden] {
+    display: none;
 }
 
 .quiqqer-payment-paypal__hidden {

@@ -41,6 +41,7 @@ use QUI\Utils\Doctrine;
 use function boolval;
 use function get_class;
 use function get_debug_type;
+use function in_array;
 use function is_array;
 use function json_decode;
 use function json_encode;
@@ -80,6 +81,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
     const PAYPAL_ORDER_STATE_CAPTURED = 'captured';
     const PAYPAL_ORDER_STATE_COMPLETED = 'COMPLETED';
     const PAYPAL_ORDER_STATE_VOIDED = 'voided';
+    const PAYPAL_ORDER_STATE_APPROVED_V2 = 'APPROVED';
+    const PAYPAL_ORDER_STATE_VOIDED_V2 = 'VOIDED';
 
     /**
      * PayPal Capture states
@@ -285,9 +288,26 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
         $Order->addHistory(Utils::getHistoryText('order.create.start'));
 
         if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
-            $Order->addHistory(Utils::getHistoryText('order.create.already_exists'));
-            $this->updatePayPalOrder($Order);
-            return;
+            $payPalOrder = $this->getPayPalOrderDetails($Order);
+            $payPalOrderStatus = is_array($payPalOrder)
+                ? ($payPalOrder['status'] ?? null)
+                : null;
+
+            if (
+                !in_array(
+                    $payPalOrderStatus,
+                    [self::PAYPAL_ORDER_STATE_APPROVED_V2, self::PAYPAL_ORDER_STATE_VOIDED_V2],
+                    true
+                )
+            ) {
+                $Order->addHistory(Utils::getHistoryText('order.create.already_exists'));
+                $this->updatePayPalOrder($Order);
+                return;
+            }
+
+            // An approved or voided order cannot start a new v6 payment session.
+            // It has not been captured, so replacing it cannot cause a duplicate charge.
+            $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_ID, null);
         }
 
         $body = $this->getPayPalDataForOrder($Order);
