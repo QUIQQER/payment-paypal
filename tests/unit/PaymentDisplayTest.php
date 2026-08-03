@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Unit;
 use PHPUnit\Framework\TestCase;
 use QUI\ERP\Accounting\Calculations;
 use QUI\ERP\Accounting\CalculationValue;
+use QUI\ERP\Currency\Currency;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Payments\PayPal\PaymentDisplay;
 
@@ -18,8 +19,11 @@ final class PaymentDisplayTest extends TestCase
         $Sum->method('formatted')->willReturn('12,34 €');
         $Calculations = $this->createMock(Calculations::class);
         $Calculations->method('getSum')->willReturn($Sum);
+        $Currency = $this->createMock(Currency::class);
+        $Currency->method('getCode')->willReturn('USD');
         $Order = $this->createMock(AbstractOrder::class);
         $Order->method('getPriceCalculation')->willReturn($Calculations);
+        $Order->method('getCurrency')->willReturn($Currency);
         $Order->method('getUUID')->willReturn('ORDER-UUID');
         $Order->method('isSuccessful')->willReturn(1);
 
@@ -35,6 +39,10 @@ final class PaymentDisplayTest extends TestCase
         self::assertSame(
             'ORDER-UUID',
             $Display->getAttribute('data-qui-options-orderhash')
+        );
+        self::assertSame(
+            'USD',
+            $Display->getAttribute('data-qui-options-currency')
         );
         self::assertTrue(
             (bool)$Display->getAttribute('data-qui-options-successful')

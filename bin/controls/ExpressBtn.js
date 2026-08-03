@@ -244,6 +244,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                     }, (Error) => {
                         this.$hideLoader();
                         this.$showErrorMsg(Error.getMessage());
+                        throw Error;
                     });
                 },
 
@@ -269,6 +270,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                     }, (Error) => {
                         this.$hideLoader();
                         this.$showErrorMsg(Error.getMessage());
+                        throw Error;
                     });
                 },
 

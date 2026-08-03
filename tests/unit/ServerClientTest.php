@@ -77,21 +77,20 @@ final class ServerClientTest extends TestCase
                 'id' => 'ORDER-3',
                 'body' => $body
             ])
-            ->willReturn($this->createResponse(null));
+            ->willReturn($this->createResponse(''));
 
         self::assertNull(
             $this->createClient($Orders)->patchOrder('ORDER-3', $body)
         );
     }
 
-    public function testCaptureOrderPassesBodyAndRepresentationPreference(): void
+    public function testCaptureOrderOmitsEmptyOptionalBody(): void
     {
         $Orders = $this->createMock(OrdersController::class);
         $Orders->expects(self::once())
             ->method('captureOrder')
             ->with([
                 'id' => 'ORDER-4',
-                'body' => [],
                 'prefer' => 'return=representation'
             ])
             ->willReturn($this->createResponse(['status' => 'COMPLETED']));
@@ -99,6 +98,25 @@ final class ServerClientTest extends TestCase
         self::assertSame(
             ['status' => 'COMPLETED'],
             $this->createClient($Orders)->captureOrder('ORDER-4', [])
+        );
+    }
+
+    public function testCaptureOrderPassesNonEmptyBody(): void
+    {
+        $body = ['payment_source' => ['token' => ['id' => 'TOKEN-1']]];
+        $Orders = $this->createMock(OrdersController::class);
+        $Orders->expects(self::once())
+            ->method('captureOrder')
+            ->with([
+                'id' => 'ORDER-5',
+                'prefer' => 'return=representation',
+                'body' => $body
+            ])
+            ->willReturn($this->createResponse(['status' => 'COMPLETED']));
+
+        self::assertSame(
+            ['status' => 'COMPLETED'],
+            $this->createClient($Orders)->captureOrder('ORDER-5', $body)
         );
     }
 
@@ -141,12 +159,17 @@ final class ServerClientTest extends TestCase
         return new ServerClient('', '', false, $Sdk);
     }
 
-    private function createResponse(?array $result): ApiResponse
+    private function createResponse(mixed $result): ApiResponse
     {
         $Response = $this->createMock(ApiResponse::class);
 
         if ($result === null) {
             $Response->method('getResult')->willReturn(null);
+            return $Response;
+        }
+
+        if (!is_array($result)) {
+            $Response->method('getResult')->willReturn($result);
             return $Response;
         }
 

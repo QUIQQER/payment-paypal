@@ -38,6 +38,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
         options: {
             sandbox   : true,
             orderhash : '',
+            currency  : '',
             successful: false
         },
 
@@ -101,15 +102,10 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                 return;
             }
 
-            Promise.all([
-                PayPalApi.getClientId(),
-                PayPalApi.getOrderDetails()
-            ]).then((result) => {
-                const OrderDetails = result[1];
+            PayPalApi.getClientId().then((clientId) => {
+                let widgetUrl = "https://www.paypal.com/sdk/js?client-id=" + clientId;
 
-                let widgetUrl = "https://www.paypal.com/sdk/js?client-id=" + result[0];
-
-                widgetUrl += '&currency=' + OrderDetails.currency;
+                widgetUrl += '&currency=' + encodeURIComponent(this.getAttribute('currency'));
                 widgetUrl += '&intent=capture';
                 widgetUrl += '&commit=true';
 
@@ -172,6 +168,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
 
                         this.fireEvent('processingError', [this]);
+                        throw Error;
                     });
                 },
 
@@ -267,6 +264,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         this.$PayPalBtnElm.removeClass('quiqqer-payment-paypal__hidden');
 
                         this.fireEvent('processingError', [this]);
+                        throw Error;
                     });
                 },
 
