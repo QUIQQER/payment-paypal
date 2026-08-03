@@ -13,14 +13,17 @@ use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Handler as TransactionHandler;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Currency\Currency;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
+use QUI\ERP\User as ErpUser;
 use Throwable;
 
 final class SubscriptionsInvoiceProcessingTest extends TestCase
 {
     private const PREFIX = 'phpunit_subscription_invoice_';
     private const SUBSCRIPTION_ID = self::PREFIX . 'subscription';
+    private const CUSTOMER_UUID = self::PREFIX . 'customer';
 
     /** @var list<string> */
     private array $transactionIds = [];
@@ -53,7 +56,8 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
                 'customer' => '{}',
                 'subscription_data' => '{}',
                 'global_process_id' => self::PREFIX . 'process',
-                'active' => 1
+                'active' => 1,
+                'paypal_account_hash' => AccountContext::getHash()
             ]
         );
     }
@@ -82,9 +86,10 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
 
         self::assertSame(19.95, $Transaction->getAmount());
         self::assertSame(TransactionHandler::STATUS_COMPLETE, $Transaction->getStatus());
+        self::assertSame(self::CUSTOMER_UUID, $Transaction->getAttribute('uid'));
         self::assertSame(
             $paypalTransactionId,
-            $Transaction->getData(Payment::ATTR_PAYPAL_CAPTURE_ID)
+            $Transaction->getData(Payment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID)
         );
         self::assertPayPalTransactionProcessed(
             $paypalTransactionId,
@@ -109,6 +114,7 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
         $this->transactionIds[] = $Transaction->getTxId();
 
         self::assertSame(TransactionHandler::STATUS_ERROR, $Transaction->getStatus());
+        self::assertSame(self::CUSTOMER_UUID, $Transaction->getAttribute('uid'));
         self::assertPayPalTransactionProcessed(
             $paypalTransactionId,
             $Transaction->getTxId()
@@ -126,13 +132,17 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
             'code' => 'EUR',
             'sign' => '€'
         ]);
+        $Customer = $this->createMock(ErpUser::class);
+        $Customer->method('getUUID')->willReturn(self::CUSTOMER_UUID);
 
         $Invoice = $this->createMock(Invoice::class);
         $Invoice->method('getPaymentDataEntry')->willReturn(self::SUBSCRIPTION_ID);
+        $Invoice->method('getPaymentData')->willReturn(self::SUBSCRIPTION_ID);
         $Invoice->method('getAttribute')->willReturnMap([
             ['toPay', 10.0]
         ]);
         $Invoice->method('getCurrency')->willReturn($Currency);
+        $Invoice->method('getCustomer')->willReturn($Customer);
         $Invoice->method('getUUID')->willReturn(self::PREFIX . 'invoice');
         $Invoice->method('getGlobalProcessId')->willReturn(self::PREFIX . 'process');
         $Invoice->method('addTransaction')->willReturnCallback(

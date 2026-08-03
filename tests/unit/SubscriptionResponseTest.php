@@ -157,6 +157,14 @@ final class SubscriptionResponseTest extends TestCase
         self::assertSame('now', self::invoke('getTransactionTime', []));
     }
 
+    public function testTransactionsApiTimeFieldIsNormalized(): void
+    {
+        self::assertSame(
+            '2026-07-27T11:00:00Z',
+            self::invoke('getTransactionTime', ['time' => '2026-07-27T11:00:00Z'])
+        );
+    }
+
     public function testDatesAreNormalizedForDatabaseStorage(): void
     {
         self::assertSame(

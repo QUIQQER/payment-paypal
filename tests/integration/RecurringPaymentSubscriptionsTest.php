@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Integration;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
 use ReflectionProperty;
@@ -60,6 +61,10 @@ final class RecurringPaymentSubscriptionsTest extends TestCase
     public function testCreateSubscriptionReturnsCachedApprovalUrl(): void
     {
         $Order = new OrderDouble();
+        $Order->setPaymentData(
+            Payment::ATTR_PAYPAL_SUBSCRIPTION_ID,
+            self::SUBSCRIPTION_ID
+        );
         $Order->setPaymentData(
             Payment::ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL,
             'https://paypal.example/subscription'
@@ -200,7 +205,8 @@ final class RecurringPaymentSubscriptionsTest extends TestCase
                     'status' => Subscriptions::STATUS_ACTIVE
                 ]),
                 'global_process_id' => 'phpunit-recurring-process',
-                'active' => 1
+                'active' => 1,
+                'paypal_account_hash' => AccountContext::getHash()
             ]
         );
     }

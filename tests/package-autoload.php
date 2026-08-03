@@ -11,6 +11,7 @@ spl_autoload_register(
             'QUI\\ERP\\Payments\\PayPal\\PhpSdk\\' => __DIR__ . '/stubs/PayPalPhpSdk/',
             'QUI\\ERP\\Payments\\PayPal\\' => __DIR__ . '/../src/QUI/ERP/Payments/PayPal/',
             'QUI\\ERP\\Accounting\\Invoice\\' => __DIR__ . '/stubs/QUI/ERP/Accounting/Invoice/',
+            'QUI\\Cron\\' => __DIR__ . '/stubs/QUI/Cron/',
             'QUI\\ERP\\Order\\' => __DIR__ . '/stubs/QUI/ERP/Order/',
             'QUI\\ERP\\Plans\\' => __DIR__ . '/stubs/QUI/ERP/Plans/',
             'QUI\\ERP\\Shipping\\' => __DIR__ . '/stubs/QUI/ERP/Shipping/',

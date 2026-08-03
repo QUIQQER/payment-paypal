@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Integration;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
 use ReflectionMethod;
 use ReflectionProperty;
@@ -46,7 +47,8 @@ final class SubscriptionsTransactionsTest extends TestCase
                 'customer' => '{}',
                 'subscription_data' => '{}',
                 'global_process_id' => self::PREFIX . 'process',
-                'active' => 1
+                'active' => 1,
+                'paypal_account_hash' => AccountContext::getHash()
             ]
         );
     }
@@ -133,6 +135,116 @@ final class SubscriptionsTransactionsTest extends TestCase
 
         self::assertCount(1, $transactions);
         self::assertSame(self::PREFIX . 'completed', $transactions[0]['id']);
+    }
+
+    public function testConfirmedLastPaymentBridgesTransactionsApiDelayAndIsReconciled(): void
+    {
+        $paymentTime = '2026-07-27T11:00:00Z';
+        $Client = new SubscriptionsApiClientDouble();
+        $Client->setAccessToken('ACCESS-TOKEN');
+        $Client->responses[] = [
+            'body' => json_encode(['transactions' => []]),
+            'status' => 200
+        ];
+        $Client->responses[] = [
+            'body' => json_encode([
+                'id' => self::SUBSCRIPTION_ID,
+                'status' => Subscriptions::STATUS_ACTIVE,
+                'billing_info' => [
+                    'last_payment' => [
+                        'amount' => [
+                            'value' => '19.95',
+                            'currency_code' => 'EUR'
+                        ],
+                        'time' => $paymentTime
+                    ]
+                ]
+            ]),
+            'status' => 200
+        ];
+        $this->setApiClient($Client);
+
+        $transactions = $this->invoke(
+            'getUnprocessedTransactions',
+            self::SUBSCRIPTION_ID
+        );
+
+        self::assertCount(1, $transactions);
+        self::assertStringStartsWith('confirmed-last-payment-', $transactions[0]['id']);
+        self::assertSame(19.95, $this->invoke('getTransactionAmount', $transactions[0]));
+        self::assertSame('EUR', $this->invoke('getTransactionCurrency', $transactions[0]));
+        self::assertSame($paymentTime, $this->invoke('getTransactionTime', $transactions[0]));
+        self::assertCount(2, $Client->requests);
+
+        $fallbackId = $transactions[0]['id'];
+        $this->connection()->update(
+            $this->transactionsTable(),
+            [
+                'quiqqer_transaction_id' => self::PREFIX . 'quiqqer-transaction',
+                'quiqqer_transaction_completed' => 1
+            ],
+            ['paypal_transaction_id' => $fallbackId]
+        );
+
+        $actualTransactionId = self::PREFIX . 'actual';
+        $ActualClient = $this->apiClient([
+            'transactions' => [[
+                'id' => $actualTransactionId,
+                'status' => Subscriptions::TRANSACTION_STATE_COMPLETED,
+                'amount_with_breakdown' => [
+                    'gross_amount' => [
+                        'value' => '19.95',
+                        'currency_code' => 'EUR'
+                    ]
+                ],
+                'time' => $paymentTime
+            ]]
+        ]);
+        $this->setApiClient($ActualClient);
+
+        $this->invoke('refreshTransactionList', self::SUBSCRIPTION_ID);
+
+        $rows = $this->connection()->fetchAllAssociative(
+            'SELECT paypal_transaction_id, quiqqer_transaction_id, quiqqer_transaction_completed'
+            . ' FROM ' . $this->transactionsTable()
+            . ' WHERE paypal_subscription_id = ?',
+            [self::SUBSCRIPTION_ID]
+        );
+
+        self::assertCount(1, $rows);
+        self::assertSame($actualTransactionId, $rows[0]['paypal_transaction_id']);
+        self::assertSame(self::PREFIX . 'quiqqer-transaction', $rows[0]['quiqqer_transaction_id']);
+        self::assertSame(1, (int)$rows[0]['quiqqer_transaction_completed']);
+    }
+
+    public function testStoredNonMatchingTransactionTriggersRefresh(): void
+    {
+        $this->insertTransaction(
+            self::PREFIX . 'pending',
+            json_encode([
+                'id' => self::PREFIX . 'pending',
+                'status' => 'PENDING'
+            ]),
+            '2026-07-27 11:11:00'
+        );
+        $Client = $this->apiClient([
+            'transactions' => [[
+                'id' => self::PREFIX . 'completed',
+                'status' => Subscriptions::TRANSACTION_STATE_COMPLETED,
+                'time' => '2026-07-27T11:12:00Z'
+            ]]
+        ]);
+        $this->setApiClient($Client);
+
+        $transactions = $this->invoke(
+            'getUnprocessedTransactions',
+            self::SUBSCRIPTION_ID
+        );
+
+        self::assertCount(1, $transactions);
+        self::assertSame(self::PREFIX . 'completed', $transactions[0]['id']);
+        self::assertCount(1, $Client->requests);
+        self::assertSame(2, $this->transactionCount());
     }
 
     public function testDeniedTransactionFilterReturnsDeniedRows(): void
@@ -233,17 +345,16 @@ final class SubscriptionsTransactionsTest extends TestCase
     {
         return (int)$this->connection()->fetchOne(
             'SELECT COUNT(*) FROM ' . $this->transactionsTable()
-            . ' WHERE paypal_transaction_id LIKE ?',
-            [self::PREFIX . '%']
+            . ' WHERE paypal_subscription_id = ?',
+            [self::SUBSCRIPTION_ID]
         );
     }
 
     private function cleanupFixtures(): void
     {
-        $this->connection()->executeStatement(
-            'DELETE FROM ' . $this->transactionsTable()
-            . ' WHERE paypal_transaction_id LIKE ?',
-            [self::PREFIX . '%']
+        $this->connection()->delete(
+            $this->transactionsTable(),
+            ['paypal_subscription_id' => self::SUBSCRIPTION_ID]
         );
         $this->connection()->delete(
             $this->subscriptionsTable(),

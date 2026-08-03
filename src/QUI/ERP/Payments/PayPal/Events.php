@@ -4,6 +4,9 @@ namespace QUI\ERP\Payments\PayPal;
 
 use DateInterval;
 use QUI;
+use QUI\Cron\Manager as CronManager;
+use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Accounting\Payments\Exceptions\PaymentCanNotBeUsed;
 use QUI\ERP\Accounting\Payments\Types\Payment;
 use QUI\ERP\Order\AbstractOrder;
@@ -15,9 +18,14 @@ use QUI\ERP\Order\Exception;
 use QUI\ERP\Order\OrderInterface;
 use QUI\ERP\Order\Utils\Utils as OrderUtils;
 use QUI\ERP\Payments\PayPal\Payment as PayPalPayment;
+use QUI\ERP\Payments\PayPal\Recurring\Payment as RecurringPayment;
+use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
+use QUI\Package\Package;
 use QUI\Smarty\Collector;
 
 use function class_exists;
+use function json_encode;
+use function usleep;
 
 /**
  * Class Events
@@ -26,6 +34,157 @@ use function class_exists;
  */
 class Events
 {
+    private const SUBSCRIPTION_CRON_EXEC =
+        '\\QUI\\ERP\\Payments\\PayPal\\Recurring\\Subscriptions::processUnpaidInvoices';
+    private const SUBSCRIPTION_CRON_MINUTE = '*/5';
+    private const SUBSCRIPTION_TRANSACTION_SYNC_ATTEMPTS = 3;
+
+    /**
+     * Ensure that modern PayPal subscription transactions are synchronized
+     * regularly on new and existing installations.
+     *
+     * @param Package $Package
+     * @return void
+     */
+    public static function onPackageSetup(Package $Package): void
+    {
+        if ($Package->getName() !== 'quiqqer/payment-paypal') {
+            return;
+        }
+
+        if (!class_exists(CronManager::class)) {
+            return;
+        }
+
+        try {
+            static::ensureSubscriptionCron();
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+        }
+    }
+
+    protected static function ensureSubscriptionCron(): void
+    {
+        $crons = static::getSubscriptionCronRows();
+
+        if ($crons === []) {
+            static::addSubscriptionCron();
+            return;
+        }
+
+        foreach ($crons as $cron) {
+            if (
+                ($cron['min'] ?? null) === self::SUBSCRIPTION_CRON_MINUTE
+                && ($cron['hour'] ?? null) === '*'
+                && ($cron['day'] ?? null) === '*'
+                && ($cron['month'] ?? null) === '*'
+                && ($cron['dayOfWeek'] ?? null) === '*'
+            ) {
+                continue;
+            }
+
+            static::updateSubscriptionCron($cron);
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     * @throws QUI\Exception
+     */
+    protected static function getSubscriptionCronRows(): array
+    {
+        $result = [];
+
+        foreach ((new CronManager())->getList() as $cron) {
+            if (($cron['exec'] ?? '') === self::SUBSCRIPTION_CRON_EXEC) {
+                $result[] = $cron;
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @throws QUI\Exception
+     */
+    protected static function addSubscriptionCron(): void
+    {
+        $cron = (new CronManager())->getCronData(self::SUBSCRIPTION_CRON_EXEC);
+
+        if ($cron === false) {
+            throw new QUI\Exception('PayPal subscription cron definition is not available.');
+        }
+
+        QUI::getDataBaseConnection()->insert(
+            QUI\Utils\Doctrine::quoteIdentifier(CronManager::table()),
+            [
+                'active' => 1,
+                'exec' => self::SUBSCRIPTION_CRON_EXEC,
+                'title' => $cron['title'],
+                'min' => self::SUBSCRIPTION_CRON_MINUTE,
+                'hour' => '*',
+                'day' => '*',
+                'month' => '*',
+                'dayOfWeek' => '*',
+                'params' => json_encode([])
+            ]
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $cron
+     * @throws QUI\Exception
+     */
+    protected static function updateSubscriptionCron(array $cron): void
+    {
+        QUI::getDataBaseConnection()->update(
+            QUI\Utils\Doctrine::quoteIdentifier(CronManager::table()),
+            [
+                'min' => self::SUBSCRIPTION_CRON_MINUTE,
+                'hour' => '*',
+                'day' => '*',
+                'month' => '*',
+                'dayOfWeek' => '*'
+            ],
+            ['id' => (int)$cron['id']]
+        );
+    }
+
+    /**
+     * Synchronize a newly created contract invoice with an immediately completed
+     * PayPal subscription payment.
+     *
+     * PayPal may not have exposed the transaction yet. In that case the webhook
+     * stores it when it arrives; posting the invoice and scheduled processing
+     * remain responsible for the later assignment.
+     *
+     * @param mixed $Contract Event compatibility parameter
+     * @param InvoiceTemporary $Invoice
+     * @return void
+     */
+    public static function onQuiqqerContractsCreateInvoiceEnd(
+        mixed $Contract,
+        InvoiceTemporary $Invoice
+    ): void {
+        if (!$Invoice->getPaymentData(RecurringPayment::ATTR_PAYPAL_SUBSCRIPTION_ID)) {
+            return;
+        }
+
+        try {
+            for ($attempt = 1; $attempt <= self::SUBSCRIPTION_TRANSACTION_SYNC_ATTEMPTS; $attempt++) {
+                if (static::billSubscriptionInvoice($Invoice)) {
+                    return;
+                }
+
+                if ($attempt < self::SUBSCRIPTION_TRANSACTION_SYNC_ATTEMPTS) {
+                    static::waitForSubscriptionTransaction();
+                }
+            }
+        } catch (\Exception $Exception) {
+            QUI\System\Log::writeException($Exception);
+        }
+    }
+
     /**
      * Template event quiqqer/order: onQuiqqer::order::orderProcessBasketEnd
      *
@@ -249,6 +408,19 @@ class Events
                 )
             );
         }
+    }
+
+    protected static function billSubscriptionInvoice(
+        Invoice|InvoiceTemporary $Invoice
+    ): bool {
+        Subscriptions::billSubscriptionInvoice($Invoice);
+
+        return $Invoice->getAttribute('paid_status') === QUI\ERP\Constants::PAYMENT_STATUS_PAID;
+    }
+
+    protected static function waitForSubscriptionTransaction(): void
+    {
+        usleep(1_000_000);
     }
 
     /**

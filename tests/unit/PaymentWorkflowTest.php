@@ -10,6 +10,7 @@ use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Currency\Currency;
 use QUI\ERP\Payments\PayPal\Payment;
 use QUI\ERP\Payments\PayPal\PayPalException;
+use QUI\ERP\Payments\PayPal\Utils;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\PaymentWorkflowDouble;
 
@@ -25,7 +26,7 @@ final class PaymentWorkflowTest extends TestCase
         self::assertSame([], $Payment->apiCalls);
         self::assertSame(0, $Payment->saveCount);
         self::assertContains(
-            'PayPal :: Order cannot be updated since it has not been created yet',
+            Utils::getHistoryText('order.update.not_created'),
             $Order->history
         );
     }
@@ -52,7 +53,10 @@ final class PaymentWorkflowTest extends TestCase
             ]
         ], $Payment->apiCalls[0]['body']);
         self::assertSame(1, $Payment->saveCount);
-        self::assertContains('PayPal :: Order successfully updated', $Order->history);
+        self::assertContains(
+            Utils::getHistoryText('order.update.success'),
+            $Order->history
+        );
     }
 
     public function testUpdateSavesOrderAndPropagatesApiFailure(): void
@@ -72,7 +76,7 @@ final class PaymentWorkflowTest extends TestCase
 
         self::assertSame(1, $Payment->saveCount);
         self::assertContains(
-            'PayPal :: PayPal API ERROR. Please check error logs.',
+            Utils::getHistoryText('api.error'),
             $Order->history
         );
     }
@@ -119,7 +123,7 @@ final class PaymentWorkflowTest extends TestCase
         $Payment->voidOrder($MissingOrder);
         self::assertSame(1, $Payment->saveCount);
         self::assertContains(
-            'PayPal :: Order cannot be voided because it has not been created yet or was voided before',
+            Utils::getHistoryText('order.void.not_possible'),
             $MissingOrder->history
         );
 
@@ -127,7 +131,10 @@ final class PaymentWorkflowTest extends TestCase
         $ExistingOrder->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'ORDER-5');
         $Payment->voidOrder($ExistingOrder);
         self::assertSame(2, $Payment->saveCount);
-        self::assertContains('PayPal :: Order voided.', $ExistingOrder->history);
+        self::assertContains(
+            Utils::getHistoryText('order.void.success'),
+            $ExistingOrder->history
+        );
     }
 
     public function testAlreadyAuthorizedOrderStopsBeforeApiRequest(): void
@@ -179,10 +186,15 @@ final class PaymentWorkflowTest extends TestCase
             $Payment->authorizePayPalOrder($Order);
         } finally {
             self::assertContains(
-                'PayPal :: Order was not authorized by PayPal. Reason: "RISK_DECLINE"',
+                Utils::getHistoryText('order.authorize.error.reason', [
+                    'reason' => 'RISK_DECLINE'
+                ]),
                 $Order->history
             );
-            self::assertContains('PayPal :: Order voided.', $Order->history);
+            self::assertContains(
+                Utils::getHistoryText('order.void.success'),
+                $Order->history
+            );
         }
     }
 
@@ -232,8 +244,7 @@ final class PaymentWorkflowTest extends TestCase
         self::assertTrue($Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_PAYMENT_SUCCESSFUL));
         self::assertTrue($Order->successfulStatusSet);
         self::assertContains(
-            'PayPal :: Order capture was not completed immediately.'
-            . ' Payment is PENDING and has to be added manually to the order or checked via cronjob.',
+            Utils::getHistoryText('order.capture.pending'),
             $Order->history
         );
     }
@@ -281,8 +292,9 @@ final class PaymentWorkflowTest extends TestCase
         self::assertSame($Order, $Payment->capturePurchase['order']);
         self::assertSame(1, $Order->refreshCount);
         self::assertContains(
-            'PayPal :: Order capture was completed. Transaction '
-            . 'TX-COMPLETED added.',
+            Utils::getHistoryText('order.capture.completed', [
+                'transactionId' => 'TX-COMPLETED'
+            ]),
             $Order->history
         );
     }
@@ -322,8 +334,7 @@ final class PaymentWorkflowTest extends TestCase
             $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_CAPTURE_ID)
         );
         self::assertContains(
-            'PayPal :: Order capture REST request failed. But Order capture was still completed on PayPal site.'
-            . ' Continuing payment process.',
+            Utils::getHistoryText('order.capture.api_error_but_completed'),
             $Order->history
         );
     }
@@ -347,10 +358,15 @@ final class PaymentWorkflowTest extends TestCase
         try {
             $Payment->capturePayPalOrder($Order);
         } finally {
-            self::assertContains('PayPal :: Order voided.', $Order->history);
             self::assertContains(
-                'PayPal :: Order capture was not completed by PayPal. Reason code: "CAPTURE_DENIED"'
-                . ' | Capture failed because: ',
+                Utils::getHistoryText('order.void.success'),
+                $Order->history
+            );
+            self::assertContains(
+                Utils::getHistoryText('order.capture.error.reason', [
+                    'reasonCode' => 'CAPTURE_DENIED',
+                    'captureFailure' => ''
+                ]),
                 $Order->history
             );
         }

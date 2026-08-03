@@ -24,7 +24,7 @@
         </description>
 
         <autocreate>
-            <interval>5 * * * *</interval>
+            <interval>*/5 * * * *</interval>
             <active>1</active>
         </autocreate>
     </cron>

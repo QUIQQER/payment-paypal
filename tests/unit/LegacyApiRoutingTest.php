@@ -213,6 +213,78 @@ final class LegacyApiRoutingTest extends TestCase
         );
     }
 
+    public function testTransactionObjectProvidesSubscriptionSaleReference(): void
+    {
+        $Transaction = $this->createMock(
+            \QUI\ERP\Accounting\Payments\Transactions\Transaction::class
+        );
+        $Transaction->method('getData')->willReturnMap([
+            [
+                RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID,
+                null
+            ],
+            [
+                RecurringPayment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID,
+                'SUBSCRIPTION-SALE'
+            ]
+        ]);
+        $Client = new PayPalHttpClient();
+        $Client->result = (object)[];
+        $Payment = new LegacyApiPaymentDouble();
+        $Payment->useLegacyClient($Client);
+
+        $Payment->payPalApiRequest(
+            RecurringPayment::PAYPAL_REQUEST_TYPE_SALE_REFUND,
+            [],
+            $Transaction
+        );
+
+        self::assertSame(
+            ['SUBSCRIPTION-SALE'],
+            $Client->requests[0]->arguments
+        );
+    }
+
+    public function testExistingSubscriptionCaptureReferenceIsSupported(): void
+    {
+        $Transaction = $this->createMock(
+            \QUI\ERP\Accounting\Payments\Transactions\Transaction::class
+        );
+        $Transaction->method('getData')->willReturnMap([
+            [
+                RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID,
+                null
+            ],
+            [
+                RecurringPayment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID,
+                null
+            ],
+            [
+                RecurringPayment::ATTR_PAYPAL_SUBSCRIPTION_ID,
+                'I-SUBSCRIPTION'
+            ],
+            [
+                Payment::ATTR_PAYPAL_CAPTURE_ID,
+                'EXISTING-SUBSCRIPTION-SALE'
+            ]
+        ]);
+        $Client = new PayPalHttpClient();
+        $Client->result = (object)[];
+        $Payment = new LegacyApiPaymentDouble();
+        $Payment->useLegacyClient($Client);
+
+        $Payment->payPalApiRequest(
+            RecurringPayment::PAYPAL_REQUEST_TYPE_SALE_REFUND,
+            [],
+            $Transaction
+        );
+
+        self::assertSame(
+            ['EXISTING-SUBSCRIPTION-SALE'],
+            $Client->requests[0]->arguments
+        );
+    }
+
     public function testUnknownLegacyRequestIsRejected(): void
     {
         $this->expectException(PayPalException::class);

@@ -2,27 +2,131 @@
     z-index: 1000 !important;
 }
 
-.quiqqer-payment-paypal-recurring-paymentdisplay-btn {
-    background: #ffc439;
-    border-color: #ffc439;
-    border-radius: 4px;
-    color: #111;
+.quiqqer-order-step-processing.quiqqer-payment-paypal-recurring-step {
+    background: #fff;
+    border: 1px solid #dce5ee;
+    border-radius: 14px;
+    box-shadow: 0 16px 40px rgba(15, 35, 55, 0.08);
+    box-sizing: border-box;
+    color: #17212f;
+    float: none;
+    margin: clamp(1.5rem, 5vh, 4rem) auto;
+    max-width: 680px;
+    padding: clamp(1.75rem, 5vw, 3rem);
+    width: calc(100% - 2rem);
+}
+
+.quiqqer-payment-paypal-recurring-step > h2 {
+    color: #17212f;
+    font-size: clamp(1.35rem, 3vw, 1.75rem);
+    font-weight: 700;
+    line-height: 1.25;
+    margin: 0 0 0.75rem;
     text-align: center;
 }
 
-.quiqqer-payment-paypal-recurring-paymentdisplay-btn:hover {
-    box-shadow: inset 0 0 100px 100px rgba(0, 0, 0, 0.05);
+.quiqqer-payment-paypal-recurring {
+    margin: 0 auto;
+    max-width: 560px;
+    text-align: center;
+    width: 100%;
+}
 
-    background: #ffc439;
-    border-color: #ffc439;
-    border-radius: 4px;
-    color: #111;
+.quiqqer-payment-paypal-recurring .quiqqer-payment-paypal-message {
+    color: #526173;
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.quiqqer-payment-paypal-recurring .quiqqer-payment-paypal-message p {
+    margin: 0;
+}
+
+.quiqqer-payment-paypal-recurring .quiqqer-payment-paypal-message .message-error {
+    background: #fff3f2;
+    border: 1px solid #f2c8c4;
+    border-radius: 8px;
+    color: #9d2920;
+    padding: 0.85rem 1rem;
+}
+
+.quiqqer-payment-paypal-recurring .quiqqer-payment-paypal-content {
+    align-items: center;
+    border-top: 1px solid #e6edf3;
+    display: flex;
+    flex-direction: column;
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    width: 100%;
+}
+
+.quiqqer-payment-paypal-recurring-paymentdisplay-btn {
+    align-items: center;
+    appearance: none;
+    background: #ffc439 !important;
+    border: 1px solid #ffc439 !important;
+    border-radius: 8px;
+    box-shadow: 0 5px 14px rgba(17, 31, 45, 0.12);
+    color: #111820 !important;
+    cursor: pointer;
+    display: inline-flex !important;
+    gap: 0.45rem;
+    justify-content: center;
+    margin: 0;
+    min-height: 48px;
+    min-width: 240px;
+    padding: 0.65rem 1.5rem;
+    transition: background-color 0.15s ease, border-color 0.15s ease,
+        box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.quiqqer-payment-paypal-recurring-paymentdisplay-btn:hover,
+.quiqqer-payment-paypal-recurring-paymentdisplay-btn:focus {
+    background: #f4bb34 !important;
+    border-color: #f4bb34 !important;
+    box-shadow: 0 8px 18px rgba(17, 31, 45, 0.16);
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.quiqqer-payment-paypal-recurring-paymentdisplay-btn:focus-visible {
+    box-shadow: 0 0 0 3px rgba(0, 112, 186, 0.2),
+        0 8px 18px rgba(17, 31, 45, 0.16);
+}
+
+.quiqqer-payment-paypal-recurring-paymentdisplay-btn:disabled {
+    cursor: wait;
+    opacity: 0.7;
+    transform: none;
 }
 
 .quiqqer-payment-paypal-recurring-paymentdisplay-btn img {
-    float: left;
-    height: 20px;
+    display: inline-block;
+    float: none;
+    height: 24px;
     margin: 0;
+    vertical-align: middle;
+    width: auto;
+}
+
+.quiqqer-payment-paypal-recurring-paymentdisplay-btn img:first-child {
+    height: 26px;
+    margin-right: 0.45rem;
+}
+
+.quiqqer-payment-paypal-recurring-paymentdisplay-btn .qui-button-text {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+}
+
+.quiqqer-payment-paypal-recurring .quiqqer-payment-paypal-buttonText {
+    color: #657386;
+    font-size: 0.8rem;
+    line-height: 1.4;
+    margin-top: 0.65rem;
+    text-align: center;
+    width: 100%;
 }
 
 .fa-paypal {
@@ -33,25 +137,18 @@
     content: "\f1ed";
 }
 
-.quiqqer-payment-paypal-buttonText {
+@media screen and (max-width: 520px) {
+    .quiqqer-order-step-processing.quiqqer-payment-paypal-recurring-step {
+        border-left: 0;
+        border-radius: 0;
+        border-right: 0;
+        box-shadow: none;
+        margin: 1rem 0;
+        padding: 1.5rem 1.1rem;
+        width: 100%;
+    }
 
-}
-
-.quiqqer-payment-paypal-content {
-    width: 100%;
-}
-
-.quiqqer-payment-paypal-content .quiqqer-payment-paypal-recurring-paymentdisplay-btn {
-    float: none;
-    display: block;
-    margin: 1rem auto 0;
-    padding: 0.5rem 1.5rem 0.5rem 2rem;
-    text-align: center;
-}
-
-.quiqqer-payment-paypal-buttonText {
-    font-size: 12px;
-    text-align: center;
-    margin-bottom: 1rem;
-    width: 100%;
+    .quiqqer-payment-paypal-recurring-paymentdisplay-btn {
+        width: 100%;
+    }
 }

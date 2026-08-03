@@ -22,7 +22,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
 ], function (QUIControl, QUILoader, QUIConfirm, QUIButton, Grid, PayPal, BillingAgreementWindow, QUILocale) {
     "use strict";
 
-    var lg = 'quiqqer/payment-paypal';
+    const lg = 'quiqqer/payment-paypal';
 
     return new Class({
 
@@ -65,7 +65,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
 
             this.Loader.show();
 
-            var search = this.$SearchInput.value.trim();
+            let search = this.$SearchInput.value.trim();
 
             if (search === '') {
                 search = false;
@@ -88,12 +88,12 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
                 sortOn : this.$Grid.options.sortOn,
                 search : search
             }).then(function (result) {
-                var TableButtons = this.$Grid.getAttribute('buttons');
+                const TableButtons = this.$Grid.getAttribute('buttons');
                 TableButtons.details.disable();
 
-                for (var i = 0, len = result.data.length; i < len; i++) {
-                    var Row      = result.data[i];
-                    var Customer = JSON.decode(Row.customer);
+                for (let i = 0, len = result.data.length; i < len; i++) {
+                    const Row = result.data[i];
+                    const Customer = JSON.decode(Row.customer);
 
                     Row.customer_text = Customer.firstname + " " + Customer.lastname + " (" + Customer.id + ")";
 
@@ -134,24 +134,22 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
          * event : on panel create
          */
         $onCreate: function () {
-            var self = this;
-
             // Search
             this.$SearchInput = new Element('input', {
                 'class'    : 'quiqqer-payment-paypal-billingagreements-search',
                 placeholder: QUILocale.get(lg, 'controls.backend.BillingAgreements.search.placeholder'),
                 events     : {
-                    keydown: function (event) {
+                    keydown: (event) => {
                         if (typeof event !== 'undefined' &&
                             event.code === 13) {
-                            self.refresh();
+                            this.refresh();
                         }
                     }
                 }
             }).inject(this.$Content);
 
             // Grid
-            var Container = new Element('div', {
+            const Container = new Element('div', {
                 style: {
                     height: '100%',
                     width : '100%'
@@ -208,9 +206,9 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
             this.$Grid.addEvents({
                 onRefresh: this.refresh,
 
-                onClick: function () {
-                    var TableButtons = self.$Grid.getAttribute('buttons'),
-                        selected     = self.$Grid.getSelectedData().length;
+                onClick: () => {
+                    const TableButtons = this.$Grid.getAttribute('buttons');
+                    const selected = this.$Grid.getSelectedData().length;
 
                     if (!Object.getLength(TableButtons)) {
                         return;
@@ -240,7 +238,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
                 return;
             }
 
-            var size = this.$Panel.getContent().getSize();
+            const size = this.$Panel.getContent().getSize();
 
             this.$Content.setStyle('width', size.x - 60);
 
@@ -253,14 +251,10 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements', 
          * Delete Billing Plan dialog
          */
         $clickDetails: function () {
-            var self = this;
-
             new BillingAgreementWindow({
                 billingAgreementId: this.$Grid.getSelectedData()[0].paypal_agreement_id,
                 events            : {
-                    onCancelBillingAgreement: function () {
-                        self.refresh();
-                    }
+                    onCancelBillingAgreement: () => this.refresh()
                 }
             }).open();
         }

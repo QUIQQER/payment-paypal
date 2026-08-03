@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace QUITests\ERP\Payments\PayPal\Unit\Fixtures;
 
+use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Accounting\Payments\Types\Payment;
 use QUI\ERP\Order\OrderInterface;
 use QUI\ERP\Payments\PayPal\Events;
@@ -14,7 +16,14 @@ final class EventsDouble extends Events
     public static bool $planOrder = false;
     public static bool $nobodyUser = false;
     public static ?Payment $ExpressPayment = null;
+    public static Invoice|InvoiceTemporary|null $billedSubscriptionInvoice = null;
+    public static bool $subscriptionInvoicePaid = true;
+    public static int $subscriptionInvoiceBillingAttempts = 0;
+    public static int $subscriptionTransactionWaits = 0;
     public static array $planDetails = [];
+    public static array $subscriptionCronRows = [];
+    public static int $subscriptionCronsAdded = 0;
+    public static array $subscriptionCronsUpdated = [];
 
     protected static function isPlansInstalled(): bool
     {
@@ -60,5 +69,34 @@ final class EventsDouble extends Events
     protected static function isNobodyUser(): bool
     {
         return self::$nobodyUser;
+    }
+
+    protected static function billSubscriptionInvoice(
+        Invoice|InvoiceTemporary $Invoice
+    ): bool {
+        self::$billedSubscriptionInvoice = $Invoice;
+        self::$subscriptionInvoiceBillingAttempts++;
+
+        return self::$subscriptionInvoicePaid;
+    }
+
+    protected static function waitForSubscriptionTransaction(): void
+    {
+        self::$subscriptionTransactionWaits++;
+    }
+
+    protected static function getSubscriptionCronRows(): array
+    {
+        return self::$subscriptionCronRows;
+    }
+
+    protected static function addSubscriptionCron(): void
+    {
+        self::$subscriptionCronsAdded++;
+    }
+
+    protected static function updateSubscriptionCron(array $cron): void
+    {
+        self::$subscriptionCronsUpdated[] = $cron;
     }
 }

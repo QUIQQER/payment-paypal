@@ -3,19 +3,17 @@
  */
 define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
 
-    'qui/QUI',
     'qui/controls/Control',
     'qui/controls/buttons/Button',
 
     'utils/Controls',
     'package/quiqqer/payment-paypal/bin/PayPal',
 
-    'Ajax',
     'Locale',
 
     'css!package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay.css'
 
-], function (QUI, QUIControl, QUIButton, QUIControlUtils, PayPal, QUIAjax, QUILocale) {
+], function (QUIControl, QUIButton, QUIControlUtils, PayPal, QUILocale) {
     "use strict";
 
     const lg = 'quiqqer/payment-paypal';
@@ -27,7 +25,11 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
 
         Binds: [
             '$onImport',
+            '$advanceOrderProcess',
+            '$hideLoader',
             '$loadBillingAgreementButton',
+            '$resolveOrderProcess',
+            '$showLoader',
             '$showErrorMsg',
             '$showMsg'
         ],
@@ -42,6 +44,8 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
 
             this.$MsgElm = null;
             this.$OrderProcess = null;
+            this.$OrderProcessPromise = null;
+            this.$loaderActive = false;
 
             this.addEvents({
                 onImport: this.$onImport
@@ -63,17 +67,97 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
 
             this.$showMsg(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.PaymentDisplay.info'));
 
-            QUIControlUtils.getControlByElement(
-                Elm.getParent('[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]')
-            ).then((OrderProcess) => {
-                this.$OrderProcess = OrderProcess;
+            this.$resolveOrderProcess();
 
-                if (this.getAttribute('successful')) {
+            if (this.getAttribute('successful')) {
+                this.$advanceOrderProcess();
+                return;
+            }
+
+            this.$loadBillingAgreementButton();
+        },
+
+        /**
+         * Resolve the surrounding order process without blocking the PayPal UI.
+         *
+         * @return {Promise<QUIControl|null>}
+         */
+        $resolveOrderProcess: function () {
+            if (this.$OrderProcess) {
+                return Promise.resolve(this.$OrderProcess);
+            }
+
+            if (this.$OrderProcessPromise) {
+                return this.$OrderProcessPromise;
+            }
+
+            const OrderProcessNode = this.getElm().getParent(
+                '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]'
+            );
+
+            if (!OrderProcessNode) {
+                return Promise.resolve(null);
+            }
+
+            const ControlPromise = QUIControlUtils.getControlByElement(OrderProcessNode).then(
+                (OrderProcess) => OrderProcess || null,
+                () => null
+            );
+            const TimeoutPromise = new Promise((resolve) => {
+                setTimeout(() => resolve(null), 1000);
+            });
+
+            this.$OrderProcessPromise = Promise.race([ControlPromise, TimeoutPromise]).then((OrderProcess) => {
+                this.$OrderProcess = OrderProcess;
+                this.$OrderProcessPromise = null;
+
+                return this.$OrderProcess;
+            });
+
+            return this.$OrderProcessPromise;
+        },
+
+        /**
+         * Continue the classic or embedded order process.
+         *
+         * @return {Promise<void>}
+         */
+        $advanceOrderProcess: function () {
+            return this.$resolveOrderProcess().then((OrderProcess) => {
+                if (OrderProcess && typeof OrderProcess.next === 'function') {
                     OrderProcess.next();
                     return;
                 }
 
-                this.$loadBillingAgreementButton();
+                window.location.reload();
+            });
+        },
+
+        /**
+         * Show the order process loader when one is available.
+         *
+         * @param {String} message
+         */
+        $showLoader: function (message) {
+            this.$loaderActive = true;
+
+            this.$resolveOrderProcess().then((OrderProcess) => {
+                if (this.$loaderActive && OrderProcess && OrderProcess.Loader) {
+                    OrderProcess.Loader.show(message);
+                }
+            });
+        },
+
+        /**
+         * Hide a previously displayed order process loader.
+         */
+        $hideLoader: function () {
+            this.$loaderActive = false;
+
+            this.$resolveOrderProcess().then((OrderProcess) => {
+                if (OrderProcess && OrderProcess.Loader) {
+                    OrderProcess.Loader.hide();
+                }
             });
         },
 
@@ -104,26 +188,13 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
                     return;
                 }
 
-                const orderProcessNode = document.querySelector(
-                    '[data-qui="package/quiqqer/order/bin/frontend/controls/OrderProcess"]'
-                );
-
-                if (orderProcessNode) {
-                    const Order = QUI.Controls.getById(orderProcessNode.get('data-quiid'));
-
-                    if (Order) {
-                        Order.next();
-                        return;
-                    }
-                }
-
-                window.location.reload();
+                this.$advanceOrderProcess();
             });
 
             const imageUrl = URL_OPT_DIR + 'quiqqer/payment-paypal/bin/images/';
 
             const PayPalButton = new QUIButton({
-                'class': 'btn btn-primary button quiqqer-payment-paypal-recurring-paymentdisplay-btn',
+                'class': 'quiqqer-payment-paypal-recurring-paymentdisplay-btn',
                 disabled: true,
                 text: '<img src="'+ imageUrl +'Paypal-Logo.svg" alt=""/><img src="'+ imageUrl +'Paypal.svg" alt=""/>',
                 events: {
@@ -171,18 +242,29 @@ define('package/quiqqer/payment-paypal/bin/controls/recurring/PaymentDisplay', [
             const ButtonText = new Element('div', {
                 'class': 'quiqqer-payment-paypal-buttonText',
                 html: QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text_create')
-            }).inject(this.$Content)
+            }).inject(this.$Content);
 
             PayPalButton.getElm().classList.remove('qui-button'); // workaround -> nice button
 
-            this.$OrderProcess.Loader.show(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.Loader.create_billing_agreement'));
+            this.$showLoader(
+                QUILocale.get(lg, 'controls.recurring.PaymentDisplay.Loader.create_billing_agreement')
+            );
 
             PayPal.createBillingAgreement(this.getAttribute('orderhash')).then((Data) => {
-                this.$OrderProcess.Loader.hide();
+                this.$hideLoader();
+
+                if (!Data || !Data.approvalUrl) {
+                    PayPalButton.destroy();
+                    this.$showErrorMsg(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.error'));
+                    this.fireEvent('processingError', [this]);
+                    return;
+                }
+
                 ButtonText.innerHTML = QUILocale.get(lg, 'controls.recurring.PaymentDisplay.btn.text');
                 PayPalButton.setAttribute('approvalUrl', Data.approvalUrl);
                 PayPalButton.enable();
             }, () => {
+                this.$hideLoader();
                 PayPalButton.destroy();
                 this.$showErrorMsg(QUILocale.get(lg, 'controls.recurring.PaymentDisplay.error'));
                 this.fireEvent('processingError', [this]);
