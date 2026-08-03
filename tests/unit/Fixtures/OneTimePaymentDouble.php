@@ -17,6 +17,7 @@ final class OneTimePaymentDouble extends Payment
     public bool $saved = false;
     public bool $updated = false;
     public ?PayPalException $apiException = null;
+    public ?string $existingOrderStatus = null;
 
     protected function getPayPalDataForOrder(AbstractOrder $Order): array
     {
@@ -37,7 +38,17 @@ final class OneTimePaymentDouble extends Payment
             throw $this->apiException;
         }
 
-        return ['id' => 'PAYPAL-ORDER-ID'];
+        if (
+            $request === self::PAYPAL_REQUEST_TYPE_GET_ORDER
+            && $this->existingOrderStatus !== null
+        ) {
+            return [
+                'id' => 'PAYPAL-ORDER-ID',
+                'status' => $this->existingOrderStatus
+            ];
+        }
+
+        return ['id' => 'PAYPAL-ORDER-ID-NEW'];
     }
 
     public function updatePayPalOrder(AbstractOrder $Order): void
