@@ -191,7 +191,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                     this.$PaymentSession = Sdk.createPayPalOneTimePaymentSession({
                         onApprove: () => this.$executeOrder(),
                         onCancel: () => this.$handleCancel(),
-                        onError: () => this.$handleProcessingError()
+                        onError: (Error) => this.$handleProcessingError(Error)
                     });
 
                     this.$PayPalBtnElm.addEventListener('click', this.$onPayBtnClick);
@@ -202,9 +202,9 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                         this.Loader.hide();
                     }
                 });
-            }).catch(() => {
+            }).catch((Error) => {
                 this.Loader.hide();
-                this.$handleProcessingError();
+                this.$handleProcessingError(Error);
             });
         },
 
@@ -229,7 +229,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 }
 
                 this.$hash = Order.hash;
-                return Order.payPalOrderId;
+                return {orderId: Order.payPalOrderId};
             }).catch((Error) => {
                 this.$handleApiError(Error);
                 throw Error;
@@ -238,8 +238,8 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.$PaymentSession.start(
                 {presentationMode: 'auto'},
                 orderPromise
-            ).catch(() => {
-                this.$handleProcessingError();
+            ).catch((Error) => {
+                this.$handleProcessingError(Error);
             });
         },
 
@@ -275,11 +275,15 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
 
         /**
          * Handle a PayPal or SDK processing error.
+         *
+         * @param {Error|Object} Error
          */
-        $handleProcessingError: function () {
+        $handleProcessingError: function (Error) {
             if (this.$flowErrorHandled) {
                 return;
             }
+
+            console.error('PayPal Web SDK v6 Express payment error', Error);
 
             this.$flowErrorHandled = true;
             this.$hideLoader();

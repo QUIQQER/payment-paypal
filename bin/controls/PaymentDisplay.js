@@ -105,7 +105,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     this.$PaymentSession = Sdk.createPayPalOneTimePaymentSession({
                         onApprove: () => this.$executeOrder(),
                         onCancel: () => this.$handleCancel(),
-                        onError: () => this.$handleProcessingError()
+                        onError: (Error) => this.$handleProcessingError(Error)
                     });
 
                     this.$PayPalBtnElm.addEventListener('click', this.$onPayBtnClick);
@@ -113,9 +113,9 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     this.$OrderProcess.resize();
                     this.$OrderProcess.Loader.hide();
                 });
-            }).catch(() => {
+            }).catch((Error) => {
                 this.$OrderProcess.Loader.hide();
-                this.$handleProcessingError();
+                this.$handleProcessingError(Error);
             });
         },
 
@@ -142,7 +142,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                 }
 
                 this.$hash = Order.hash;
-                return Order.payPalOrderId;
+                return {orderId: Order.payPalOrderId};
             }).catch((Error) => {
                 this.$handleApiError(Error);
                 throw Error;
@@ -151,8 +151,8 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
             this.$PaymentSession.start(
                 {presentationMode: 'auto'},
                 orderPromise
-            ).catch(() => {
-                this.$handleProcessingError();
+            ).catch((Error) => {
+                this.$handleProcessingError(Error);
             });
         },
 
@@ -191,11 +191,15 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
 
         /**
          * Handle a PayPal or SDK processing error.
+         *
+         * @param {Error|Object} Error
          */
-        $handleProcessingError: function () {
+        $handleProcessingError: function (Error) {
             if (this.$flowErrorHandled) {
                 return;
             }
+
+            console.error('PayPal Web SDK v6 payment error', Error);
 
             this.$flowErrorHandled = true;
             this.$OrderProcess.Loader.hide();
