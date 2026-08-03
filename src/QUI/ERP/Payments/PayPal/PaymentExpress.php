@@ -112,14 +112,13 @@ class PaymentExpress extends Payment
         /**
          * SET ORDER PAYMENT
          */
-        $Order->addHistory('PayPal Express :: Set Order Payment');
+        $Order->addHistory(Utils::getHistoryText('express.payment.start'));
 
         $Payment = $this->getExpressPayment();
 
         if (!$Payment) {
             $Order->addHistory(
-                'PayPal Express :: Could not set Order Payment because a PayPal Express'
-                . ' payment method does not exist'
+                Utils::getHistoryText('express.payment.error.not_configured')
             );
 
             $this->voidPayPalOrder($Order);
@@ -128,17 +127,19 @@ class PaymentExpress extends Payment
 
         $Order->setPayment($Payment->getId());
         $Order->addHistory(
-            'PayPal Express :: Order Payment successfully set (Payment ID: #' . $Payment->getId() . ')'
+            Utils::getHistoryText('express.payment.success', [
+                'paymentId' => $Payment->getId()
+            ])
         );
 
         /**
          * SET ORDER INVOICE ADDRESS
          */
-        $Order->addHistory('PayPal Express :: Set Order invoice address');
+        $Order->addHistory(Utils::getHistoryText('express.invoice_address.start'));
 
         if (empty($payPalOrder['purchase_units'][0]['shipping'])) {
             $Order->addHistory(
-                'PayPal Express :: Could not set invoice address because PayPal did not deliver address data'
+                Utils::getHistoryText('express.invoice_address.error.no_data')
             );
 
             $this->voidPayPalOrder($Order);
@@ -169,7 +170,7 @@ class PaymentExpress extends Payment
         // Create new address with source "PayPal"
         if (!$InvoiceAddress) {
             $Order->addHistory(
-                'PayPal Express :: PayPal Address found in QUIQQER User -> Adding PayPal QUIQQER Address'
+                Utils::getHistoryText('express.invoice_address.create')
             );
 
             $InvoiceAddress = $PayPalQuiqqerAddress;
@@ -230,10 +231,14 @@ class PaymentExpress extends Payment
                 $CustomerQuiqqerUser->setAttribute('address', $InvoiceAddress->getUUID());
                 $CustomerQuiqqerUser->save($SystemUser);
 
-                $Order->addHistory('PayPal Express :: PayPal QUIQQER Address set as default address');
+                $Order->addHistory(
+                    Utils::getHistoryText('express.invoice_address.default')
+                );
             }
 
-            $Order->addHistory('PayPal Express :: PayPal QUIQQER address successfully created');
+            $Order->addHistory(
+                Utils::getHistoryText('express.invoice_address.created')
+            );
         }
 
         $Order->setInvoiceAddress($InvoiceAddress);
@@ -241,7 +246,9 @@ class PaymentExpress extends Payment
         $Order->setDeliveryAddress($ShippingAddress);
 
         $Order->addHistory(
-            'PayPal Express :: Order invoice address set (QUIQQER address ID: #' . $InvoiceAddress->getUUID() . ')'
+            Utils::getHistoryText('express.invoice_address.success', [
+                'addressId' => $InvoiceAddress->getUUID()
+            ])
         );
 
         $this->saveOrder($Order);

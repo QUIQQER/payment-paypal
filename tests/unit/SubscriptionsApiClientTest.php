@@ -89,6 +89,26 @@ final class SubscriptionsApiClientTest extends TestCase
         );
     }
 
+    public function testPostSendsPayPalRequestIdWhenProvided(): void
+    {
+        $Client = $this->createAuthenticatedClient();
+        $Client->responses[] = [
+            'body' => '{"id":"SUBSCRIPTION-1"}',
+            'status' => 201
+        ];
+
+        $Client->post(
+            '/v1/billing/subscriptions',
+            ['plan_id' => 'PLAN-1'],
+            'stable-request-id'
+        );
+
+        self::assertContains(
+            'PayPal-Request-Id: stable-request-id',
+            $Client->requests[0]['options'][CURLOPT_HTTPHEADER]
+        );
+    }
+
     public function testGetAppendsEncodedQueryParameters(): void
     {
         $Client = $this->createAuthenticatedClient();
@@ -137,6 +157,23 @@ final class SubscriptionsApiClientTest extends TestCase
         } catch (PayPalException $Exception) {
             self::assertSame('Invalid subscription', $Exception->getMessage());
             self::assertSame(422, $Exception->getCode());
+        }
+    }
+
+    public function testExpectedGetErrorStillThrowsWithStatus(): void
+    {
+        $Client = $this->createAuthenticatedClient();
+        $Client->responses[] = [
+            'body' => '{"message":"Not found"}',
+            'status' => 404
+        ];
+
+        try {
+            $Client->get('/v1/resource', [], [404]);
+            self::fail('PayPalException was not thrown.');
+        } catch (PayPalException $Exception) {
+            self::assertSame('Not found', $Exception->getMessage());
+            self::assertSame(404, $Exception->getCode());
         }
     }
 

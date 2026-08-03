@@ -10,7 +10,7 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
 ], function(QUIAjax) {
     'use strict';
 
-    var pkg = 'quiqqer/payment-paypal';
+    const pkg = 'quiqqer/payment-paypal';
 
     return new Class({
 
@@ -147,6 +147,126 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
                     billingAgreementId: billingAgreementId,
                     onError: reject
                 });
+            });
+        },
+
+        /**
+         * Get locally known PayPal Subscriptions.
+         *
+         * @param {Object} searchParams - Grid search parameters
+         * @return {Promise}
+         */
+        getSubscriptionList: function(searchParams) {
+            return new Promise((resolve, reject) => {
+                QUIAjax.get(
+                    'package_quiqqer_payment-paypal_ajax_recurring_getSubscriptionList',
+                    resolve,
+                    {
+                        'package': pkg,
+                        searchParams: JSON.encode(searchParams),
+                        onError: reject
+                    }
+                );
+            });
+        },
+
+        /**
+         * Get PayPal Subscription details.
+         *
+         * @param {String} subscriptionId
+         * @return {Promise}
+         */
+        getSubscription: function(subscriptionId) {
+            return new Promise((resolve, reject) => {
+                QUIAjax.get(
+                    'package_quiqqer_payment-paypal_ajax_recurring_getSubscription',
+                    resolve,
+                    {
+                        'package': pkg,
+                        subscriptionId: subscriptionId,
+                        onError: reject
+                    }
+                );
+            });
+        },
+
+        /**
+         * Suspend a PayPal Subscription.
+         *
+         * @param {String} subscriptionId
+         * @return {Promise}
+         */
+        suspendSubscription: function(subscriptionId) {
+            return new Promise((resolve, reject) => {
+                QUIAjax.post(
+                    'package_quiqqer_payment-paypal_ajax_recurring_suspendSubscription',
+                    resolve,
+                    {
+                        'package': pkg,
+                        subscriptionId: subscriptionId,
+                        onError: reject
+                    }
+                );
+            });
+        },
+
+        /**
+         * Activate a suspended PayPal Subscription.
+         *
+         * @param {String} subscriptionId
+         * @return {Promise}
+         */
+        activateSubscription: function(subscriptionId) {
+            return new Promise((resolve, reject) => {
+                QUIAjax.post(
+                    'package_quiqqer_payment-paypal_ajax_recurring_activateSubscription',
+                    resolve,
+                    {
+                        'package': pkg,
+                        subscriptionId: subscriptionId,
+                        onError: reject
+                    }
+                );
+            });
+        },
+
+        /**
+         * Cancel a PayPal Subscription.
+         *
+         * @param {String} subscriptionId
+         * @return {Promise}
+         */
+        cancelSubscription: function(subscriptionId) {
+            return new Promise((resolve, reject) => {
+                QUIAjax.post(
+                    'package_quiqqer_payment-paypal_ajax_recurring_cancelSubscription',
+                    resolve,
+                    {
+                        'package': pkg,
+                        subscriptionId: subscriptionId,
+                        onError: reject
+                    }
+                );
+            });
+        },
+
+        /**
+         * Delete an unassigned Subscription from the local QUIQQER database.
+         *
+         * @param {String} subscriptionId
+         * @return {Promise}
+         */
+        deleteUnassignedSubscription: function(subscriptionId) {
+            return new Promise((resolve, reject) => {
+                QUIAjax.post(
+                    'package_quiqqer_payment-paypal_ajax_recurring_deleteUnassignedSubscription',
+                    resolve,
+                    {
+                        'package': pkg,
+                        subscriptionId: subscriptionId,
+                        onError: reject
+                    }
+                );
             });
         },
 

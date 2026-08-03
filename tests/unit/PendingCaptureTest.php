@@ -8,6 +8,7 @@ use PHPUnit\Framework\TestCase;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Payments\PayPal\Payment;
 use QUI\ERP\Payments\PayPal\PayPalSystemException;
+use QUI\ERP\Payments\PayPal\Utils;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\PendingCapturePaymentDouble;
 
@@ -63,8 +64,9 @@ final class PendingCaptureTest extends TestCase
         self::assertSame($Order, $Payment->purchase['order']);
         self::assertSame(1, $Payment->saveCount);
         self::assertContains(
-            'PayPal :: Pending order capture was completed. Transaction '
-            . 'TRANSACTION-PENDING added.',
+            Utils::getHistoryText('order.capture.pending_completed', [
+                'transactionId' => 'TRANSACTION-PENDING'
+            ]),
             $Order->history
         );
     }

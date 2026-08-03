@@ -82,7 +82,7 @@
 
         </config>
 
-        <window>
+        <window name="payment-paypal" menu-parent="/settings/payments/">
             <title>
                 <locale group="quiqqer/payment-paypal" var="settings.menu.title"/>
             </title>
@@ -92,7 +92,7 @@
             </params>
 
             <categories>
-                <category name="api">
+                <category name="api" index="5">
                     <icon>fa fa-cogs</icon>
                     <title>
                         <locale group="quiqqer/payment-paypal" var="settings.category.api.title"/>
@@ -159,7 +159,7 @@
                     </settings>
                 </category>
 
-                <category name="payment">
+                <category name="payment" index="2">
                     <icon>fa fa-credit-card</icon>
                     <title>
                         <locale group="quiqqer/payment-paypal" var="settings.category.payment.title"/>
@@ -340,7 +340,24 @@
                     </settings>
                 </category>
 
-                <category name="billing_plans">
+                <category name="subscriptions" index="1">
+                    <icon>fa fa-paypal</icon>
+                    <title>
+                        <locale group="quiqqer/payment-paypal" var="settings.category.subscriptions.title"/>
+                    </title>
+
+                    <settings name="subscriptions" title="subscriptions">
+                        <title>
+                            <locale group="quiqqer/payment-paypal" var="settings.category.subscriptions.title"/>
+                        </title>
+
+                        <input type="hidden" data-qui="package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions" label="false">
+                        </input>
+                    </settings>
+
+                </category>
+
+                <category name="billing_plans" index="4">
                     <icon>fa fa-paypal</icon>
                     <title>
                         <locale group="quiqqer/payment-paypal" var="settings.category.billing_plans.title"/>
@@ -357,7 +374,7 @@
 
                 </category>
 
-                <category name="billing_agreements">
+                <category name="billing_agreements" index="3">
                     <icon>fa fa-paypal</icon>
                     <title>
                         <locale group="quiqqer/payment-paypal" var="settings.category.billing_agreements.title"/>

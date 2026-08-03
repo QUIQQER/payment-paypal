@@ -20,7 +20,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
 ], function (QUIControl, QUILoader, QUIConfirm, QUIButton, Grid, PayPal, QUILocale) {
     "use strict";
 
-    var lg = 'quiqqer/payment-paypal';
+    const lg = 'quiqqer/payment-paypal';
 
     return new Class({
 
@@ -66,7 +66,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
                 sortBy : this.$Grid.options.sortBy,
                 sortOn : this.$Grid.options.sortOn
             }).then(function (result) {
-                var TableButtons = this.$Grid.getAttribute('buttons');
+                const TableButtons = this.$Grid.getAttribute('buttons');
                 TableButtons.delete.disable();
 
                 this.$Grid.setData(result);
@@ -101,12 +101,10 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
          * event : on panel create
          */
         $onCreate: function () {
-            var self = this;
-
             // Buttons
 
             // Grid
-            var Container = new Element('div', {
+            const Container = new Element('div', {
                 style: {
                     height: '100%',
                     width : '100%'
@@ -158,9 +156,9 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
             this.$Grid.addEvents({
                 onRefresh: this.refresh,
 
-                onClick: function () {
-                    var TableButtons = self.$Grid.getAttribute('buttons'),
-                        selected     = self.$Grid.getSelectedData().length;
+                onClick: () => {
+                    const TableButtons = this.$Grid.getAttribute('buttons');
+                    const selected = this.$Grid.getSelectedData().length;
 
                     if (!Object.getLength(TableButtons)) {
                         return;
@@ -188,7 +186,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
                 return;
             }
 
-            var size = this.$Panel.getContent().getSize();
+            const size = this.$Panel.getContent().getSize();
 
             this.$Content.setStyle('width', size.x - 60);
 
@@ -201,8 +199,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
          * Delete Billing Plan dialog
          */
         $clickDelete: function () {
-            var self          = this;
-            var billingPlanId = this.$Grid.getSelectedData()[0].id;
+            const billingPlanId = this.$Grid.getSelectedData()[0].id;
 
             new QUIConfirm({
                 maxHeight: 300,
@@ -221,15 +218,15 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans', [
                     textimage: 'icon-ok fa fa-trash'
                 },
                 events     : {
-                    onSubmit: function (Popup) {
+                    onSubmit: (Popup) => {
                         Popup.Loader.show();
 
-                        PayPal.deleteBillingPlan(billingPlanId).then(function () {
-                            self.refresh();
+                        PayPal.deleteBillingPlan(billingPlanId).then(() => {
+                            this.refresh();
                             Popup.close();
-                        }, function () {
+                        }, () => {
                             Popup.Loader.hide();
-                        })
+                        });
                     }
                 }
 

@@ -7,6 +7,7 @@ use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Provider;
 
 use function http_build_query;
+use function in_array;
 use function is_array;
 use function json_decode;
 use function json_encode;
@@ -29,27 +30,38 @@ class ApiClient
     /**
      * @param string $path
      * @param array<mixed> $body
+     * @param string|null $requestId
      * @return array<mixed>
      * @throws PayPalException
      */
-    public function post(string $path, array $body = []): array
+    public function post(string $path, array $body = [], ?string $requestId = null): array
     {
-        return $this->request('POST', $path, $body);
+        return $this->request('POST', $path, $body, $requestId);
     }
 
     /**
      * @param string $path
      * @param array<mixed> $body
+     * @param list<int> $expectedErrorStatuses
      * @return array<mixed>
      * @throws PayPalException
      */
-    public function get(string $path, array $body = []): array
-    {
+    public function get(
+        string $path,
+        array $body = [],
+        array $expectedErrorStatuses = []
+    ): array {
         if (!empty($body)) {
             $path .= '?' . http_build_query($body);
         }
 
-        return $this->request('GET', $path);
+        return $this->request(
+            'GET',
+            $path,
+            null,
+            null,
+            $expectedErrorStatuses
+        );
     }
 
     /**
@@ -84,15 +96,26 @@ class ApiClient
      * @param string $method
      * @param string $path
      * @param array<mixed>|null $body
+     * @param string|null $requestId
+     * @param list<int> $expectedErrorStatuses
      * @return array<mixed>
      * @throws PayPalException
      */
-    protected function request(string $method, string $path, ?array $body = null): array
-    {
+    protected function request(
+        string $method,
+        string $path,
+        ?array $body = null,
+        ?string $requestId = null,
+        array $expectedErrorStatuses = []
+    ): array {
         $headers = [
             'Accept: application/json',
             'Authorization: Bearer ' . $this->getAccessToken()
         ];
+
+        if ($requestId !== null && $requestId !== '') {
+            $headers[] = 'PayPal-Request-Id: ' . $requestId;
+        }
 
         $payload = null;
 
@@ -126,17 +149,19 @@ class ApiClient
         }
 
         if ($status < 200 || $status >= 300) {
-            QUI\System\Log::write(
-                'PayPal Subscriptions API request failed',
-                QUI\System\Log::LEVEL_WARNING,
-                [
-                    'method' => $method,
-                    'path' => $path,
-                    'status' => $status,
-                    'response' => $response
-                ],
-                'paypal_api'
-            );
+            if (!in_array($status, $expectedErrorStatuses, true)) {
+                QUI\System\Log::write(
+                    'PayPal Subscriptions API request failed',
+                    QUI\System\Log::LEVEL_WARNING,
+                    [
+                        'method' => $method,
+                        'path' => $path,
+                        'status' => $status,
+                        'response' => $response
+                    ],
+                    'paypal_api'
+                );
+            }
 
             throw new PayPalException(
                 !empty($response['message'])

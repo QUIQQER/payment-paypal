@@ -45,6 +45,33 @@ final class DatabaseSchemaTest extends TestCase
         }
     }
 
+    public function testSubscriptionAccountContextFieldsAllowVerifiedLegacyMigration(): void
+    {
+        foreach (
+            [
+                'paypal_subscription_plans',
+                'paypal_subscriptions'
+            ] as $tableName
+        ) {
+            $Field = $this->getField($tableName, 'paypal_account_hash');
+
+            self::assertSame('string', (string)$Field['type']);
+            self::assertSame('64', (string)$Field['length']);
+            self::assertSame('true', (string)$Field['nullable']);
+            self::assertSame('null', (string)$Field['default']);
+        }
+
+        $CheckField = $this->getField(
+            'paypal_subscriptions',
+            'paypal_account_check_hash'
+        );
+
+        self::assertSame('string', (string)$CheckField['type']);
+        self::assertSame('64', (string)$CheckField['length']);
+        self::assertSame('true', (string)$CheckField['nullable']);
+        self::assertSame('null', (string)$CheckField['default']);
+    }
+
     private function loadSchema(): SimpleXMLElement
     {
         $Xml = simplexml_load_file(dirname(__DIR__, 2) . '/database.xml');

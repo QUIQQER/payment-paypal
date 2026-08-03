@@ -93,6 +93,104 @@ final class RecurringPaymentRefundTest extends TestCase
         );
     }
 
+    public function testSubscriptionRefundUsesPayPalSaleTransaction(): void
+    {
+        $Payment = new RecurringPaymentWorkflowDouble();
+        $Payment->apiResponse = [
+            'id' => 'SUBSCRIPTION-REFUND-COMPLETED',
+            'state' => 'completed',
+            'amount' => [
+                'total' => '6.25',
+                'currency' => 'EUR'
+            ]
+        ];
+
+        $Payment->refundPayment(
+            $this->subscriptionTransaction('SUBSCRIPTION-SALE'),
+            self::PREFIX . 'subscription',
+            6.25,
+            'Subscription refund'
+        );
+
+        $RefundTransaction = $this->transactionByHash(self::PREFIX . 'subscription');
+
+        self::assertSame(
+            TransactionHandler::STATUS_COMPLETE,
+            $RefundTransaction->getStatus()
+        );
+        self::assertSame(
+            'SUBSCRIPTION-REFUND-COMPLETED',
+            $RefundTransaction->getData(OneTimePayment::ATTR_PAYPAL_REFUND_ID)
+        );
+        self::assertSame(
+            Payment::PAYPAL_REQUEST_TYPE_SALE_REFUND,
+            $Payment->apiCalls[0]['request']
+        );
+    }
+
+    public function testExistingSubscriptionCaptureReferenceCanBeRefunded(): void
+    {
+        $Payment = new RecurringPaymentWorkflowDouble();
+        $Payment->apiResponse = [
+            'id' => 'EXISTING-SUBSCRIPTION-REFUND',
+            'state' => OneTimePayment::PAYPAL_REFUND_STATE_COMPLETED,
+            'amount' => [
+                'total' => '2.50',
+                'currency' => 'EUR'
+            ]
+        ];
+
+        $Payment->refundPayment(
+            $this->subscriptionTransaction(null, 'EXISTING-SUBSCRIPTION-SALE'),
+            self::PREFIX . 'existing',
+            2.5
+        );
+
+        self::assertSame(
+            TransactionHandler::STATUS_COMPLETE,
+            $this->transactionByHash(self::PREFIX . 'existing')->getStatus()
+        );
+    }
+
+    public function testSubscriptionRefundRequiresPayPalTransactionId(): void
+    {
+        $Payment = new RecurringPaymentWorkflowDouble();
+
+        try {
+            $Payment->refundPayment(
+                $this->subscriptionTransaction(null),
+                self::PREFIX . 'missing-sub',
+                2.5
+            );
+            self::fail('Subscription refund without a PayPal transaction ID was accepted.');
+        } catch (PayPalException) {
+            self::assertSame([], $Payment->apiCalls);
+        }
+    }
+
+    public function testMalformedApiResponseMarksRefundTransactionAsError(): void
+    {
+        $Payment = new RecurringPaymentWorkflowDouble();
+        $Payment->apiResponse = [
+            'id' => 'MALFORMED-SUBSCRIPTION-REFUND',
+            'state' => OneTimePayment::PAYPAL_REFUND_STATE_COMPLETED
+        ];
+
+        try {
+            $Payment->refundPayment(
+                $this->subscriptionTransaction('SUBSCRIPTION-SALE'),
+                self::PREFIX . 'malformed',
+                2.5
+            );
+            self::fail('Malformed PayPal refund response was accepted.');
+        } catch (PayPalException) {
+            self::assertSame(
+                TransactionHandler::STATUS_ERROR,
+                $this->transactionByHash(self::PREFIX . 'malformed')->getStatus()
+            );
+        }
+    }
+
     public function testRefundRequiresLegacyAgreementTransactionId(): void
     {
         $Payment = new RecurringPaymentWorkflowDouble();
@@ -114,13 +212,19 @@ final class RecurringPaymentRefundTest extends TestCase
             'state' => 'FAILED'
         ];
 
-        $this->expectException(PayPalException::class);
-
-        $Payment->refundPayment(
-            $this->sourceTransaction(),
-            self::PREFIX . 'failed',
-            2.5
-        );
+        try {
+            $Payment->refundPayment(
+                $this->sourceTransaction(),
+                self::PREFIX . 'failed',
+                2.5
+            );
+            self::fail('Unexpected PayPal refund state was accepted.');
+        } catch (PayPalException) {
+            self::assertSame(
+                TransactionHandler::STATUS_ERROR,
+                $this->transactionByHash(self::PREFIX . 'failed')->getStatus()
+            );
+        }
     }
 
     private function sourceTransaction(bool $hasAgreementTransaction = true): Transaction
@@ -136,6 +240,39 @@ final class RecurringPaymentRefundTest extends TestCase
             [
                 Payment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID,
                 $hasAgreementTransaction ? 'SALE-SOURCE' : null
+            ]
+        ]);
+
+        return $Transaction;
+    }
+
+    private function subscriptionTransaction(
+        ?string $subscriptionTransactionId,
+        ?string $legacyCaptureId = null
+    ): Transaction {
+        $Transaction = $this->createMock(Transaction::class);
+        $Transaction->method('getTxId')->willReturn(self::PREFIX . 'subscription-source');
+        $Transaction->method('getGlobalProcessId')->willReturn(self::PREFIX . 'process');
+        $Transaction->method('getCurrency')->willReturn(
+            CurrencyHandler::getCurrency('EUR')
+        );
+        $Transaction->method('getPayment')->willReturn(new Payment());
+        $Transaction->method('getData')->willReturnMap([
+            [
+                Payment::ATTR_PAYPAL_BILLING_AGREEMENT_TRANSACTION_ID,
+                null
+            ],
+            [
+                Payment::ATTR_PAYPAL_SUBSCRIPTION_ID,
+                'I-SUBSCRIPTION'
+            ],
+            [
+                Payment::ATTR_PAYPAL_SUBSCRIPTION_TRANSACTION_ID,
+                $subscriptionTransactionId
+            ],
+            [
+                OneTimePayment::ATTR_PAYPAL_CAPTURE_ID,
+                $legacyCaptureId
             ]
         ]);
 

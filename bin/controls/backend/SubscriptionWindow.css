@@ -1,0 +1,171 @@
+.quiqqer-payment-paypal-backend-subscriptionwindow .qui-window-popup-content {
+    background: #f5f7fa;
+}
+
+.quiqqer-payment-paypal-subscription-details {
+    color: #172b4d;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 4px;
+}
+
+.quiqqer-payment-paypal-subscription-details-header {
+    align-items: center;
+    background: #fff;
+    border: 1px solid #dce3ec;
+    border-radius: 8px;
+    display: grid;
+    gap: 14px;
+    grid-template-columns: auto 1fr auto;
+    padding: 18px;
+}
+
+.quiqqer-payment-paypal-subscription-details-heading {
+    align-items: center;
+    background: #0070ba;
+    border-radius: 8px;
+    color: #fff;
+    display: flex;
+    font-size: 22px;
+    height: 44px;
+    justify-content: center;
+    width: 44px;
+}
+
+.quiqqer-payment-paypal-subscription-details-title {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.quiqqer-payment-paypal-subscription-details-title strong {
+    font-size: 18px;
+}
+
+.quiqqer-payment-paypal-subscription-details-title small {
+    color: #526581;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.quiqqer-payment-paypal-subscription-status {
+    background: #eef2f6;
+    border-radius: 999px;
+    color: #44546a;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 11px;
+}
+
+.quiqqer-payment-paypal-subscription-status.status-active {
+    background: #dafbe1;
+    color: #116329;
+}
+
+.quiqqer-payment-paypal-subscription-status.status-approved {
+    background: #ddf4ff;
+    color: #0969da;
+}
+
+.quiqqer-payment-paypal-subscription-status.status-approval-pending {
+    background: #fff8c5;
+    color: #7d4e00;
+}
+
+.quiqqer-payment-paypal-subscription-status.status-suspended {
+    background: #fff1e5;
+    color: #9a6700;
+}
+
+.quiqqer-payment-paypal-subscription-status.status-cancelled,
+.quiqqer-payment-paypal-subscription-status.status-expired {
+    background: #ffebe9;
+    color: #a40e26;
+}
+
+.quiqqer-payment-paypal-subscription-details-section {
+    background: #fff;
+    border: 1px solid #dce3ec;
+    border-radius: 8px;
+    padding: 18px;
+}
+
+.quiqqer-payment-paypal-subscription-details-section h3 {
+    border-bottom: 1px solid #e7ebf0;
+    font-size: 15px;
+    margin: 0 0 14px;
+    padding: 0 0 11px;
+}
+
+.quiqqer-payment-paypal-subscription-details-section h3 span {
+    color: #0070ba;
+    margin-right: 8px;
+}
+
+.quiqqer-payment-paypal-subscription-details-grid {
+    display: grid;
+    gap: 14px 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.quiqqer-payment-paypal-subscription-details-field {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.quiqqer-payment-paypal-subscription-details-field span {
+    color: #64748b;
+    font-size: 12px;
+    margin-bottom: 3px;
+}
+
+.quiqqer-payment-paypal-subscription-details-field strong {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.quiqqer-payment-paypal-subscription-transactions {
+    overflow-x: auto;
+}
+
+.quiqqer-payment-paypal-subscription-transactions table {
+    border-collapse: collapse;
+    min-width: 700px;
+    width: 100%;
+}
+
+.quiqqer-payment-paypal-subscription-transactions th,
+.quiqqer-payment-paypal-subscription-transactions td {
+    border-bottom: 1px solid #e7ebf0;
+    padding: 9px 10px;
+    text-align: left;
+}
+
+.quiqqer-payment-paypal-subscription-transactions th {
+    color: #526581;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.quiqqer-payment-paypal-subscription-empty {
+    color: #64748b;
+    margin: 0;
+}
+
+@media (max-width: 700px) {
+    .quiqqer-payment-paypal-subscription-details-header {
+        grid-template-columns: auto 1fr;
+    }
+
+    .quiqqer-payment-paypal-subscription-status {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+
+    .quiqqer-payment-paypal-subscription-details-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -11,10 +11,12 @@ use QUI\ERP\Accounting\Calculations;
 use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Currency\Currency;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Payment as BasePayment;
 use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
+use QUI\ERP\Payments\PayPal\Utils;
 use QUI\ERP\Plans\Handler as PlansHandler;
 use QUI\ERP\Products\Product\Product;
 use QUI\Locale;
@@ -24,9 +26,12 @@ use QUITests\ERP\Payments\PayPal\Unit\Fixtures\OrderDouble;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\SubscriptionsApiClientDouble;
 use QUITests\ERP\Payments\PayPal\Unit\Fixtures\SubscriptionsDouble;
 
+use const CURLOPT_HTTPHEADER;
+
 final class SubscriptionsOperationsTest extends TestCase
 {
     private const SUBSCRIPTION_ID = 'phpunit_paypal_operations_subscription';
+    private const PLAN_ID = 'PLAN-1';
 
     protected function setUp(): void
     {
@@ -61,7 +66,12 @@ final class SubscriptionsOperationsTest extends TestCase
     {
         $Client = new SubscriptionsApiClientDouble();
         $this->setApiClient($Client);
+        $this->insertSubscription();
         $Order = new OrderDouble();
+        $Order->setPaymentData(
+            Payment::ATTR_PAYPAL_SUBSCRIPTION_ID,
+            self::SUBSCRIPTION_ID
+        );
         $Order->setPaymentData(
             Payment::ATTR_PAYPAL_SUBSCRIPTION_APPROVAL_URL,
             'https://paypal.example/approve'
@@ -118,7 +128,9 @@ final class SubscriptionsOperationsTest extends TestCase
             $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID)
         );
         self::assertContains(
-            'PayPal :: Subscription created: ' . self::SUBSCRIPTION_ID,
+            Utils::getHistoryText('order.subscription.created', [
+                'subscriptionId' => self::SUBSCRIPTION_ID
+            ]),
             $Order->history
         );
 
@@ -132,6 +144,7 @@ final class SubscriptionsOperationsTest extends TestCase
             'https://example.test/success',
             $request['application_context']['return_url']
         );
+        self::assertSame(38, strlen($this->requestId($Client)));
 
         $data = Subscriptions::getSubscriptionData(self::SUBSCRIPTION_ID);
         self::assertIsArray($data);
@@ -207,6 +220,12 @@ final class SubscriptionsOperationsTest extends TestCase
             $planBody['billing_cycles'][0]['pricing_scheme']['fixed_price']
         );
         self::assertSame(0, $planBody['billing_cycles'][0]['total_cycles']);
+
+        $productRequestId = $this->requestId($Client, 0);
+        $planRequestId = $this->requestId($Client, 1);
+        self::assertSame(38, strlen($productRequestId));
+        self::assertSame(38, strlen($planRequestId));
+        self::assertNotSame($productRequestId, $planRequestId);
     }
 
     public function testFiniteSubscriptionCycleCountIsCalculated(): void
@@ -240,14 +259,28 @@ final class SubscriptionsOperationsTest extends TestCase
             ['reason' => 'Cancelled from QUIQQER'],
             $this->requestBody($Client)
         );
+        self::assertSame(
+            Subscriptions::STATUS_CANCELLED,
+            Subscriptions::getSubscriptionData(
+                self::SUBSCRIPTION_ID
+            )['subscriptionData']['status']
+        );
     }
 
     public function testSuspendAndActivateSubscriptionUseProvidedAndDefaultNotes(): void
     {
+        $this->insertSubscription();
         $Client = $this->apiClientWithResponses([[], []]);
         $this->setApiClient($Client);
 
         Subscriptions::suspendSubscription(self::SUBSCRIPTION_ID, 'Payment overdue');
+        self::assertSame(
+            Subscriptions::STATUS_SUSPENDED,
+            Subscriptions::getSubscriptionData(
+                self::SUBSCRIPTION_ID
+            )['subscriptionData']['status']
+        );
+
         Subscriptions::activateSubscription(self::SUBSCRIPTION_ID);
 
         self::assertSame(
@@ -257,6 +290,12 @@ final class SubscriptionsOperationsTest extends TestCase
         self::assertSame(
             ['reason' => 'Activated from QUIQQER'],
             $this->requestBody($Client, 1)
+        );
+        self::assertSame(
+            Subscriptions::STATUS_ACTIVE,
+            Subscriptions::getSubscriptionData(
+                self::SUBSCRIPTION_ID
+            )['subscriptionData']['status']
         );
     }
 
@@ -330,18 +369,20 @@ final class SubscriptionsOperationsTest extends TestCase
             [
                 'id' => self::SUBSCRIPTION_ID,
                 'status' => Subscriptions::STATUS_ACTIVE,
-                'plan_id' => 'PLAN-1',
+                'custom_id' => 'phpunit-order-uuid',
+                'plan_id' => self::PLAN_ID,
                 'subscriber' => ['email_address' => 'first@example.test']
             ],
             [
                 'id' => self::SUBSCRIPTION_ID,
                 'status' => Subscriptions::STATUS_APPROVED,
-                'plan_id' => 'PLAN-2',
+                'custom_id' => 'phpunit-order-uuid',
+                'plan_id' => self::PLAN_ID,
                 'subscriber' => ['email_address' => 'second@example.test']
             ]
         ]);
         $this->setApiClient($Client);
-        $Order = new OrderDouble();
+        $Order = $this->createOrderWithSubscriptionReferences();
 
         Subscriptions::approveSubscription($Order, self::SUBSCRIPTION_ID);
 
@@ -350,7 +391,7 @@ final class SubscriptionsOperationsTest extends TestCase
             $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_ID)
         );
         self::assertSame(
-            'PLAN-1',
+            self::PLAN_ID,
             $Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID)
         );
         self::assertTrue(
@@ -358,7 +399,9 @@ final class SubscriptionsOperationsTest extends TestCase
         );
         self::assertNotNull($Order->updateUser);
         self::assertContains(
-            'PayPal :: Subscription approved: ' . self::SUBSCRIPTION_ID,
+            Utils::getHistoryText('order.subscription.approved', [
+                'subscriptionId' => self::SUBSCRIPTION_ID
+            ]),
             $Order->history
         );
 
@@ -366,7 +409,7 @@ final class SubscriptionsOperationsTest extends TestCase
 
         $data = Subscriptions::getSubscriptionData(self::SUBSCRIPTION_ID);
         self::assertIsArray($data);
-        self::assertSame('PLAN-2', $data['planId']);
+        self::assertSame(self::PLAN_ID, $data['planId']);
         self::assertSame(
             'second@example.test',
             $data['customer']['email_address']
@@ -379,17 +422,125 @@ final class SubscriptionsOperationsTest extends TestCase
 
     public function testApproveSubscriptionRejectsInvalidStatus(): void
     {
-        $Client = $this->apiClientWithResponses([
-            ['status' => Subscriptions::STATUS_CANCELLED]
-        ]);
+        $Client = $this->apiClientWithResponses([[
+            'id' => self::SUBSCRIPTION_ID,
+            'status' => Subscriptions::STATUS_CANCELLED,
+            'custom_id' => 'phpunit-order-uuid',
+            'plan_id' => self::PLAN_ID
+        ]]);
         $this->setApiClient($Client);
 
         $this->expectException(PayPalException::class);
 
         Subscriptions::approveSubscription(
-            new OrderDouble(),
+            $this->createOrderWithSubscriptionReferences(),
             self::SUBSCRIPTION_ID
         );
+    }
+
+    public function testApproveSubscriptionRejectsPendingApproval(): void
+    {
+        $Client = $this->apiClientWithResponses([[
+            'id' => self::SUBSCRIPTION_ID,
+            'status' => Subscriptions::STATUS_APPROVAL_PENDING,
+            'custom_id' => 'phpunit-order-uuid',
+            'plan_id' => self::PLAN_ID
+        ]]);
+        $this->setApiClient($Client);
+        $Order = $this->createOrderWithSubscriptionReferences();
+
+        try {
+            Subscriptions::approveSubscription($Order, self::SUBSCRIPTION_ID);
+            self::fail('A subscription pending buyer approval was accepted.');
+        } catch (PayPalException) {
+            self::assertFalse(
+                (bool)$Order->getPaymentDataEntry(
+                    BasePayment::ATTR_PAYPAL_PAYMENT_SUCCESSFUL
+                )
+            );
+            self::assertSame([], $Order->history);
+        }
+    }
+
+    public function testApproveSubscriptionRejectsUnexpectedReturnId(): void
+    {
+        $Client = new SubscriptionsApiClientDouble();
+        $this->setApiClient($Client);
+
+        $this->expectException(PayPalException::class);
+
+        try {
+            Subscriptions::approveSubscription(
+                $this->createOrderWithSubscriptionReferences(),
+                'ANOTHER-SUBSCRIPTION'
+            );
+        } finally {
+            self::assertSame([], $Client->requests);
+        }
+    }
+
+    public function testApproveSubscriptionRejectsUnexpectedApiId(): void
+    {
+        $this->assertSubscriptionReferenceIsRejected([
+            'id' => 'ANOTHER-SUBSCRIPTION',
+            'status' => Subscriptions::STATUS_ACTIVE,
+            'custom_id' => 'phpunit-order-uuid',
+            'plan_id' => self::PLAN_ID
+        ]);
+    }
+
+    public function testApproveSubscriptionRejectsUnexpectedCustomId(): void
+    {
+        $this->assertSubscriptionReferenceIsRejected([
+            'id' => self::SUBSCRIPTION_ID,
+            'status' => Subscriptions::STATUS_ACTIVE,
+            'custom_id' => 'another-order',
+            'plan_id' => self::PLAN_ID
+        ]);
+    }
+
+    public function testApproveSubscriptionRejectsUnexpectedPlanId(): void
+    {
+        $this->assertSubscriptionReferenceIsRejected([
+            'id' => self::SUBSCRIPTION_ID,
+            'status' => Subscriptions::STATUS_ACTIVE,
+            'custom_id' => 'phpunit-order-uuid',
+            'plan_id' => 'ANOTHER-PLAN'
+        ]);
+    }
+
+    private function assertSubscriptionReferenceIsRejected(array $subscriptionData): void
+    {
+        $Client = $this->apiClientWithResponses([$subscriptionData]);
+        $this->setApiClient($Client);
+        $Order = $this->createOrderWithSubscriptionReferences();
+
+        try {
+            Subscriptions::approveSubscription($Order, self::SUBSCRIPTION_ID);
+            self::fail('A subscription belonging to another order was accepted.');
+        } catch (PayPalException) {
+            self::assertFalse(
+                (bool)$Order->getPaymentDataEntry(
+                    BasePayment::ATTR_PAYPAL_PAYMENT_SUCCESSFUL
+                )
+            );
+            self::assertSame([], $Order->history);
+        }
+    }
+
+    private function createOrderWithSubscriptionReferences(): OrderDouble
+    {
+        $Order = new OrderDouble();
+        $Order->setPaymentData(
+            Payment::ATTR_PAYPAL_SUBSCRIPTION_ID,
+            self::SUBSCRIPTION_ID
+        );
+        $Order->setPaymentData(
+            Payment::ATTR_PAYPAL_SUBSCRIPTION_PLAN_ID,
+            self::PLAN_ID
+        );
+
+        return $Order;
     }
 
     private function apiClientWithResponses(array $responses): SubscriptionsApiClientDouble
@@ -426,6 +577,19 @@ final class SubscriptionsOperationsTest extends TestCase
         );
     }
 
+    private function requestId(
+        SubscriptionsApiClientDouble $Client,
+        int $index = 0
+    ): string {
+        foreach ($Client->requests[$index]['options'][CURLOPT_HTTPHEADER] as $header) {
+            if (str_starts_with($header, 'PayPal-Request-Id: ')) {
+                return substr($header, strlen('PayPal-Request-Id: '));
+            }
+        }
+
+        self::fail('PayPal request ID header is missing.');
+    }
+
     private function insertSubscription(): void
     {
         $this->connection()->insert(
@@ -436,7 +600,8 @@ final class SubscriptionsOperationsTest extends TestCase
                 'customer' => '{}',
                 'subscription_data' => '{}',
                 'global_process_id' => 'phpunit-process',
-                'active' => 1
+                'active' => 1,
+                'paypal_account_hash' => AccountContext::getHash()
             ]
         );
     }

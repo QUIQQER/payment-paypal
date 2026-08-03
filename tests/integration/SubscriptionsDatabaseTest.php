@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Integration;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Payments\PayPal\AccountContext;
 use QUI\ERP\Payments\PayPal\Recurring\Subscriptions;
 use Throwable;
 
@@ -35,6 +36,13 @@ final class SubscriptionsDatabaseTest extends TestCase
         $this->cleanupFixtures();
         $this->insertFixture('active', true);
         $this->insertFixture('inactive', false);
+        $this->insertFixture(
+            'foreign',
+            true,
+            AccountContext::createHash('foreign-client-id', true)
+        );
+        $this->insertUnassignedFixture();
+        $this->insertTransactionFixture();
     }
 
     protected function tearDown(): void
@@ -65,8 +73,10 @@ final class SubscriptionsDatabaseTest extends TestCase
 
         self::assertContains(self::PREFIX . 'active', $activeIds);
         self::assertNotContains(self::PREFIX . 'inactive', $activeIds);
+        self::assertNotContains(self::PREFIX . 'foreign', $activeIds);
         self::assertContains(self::PREFIX . 'active', $allIds);
         self::assertContains(self::PREFIX . 'inactive', $allIds);
+        self::assertNotContains(self::PREFIX . 'foreign', $allIds);
     }
 
     public function testSubscriptionDataIsDecodedFromStoredRecord(): void
@@ -110,8 +120,108 @@ final class SubscriptionsDatabaseTest extends TestCase
         );
     }
 
-    private function insertFixture(string $suffix, bool $active): void
+    public function testSubscriptionListSupportsGridSearchAndDecodedData(): void
     {
+        $searchParams = [
+            'search' => self::PREFIX,
+            'page' => 1,
+            'perPage' => 10,
+            'sortOn' => 'paypal_subscription_id',
+            'sortBy' => 'ASC'
+        ];
+        $subscriptions = Subscriptions::getSubscriptionList($searchParams);
+
+        self::assertCount(3, $subscriptions);
+        self::assertSame(
+            3,
+            Subscriptions::getSubscriptionList($searchParams, true)
+        );
+        self::assertSame(
+            self::PREFIX . 'active',
+            $subscriptions[0]['paypal_subscription_id']
+        );
+        self::assertTrue($subscriptions[0]['active']);
+        self::assertSame(
+            'active@example.test',
+            $subscriptions[0]['customer']['email']
+        );
+        self::assertSame(
+            Subscriptions::STATUS_ACTIVE,
+            $subscriptions[0]['subscription_data']['status']
+        );
+
+        $unassigned = array_values(array_filter(
+            $subscriptions,
+            static fn(array $row): bool => $row['paypal_subscription_id']
+                === self::PREFIX . 'unassigned'
+        ));
+
+        self::assertCount(1, $unassigned);
+        self::assertFalse($unassigned[0]['account_context_valid']);
+        self::assertSame(
+            Subscriptions::STATUS_UNASSIGNED,
+            $unassigned[0]['subscription_data']['status']
+        );
+
+        $filtered = Subscriptions::getSubscriptionList([
+            'search' => 'process_inactive',
+            'page' => 1,
+            'perPage' => 10
+        ]);
+
+        self::assertCount(1, $filtered);
+        self::assertSame(
+            self::PREFIX . 'inactive',
+            $filtered[0]['paypal_subscription_id']
+        );
+    }
+
+    public function testOnlyUnassignedSubscriptionCanBeDeletedLocally(): void
+    {
+        self::assertFalse(
+            Subscriptions::deleteUnassignedSubscription(
+                self::PREFIX . 'active'
+            )
+        );
+        self::assertTrue(
+            Subscriptions::deleteUnassignedSubscription(
+                self::PREFIX . 'unassigned'
+            )
+        );
+        self::assertFalse(
+            (bool)$this->connection()->fetchOne(
+                'SELECT paypal_subscription_id FROM ' . $this->table()
+                . ' WHERE paypal_subscription_id = ?',
+                [self::PREFIX . 'unassigned']
+            )
+        );
+    }
+
+    public function testSubscriptionTransactionListReturnsDecodedNewestRows(): void
+    {
+        $transactions = Subscriptions::getSubscriptionTransactionList(
+            self::PREFIX . 'active'
+        );
+
+        self::assertCount(1, $transactions);
+        self::assertSame(
+            self::PREFIX . 'transaction',
+            $transactions[0]['paypal_transaction_id']
+        );
+        self::assertSame(
+            Subscriptions::TRANSACTION_STATE_COMPLETED,
+            $transactions[0]['paypal_transaction_data']['status']
+        );
+        self::assertTrue(
+            $transactions[0]['quiqqer_transaction_completed']
+        );
+    }
+
+    private function insertFixture(
+        string $suffix,
+        bool $active,
+        ?string $accountHash = null
+    ): void {
         $this->connection()->insert(
             $this->table(),
             [
@@ -129,13 +239,67 @@ final class SubscriptionsDatabaseTest extends TestCase
                     'fixture' => $suffix
                 ]),
                 'global_process_id' => self::PREFIX . 'process_' . $suffix,
-                'active' => $active ? 1 : 0
+                'active' => $active ? 1 : 0,
+                'paypal_account_hash' => $accountHash ?? AccountContext::getHash()
+            ]
+        );
+    }
+
+    private function insertTransactionFixture(): void
+    {
+        $this->connection()->insert(
+            $this->transactionsTable(),
+            [
+                'paypal_transaction_id' => self::PREFIX . 'transaction',
+                'paypal_subscription_id' => self::PREFIX . 'active',
+                'paypal_transaction_data' => json_encode([
+                    'status' => Subscriptions::TRANSACTION_STATE_COMPLETED,
+                    'amount' => [
+                        'value' => '12.50',
+                        'currency_code' => 'EUR'
+                    ]
+                ]),
+                'paypal_transaction_date' => '2026-07-28 08:00:00',
+                'quiqqer_transaction_id' => self::PREFIX . 'quiqqer',
+                'quiqqer_transaction_completed' => 1,
+                'global_process_id' => self::PREFIX . 'process_active'
+            ]
+        );
+    }
+
+    private function insertUnassignedFixture(): void
+    {
+        $this->connection()->insert(
+            $this->table(),
+            [
+                'paypal_subscription_id' => self::PREFIX . 'unassigned',
+                'paypal_plan_id' => self::PREFIX . 'unassigned_plan',
+                'customer' => '{}',
+                'subscription_data' => json_encode([
+                    'status' => Subscriptions::STATUS_ACTIVE
+                ]),
+                'global_process_id' => self::PREFIX . 'process_unassigned',
+                'active' => 1,
+                'paypal_account_hash' => null,
+                'paypal_account_check_hash' => AccountContext::getHash()
             ]
         );
     }
 
     private function cleanupFixtures(): void
     {
+        $TransactionQueryBuilder = $this->connection()->createQueryBuilder();
+        $TransactionQueryBuilder
+            ->delete($this->transactionsTable())
+            ->where(
+                $TransactionQueryBuilder->expr()->like(
+                    'paypal_subscription_id',
+                    ':prefix'
+                )
+            )
+            ->setParameter('prefix', self::PREFIX . '%')
+            ->executeStatement();
+
         $QueryBuilder = $this->connection()->createQueryBuilder();
         $QueryBuilder
             ->delete($this->table())
@@ -157,5 +321,12 @@ final class SubscriptionsDatabaseTest extends TestCase
     private function table(): string
     {
         return QUI::getDBTableName(Subscriptions::TBL_SUBSCRIPTIONS);
+    }
+
+    private function transactionsTable(): string
+    {
+        return QUI::getDBTableName(
+            Subscriptions::TBL_SUBSCRIPTION_TRANSACTIONS
+        );
     }
 }
