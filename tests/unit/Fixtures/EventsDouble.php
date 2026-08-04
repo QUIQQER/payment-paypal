@@ -22,7 +22,6 @@ final class EventsDouble extends Events
     public static int $subscriptionTransactionWaits = 0;
     public static array $planDetails = [];
     public static array $subscriptionCronRows = [];
-    public static int $subscriptionCronsAdded = 0;
     public static array $subscriptionCronsUpdated = [];
 
     protected static function isPlansInstalled(): bool
@@ -88,11 +87,6 @@ final class EventsDouble extends Events
     protected static function getSubscriptionCronRows(): array
     {
         return self::$subscriptionCronRows;
-    }
-
-    protected static function addSubscriptionCron(): void
-    {
-        self::$subscriptionCronsAdded++;
     }
 
     protected static function updateSubscriptionCron(array $cron): void
