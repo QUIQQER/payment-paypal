@@ -24,7 +24,6 @@ use QUI\Package\Package;
 use QUI\Smarty\Collector;
 
 use function class_exists;
-use function json_encode;
 use function usleep;
 
 /**
@@ -36,6 +35,7 @@ class Events
 {
     private const SUBSCRIPTION_CRON_EXEC =
         '\\QUI\\ERP\\Payments\\PayPal\\Recurring\\Subscriptions::processUnpaidInvoices';
+    private const SUBSCRIPTION_CRON_LEGACY_MINUTE = '5';
     private const SUBSCRIPTION_CRON_MINUTE = '*/5';
     private const SUBSCRIPTION_TRANSACTION_SYNC_ATTEMPTS = 3;
 
@@ -67,18 +67,19 @@ class Events
     {
         $crons = static::getSubscriptionCronRows();
 
+        // cron.xml owns creation. Setup only migrates existing cron entries so
+        // deliberately deleted entries remain deleted.
         if ($crons === []) {
-            static::addSubscriptionCron();
             return;
         }
 
         foreach ($crons as $cron) {
             if (
-                ($cron['min'] ?? null) === self::SUBSCRIPTION_CRON_MINUTE
-                && ($cron['hour'] ?? null) === '*'
-                && ($cron['day'] ?? null) === '*'
-                && ($cron['month'] ?? null) === '*'
-                && ($cron['dayOfWeek'] ?? null) === '*'
+                ($cron['min'] ?? null) !== self::SUBSCRIPTION_CRON_LEGACY_MINUTE
+                || ($cron['hour'] ?? null) !== '*'
+                || ($cron['day'] ?? null) !== '*'
+                || ($cron['month'] ?? null) !== '*'
+                || ($cron['dayOfWeek'] ?? null) !== '*'
             ) {
                 continue;
             }
@@ -102,33 +103,6 @@ class Events
         }
 
         return $result;
-    }
-
-    /**
-     * @throws QUI\Exception
-     */
-    protected static function addSubscriptionCron(): void
-    {
-        $cron = (new CronManager())->getCronData(self::SUBSCRIPTION_CRON_EXEC);
-
-        if ($cron === false) {
-            throw new QUI\Exception('PayPal subscription cron definition is not available.');
-        }
-
-        QUI::getDataBaseConnection()->insert(
-            QUI\Utils\Doctrine::quoteIdentifier(CronManager::table()),
-            [
-                'active' => 1,
-                'exec' => self::SUBSCRIPTION_CRON_EXEC,
-                'title' => $cron['title'],
-                'min' => self::SUBSCRIPTION_CRON_MINUTE,
-                'hour' => '*',
-                'day' => '*',
-                'month' => '*',
-                'dayOfWeek' => '*',
-                'params' => json_encode([])
-            ]
-        );
     }
 
     /**

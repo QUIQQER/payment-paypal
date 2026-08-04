@@ -13,14 +13,6 @@ if (!class_exists(Manager::class, false)) {
             return [];
         }
 
-        /**
-         * @return array<string, mixed>|false
-         */
-        public function getCronData(string $cron): array | false
-        {
-            return false;
-        }
-
         public static function table(): string
         {
             return 'phpunit_cron';
