@@ -25,7 +25,6 @@ final class EventsTest extends TestCase
         EventsDouble::$subscriptionInvoiceBillingAttempts = 0;
         EventsDouble::$subscriptionTransactionWaits = 0;
         EventsDouble::$subscriptionCronRows = [];
-        EventsDouble::$subscriptionCronsAdded = 0;
         EventsDouble::$subscriptionCronsUpdated = [];
     }
 
@@ -45,14 +44,13 @@ final class EventsTest extends TestCase
         }
     }
 
-    public function testPackageSetupCreatesMissingSubscriptionCron(): void
+    public function testPackageSetupKeepsMissingSubscriptionCronDeleted(): void
     {
         $Package = $this->createMock(Package::class);
         $Package->method('getName')->willReturn('quiqqer/payment-paypal');
 
         EventsDouble::onPackageSetup($Package);
 
-        self::assertSame(1, EventsDouble::$subscriptionCronsAdded);
         self::assertSame([], EventsDouble::$subscriptionCronsUpdated);
     }
 
@@ -72,7 +70,6 @@ final class EventsTest extends TestCase
 
         EventsDouble::onPackageSetup($Package);
 
-        self::assertSame(0, EventsDouble::$subscriptionCronsAdded);
         self::assertSame([$cron], EventsDouble::$subscriptionCronsUpdated);
     }
 
@@ -91,7 +88,24 @@ final class EventsTest extends TestCase
 
         EventsDouble::onPackageSetup($Package);
 
-        self::assertSame(0, EventsDouble::$subscriptionCronsAdded);
+        self::assertSame([], EventsDouble::$subscriptionCronsUpdated);
+    }
+
+    public function testPackageSetupKeepsCustomSubscriptionCronInterval(): void
+    {
+        EventsDouble::$subscriptionCronRows = [[
+            'id' => 54,
+            'min' => '15',
+            'hour' => '2',
+            'day' => '*',
+            'month' => '*',
+            'dayOfWeek' => '*'
+        ]];
+        $Package = $this->createMock(Package::class);
+        $Package->method('getName')->willReturn('quiqqer/payment-paypal');
+
+        EventsDouble::onPackageSetup($Package);
+
         self::assertSame([], EventsDouble::$subscriptionCronsUpdated);
     }
 
