@@ -96,7 +96,9 @@ final class PaymentExpressExecutionTest extends TestCase
 
         $QuiqqerUser = $this->createMock(User::class);
         $QuiqqerUser->method('getAddressList')->willReturn([]);
-        $QuiqqerUser->method('getStandardAddress')->willReturn(null);
+        $QuiqqerUser->method('getStandardAddress')->willThrowException(
+            new \QUI\Users\Exception('No standard address is available.')
+        );
         $QuiqqerUser->expects(self::once())
             ->method('setAttribute')
             ->with('address', 'ADDRESS-PAYPAL');
