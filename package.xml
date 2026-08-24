@@ -8,6 +8,29 @@
             <locale group="quiqqer/payment-paypal" var="package.description"/>
         </description>
 
+        <capabilities schemaVersion="1">
+            <capability id="payments.paypal-checkout">
+                <title>PayPal Checkout</title>
+                <description>
+                    Processes one-time PayPal order payments, including capture status reconciliation and full or partial refunds.
+                </description>
+            </capability>
+
+            <capability id="payments.paypal-express-checkout">
+                <title>PayPal Express Checkout</title>
+                <description>
+                    Adds configurable PayPal Express buttons to baskets and transfers approved payer and shipping data into the order flow.
+                </description>
+            </capability>
+
+            <capability id="payments.paypal-subscriptions">
+                <title>PayPal Subscriptions</title>
+                <description>
+                    Creates and manages recurring PayPal subscriptions, billing plans and legacy billing agreements with invoice and transaction reconciliation.
+                </description>
+            </capability>
+        </capabilities>
+
         <image src="URL_OPT_DIR/quiqqer/payment-paypal/bin/images/Logo.png"/>
 
         <preview>
