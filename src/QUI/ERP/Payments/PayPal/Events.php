@@ -509,10 +509,6 @@ class Events
     {
         $Project = QUI::getProjectManager()->getStandard();
 
-        if ($Project === null) {
-            return '';
-        }
-
         return OrderUtils::getOrderProcessUrl($Project, new CheckoutStep()) ?? '';
     }
 

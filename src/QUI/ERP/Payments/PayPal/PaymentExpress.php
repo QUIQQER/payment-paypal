@@ -185,7 +185,6 @@ class PaymentExpress extends Payment
                  * address data is empty, then set PayPal address data to standard address.
                  */
                 if (
-                    $StandardAddress instanceof QUI\Users\Address &&
                     $StandardAddress->getAttribute('firstname') === $PayPalQuiqqerAddress->getAttribute('firstname') &&
                     $StandardAddress->getAttribute('lastname') === $PayPalQuiqqerAddress->getAttribute('lastname')
                 ) {
