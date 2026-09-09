@@ -7,12 +7,13 @@ namespace QUITests\ERP\Payments\PayPal\Unit;
 use PHPUnit\Framework\TestCase;
 use SimpleXMLElement;
 
+require_once __DIR__ . '/LocaleFiles.php';
+
 final class RecurringConfigurationTest extends TestCase
 {
     public function testLegacyRecurringApiModeIsNotExposed(): void
     {
         $Settings = $this->loadXml('settings.xml');
-        $Locale = $this->loadXml('locale.xml');
 
         self::assertSame(
             [],
@@ -22,12 +23,14 @@ final class RecurringConfigurationTest extends TestCase
             [],
             $Settings->xpath("//select[@conf='payment.recurring_api_mode']") ?: []
         );
-        self::assertSame(
-            [],
-            $Locale->xpath(
-                "//locale[starts-with(@name, 'settings.payment.recurring_api_mode')]"
-            ) ?: []
-        );
+        foreach (LocaleFiles::load() as $Locale) {
+            self::assertSame(
+                [],
+                $Locale->xpath(
+                    "//locale[starts-with(@name, 'settings.payment.recurring_api_mode')]"
+                ) ?: []
+            );
+        }
     }
 
     public function testSubscriptionAdministrationIsExposed(): void
