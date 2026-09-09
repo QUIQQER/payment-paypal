@@ -7,7 +7,6 @@ namespace QUITests\ERP\Payments\PayPal\Unit;
 use PHPUnit\Framework\TestCase;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use SimpleXMLElement;
 use SplFileInfo;
 
 use function dirname;
@@ -16,12 +15,13 @@ use function in_array;
 use function is_array;
 use function preg_match;
 use function preg_match_all;
-use function simplexml_load_file;
 use function str_ends_with;
 use function token_get_all;
 
 use const T_COMMENT;
 use const T_DOC_COMMENT;
+
+require_once __DIR__ . '/LocaleFiles.php';
 
 final class HistoryLocaleTest extends TestCase
 {
@@ -40,11 +40,7 @@ final class HistoryLocaleTest extends TestCase
 
     public function testHistoryLocaleKeysHaveGermanAndEnglishTranslations(): void
     {
-        $LocaleXml = simplexml_load_file(
-            dirname(__DIR__, 2) . '/locale.xml'
-        );
-
-        self::assertInstanceOf(SimpleXMLElement::class, $LocaleXml);
+        $localeDocuments = LocaleFiles::load();
 
         foreach ($this->sourceFiles() as $file) {
             $source = $this->sourceWithoutComments($file);
@@ -55,18 +51,24 @@ final class HistoryLocaleTest extends TestCase
             );
 
             foreach ($matches[1] as $historyKey) {
-                $Locales = $LocaleXml->xpath(
-                    "/locales/groups/locale[@name='history.{$historyKey}']"
-                );
+                foreach (['de', 'en'] as $language) {
+                    $translations = [];
 
-                self::assertIsArray($Locales);
-                self::assertCount(
-                    1,
-                    $Locales,
-                    "Missing locale history.{$historyKey} used in {$file}."
-                );
-                self::assertNotSame('', (string)$Locales[0]->de);
-                self::assertNotSame('', (string)$Locales[0]->en);
+                    foreach ($localeDocuments as $LocaleXml) {
+                        $Matches = $LocaleXml->xpath(
+                            "/locales/groups/locale[@name='history.{$historyKey}']/{$language}"
+                        );
+                        self::assertIsArray($Matches);
+                        $translations = [...$translations, ...$Matches];
+                    }
+
+                    self::assertCount(
+                        1,
+                        $translations,
+                        "Missing locale history.{$historyKey} [{$language}] used in {$file}."
+                    );
+                    self::assertNotSame('', trim((string)$translations[0]));
+                }
             }
         }
     }

@@ -1,0 +1,919 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<locales>
+    <groups name="quiqqer/payment-paypal" datatype="php,js">
+
+        <locale name="package.title">
+<es><![CDATA[Pagos con PayPal para QUIQQER ERP]]></es>
+        </locale>
+        <locale name="package.description">
+<es><![CDATA[Permite pagar pedidos con una cuenta de PayPal]]></es>
+        </locale>
+        <locale name="payment.title">
+<es><![CDATA[PayPal]]></es>
+        </locale>
+        <locale name="payment.description">
+<es><![CDATA[Paga cómodamente con tu cuenta de PayPal.]]></es>
+        </locale>
+        <locale name="payment_express.title">
+<es><![CDATA[PayPal Express]]></es>
+        </locale>
+        <locale name="payment_express.description">
+<es><![CDATA[Paga rápidamente un pedido o un artículo con PayPal Express.]]></es>
+        </locale>
+        <locale name="payment.recurring.title">
+<es><![CDATA[PayPal - Pagos periódicos]]></es>
+        </locale>
+        <locale name="payment.recurring.description">
+<es><![CDATA[Realiza pagos periódicos cómodamente con tu cuenta de PayPal.]]></es>
+        </locale>
+
+<!-- PaymentDisplay -->
+        <locale name="PaymentDisplay.configuration_error">
+<es><![CDATA[El pago con PayPal no está disponible en este momento. Elige otro método de pago.]]></es>
+        </locale>
+        <locale name="PaymentDisplay.processing_error">
+<es><![CDATA[Se ha producido un error al pagar con PayPal. No se ha podido procesar el pago y no se ha realizado ningún cargo en tu cuenta de PayPal. Inténtalo de nuevo o contacta con el vendedor.]]></es>
+        </locale>
+        <locale name="PaymentDisplay.user_cancel">
+<es><![CDATA[Has cancelado el pago con PayPal. Elige otro método de pago o vuelve a iniciar el pago haciendo clic en el botón de PayPal.]]></es>
+        </locale>
+
+<!-- Settings -->
+        <locale name="settings.menu.title">
+<es><![CDATA[PayPal]]></es>
+        </locale>
+        <locale name="settings.category.api.title">
+<es><![CDATA[Configuración de la API]]></es>
+        </locale>
+        <locale name="settings.api.title">
+<es><![CDATA[Configuración de la API]]></es>
+        </locale>
+        <locale name="settings.api.client_id.title">
+<es><![CDATA[Client ID]]></es>
+        </locale>
+        <locale name="settings.api.client_id.description" html="true">
+<es><![CDATA[Encontrarás el «Client ID» de tu aplicación de PayPal en <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></es>
+        </locale>
+        <locale name="settings.api.client_secret.title">
+<es><![CDATA[Secret]]></es>
+        </locale>
+        <locale name="settings.api.client_secret.description" html="true">
+<es><![CDATA[Encontrarás el «Secret» de tu aplicación de PayPal en <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></es>
+        </locale>
+        <locale name="settings.api.sandbox_client_id.title">
+<es><![CDATA[Client ID (Sandbox)]]></es>
+        </locale>
+        <locale name="settings.api.sandbox_client_id.description" html="true">
+<es><![CDATA[Encontrarás el «Client ID» de Sandbox de tu aplicación de PayPal en <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></es>
+        </locale>
+        <locale name="settings.api.sandbox_client_secret.title">
+<es><![CDATA[Secret (Sandbox)]]></es>
+        </locale>
+        <locale name="settings.api.sandbox_client_secret.description" html="true">
+<es><![CDATA[Encontrarás el «Secret» de Sandbox de tu aplicación de PayPal en <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></es>
+        </locale>
+        <locale name="settings.api.sandbox.title">
+<es><![CDATA[Modo Sandbox]]></es>
+        </locale>
+        <locale name="settings.api.sandbox.description" html="true">
+<es><![CDATA[Activar el modo Sandbox (los pagos solo se simulan en un entorno de pruebas; actívalo únicamente para probar el proceso de pago con PayPal). <b>Requiere</b> configurar Client ID y Secret de Sandbox.]]></es>
+        </locale>
+        <locale name="settings.api.webhook_id.title">
+<es><![CDATA[ID del webhook]]></es>
+        </locale>
+        <locale name="settings.api.webhook_id.description" html="true">
+<es><![CDATA[ID del webhook de PayPal utilizado para verificar las firmas de los webhooks de suscripciones.]]></es>
+        </locale>
+        <locale name="settings.category.payment.title">
+<es><![CDATA[Proceso de pago]]></es>
+        </locale>
+        <locale name="settings.payment.title">
+<es><![CDATA[Proceso de pago]]></es>
+        </locale>
+        <locale name="settings.payment.display_paypal_basket.title">
+<es><![CDATA[Enviar el carrito a PayPal]]></es>
+        </locale>
+        <locale name="settings.payment.display_paypal_basket.description" html="true">
+<es><![CDATA[Enviar a PayPal el carrito detallado con todas las posiciones del pedido, para que el usuario pueda consultar los detalles en PayPal. <b>Atención:</b> Según los factores de precio utilizados, es posible que solo se envíe el importe total del pedido, sin el detalle del carrito.]]></es>
+        </locale>
+        <locale name="settings.payment.display_express_basket.title">
+<es><![CDATA[Botón PayPal Express - Carrito]]></es>
+        </locale>
+        <locale name="settings.payment.display_express_basket.description" html="true">
+<es><![CDATA[Mostrar el botón <b>PayPal Express</b> en el <b>carrito</b>]]></es>
+        </locale>
+        <locale name="settings.payment.display_express_smallbasket.title">
+<es><![CDATA[Botón PayPal Express - Minicarrito]]></es>
+        </locale>
+        <locale name="settings.payment.display_express_smallbasket.description" html="true">
+<es><![CDATA[Mostrar el botón <b>PayPal Express</b> en el <b>minicarrito</b>]]></es>
+        </locale>
+        <locale name="settings.payment.display_express_product.title">
+<es><![CDATA[Botón PayPal Express - Productos]]></es>
+        </locale>
+        <locale name="settings.payment.display_express_product.description" html="true">
+<es><![CDATA[Mostrar el botón <b>PayPal Express</b> en las <b>páginas de productos</b> (permite comprar rápidamente un producto directamente desde su página)]]></es>
+        </locale>
+        <locale name="settings.widgets.title">
+<es><![CDATA[Apariencia]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_color.title">
+<es><![CDATA[Color del botón «PayPal»]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_color.options.gold">
+<es><![CDATA[Dorado (predeterminado)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_color.options.blue">
+<es><![CDATA[Azul]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_color.options.silver">
+<es><![CDATA[Plateado]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_color.options.black">
+<es><![CDATA[Negro]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_size.title">
+<es><![CDATA[Tamaño del botón «PayPal»]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_size.options.small">
+<es><![CDATA[Pequeño]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_size.options.medium">
+<es><![CDATA[Mediano]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_size.options.large">
+<es><![CDATA[Grande (predeterminado)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_size.options.responsive">
+<es><![CDATA[Automático (según el tamaño de la ventana del navegador)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_shape.title">
+<es><![CDATA[Forma del botón «PayPal»]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_shape.options.rect">
+<es><![CDATA[Rectangular (predeterminado)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_shape.options.pill">
+<es><![CDATA[En forma de píldora]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.title">
+<es><![CDATA[Color del botón «PayPal Express»]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.options.gold">
+<es><![CDATA[Dorado (predeterminado)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.options.blue">
+<es><![CDATA[Azul]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.options.silver">
+<es><![CDATA[Plateado]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_color.options.black">
+<es><![CDATA[Negro]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.title">
+<es><![CDATA[Tamaño del botón «PayPal Express»]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.options.small">
+<es><![CDATA[Pequeño]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.options.medium">
+<es><![CDATA[Mediano (predeterminado)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.options.large">
+<es><![CDATA[Grande]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size.options.responsive">
+<es><![CDATA[Automático (según el tamaño de la ventana del navegador)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_shape.title">
+<es><![CDATA[Forma del botón «PayPal Express»]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_shape.options.rect">
+<es><![CDATA[Rectangular (predeterminado)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_shape.options.pill">
+<es><![CDATA[En forma de píldora]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.title">
+<es><![CDATA[Tamaño del botón «PayPal Express» (minicarrito)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.options.small">
+<es><![CDATA[Pequeño (predeterminado)]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.options.medium">
+<es><![CDATA[Mediano]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.options.large">
+<es><![CDATA[Grande]]></es>
+        </locale>
+        <locale name="settings.widgets.btn_express_size_smallbasket.options.responsive">
+<es><![CDATA[Automático (según el tamaño de la ventana del navegador)]]></es>
+        </locale>
+        <locale name="settings.category.billing_plans.title">
+<es><![CDATA[Planes de facturación (obsoletos)]]></es>
+        </locale>
+        <locale name="settings.category.billing_agreements.title">
+<es><![CDATA[Acuerdos de facturación (obsoletos)]]></es>
+        </locale>
+        <locale name="settings.category.subscriptions.title">
+<es><![CDATA[Suscripciones]]></es>
+        </locale>
+
+
+<!-- Payment -->
+        <locale name="payment.error_msg.general_error">
+<es><![CDATA[Se ha producido un error al pagar con PayPal. No se ha podido procesar el pago y no se ha realizado ningún cargo en tu cuenta de PayPal. Inténtalo de nuevo o contacta con un administrador.]]></es>
+        </locale>
+        <locale name="payment.error_msg.order_not_approved">
+<es><![CDATA[No se ha podido completar el pago con PayPal porque PayPal no ha podido confirmar que lo hayas aprobado. Haz clic de nuevo en el botón de PayPal para repetir el proceso.]]></es>
+        </locale>
+        <locale name="payment.error_msg.order_not_authorized">
+<es><![CDATA[No se ha podido completar el pago con PayPal porque PayPal no lo ha autorizado. Haz clic de nuevo en el botón de PayPal para repetir el proceso o elige otro método de pago.]]></es>
+        </locale>
+        <locale name="payment.error_msg.order_not_captured">
+<es><![CDATA[No se ha podido completar el pago con PayPal porque no se ha podido cobrar el importe. Haz clic de nuevo en el botón de PayPal para repetir el proceso o elige otro método de pago.]]></es>
+        </locale>
+        <locale name="payment.error_msg.order_not_refunded">
+<es><![CDATA[No se ha podido completar el reembolso a través de PayPal.]]></es>
+        </locale>
+        <locale name="payment.error_msg.order_not_refunded_order_not_captured">
+<es><![CDATA[No se ha podido realizar el reembolso a través de PayPal porque los datos de la factura no contienen la información necesaria de PayPal. Un administrador debe comprobarlo manualmente.]]></es>
+        </locale>
+        <locale name="payment.error_msg.no_billing_agreement_transaction">
+<es><![CDATA[No se ha podido reembolsar la factura del contrato porque sus datos no contienen la información necesaria de PayPal. Un administrador debe comprobarlo manualmente.]]></es>
+        </locale>
+        <locale name="payment.error_msg.no_payer_address">
+<es><![CDATA[No se ha podido completar el pago con PayPal Express porque PayPal no ha podido confirmar tu dirección. Haz clic de nuevo en el botón de PayPal para repetir el proceso o elige otro método de pago.]]></es>
+        </locale>
+        <locale name="payment.error_msg.address_not_verified">
+<es><![CDATA[No se ha podido completar el pago con PayPal Express porque PayPal no ha podido confirmar tu dirección. Haz clic de nuevo en el botón de PayPal para repetir el proceso o elige otro método de pago.]]></es>
+        </locale>
+
+<!-- History -->
+        <locale name="history.api.error">
+<es><![CDATA[PayPal :: ERROR de la API de PayPal. Consulta los registros de errores.]]></es>
+        </locale>
+        <locale name="history.order.create.start">
+<es><![CDATA[PayPal :: Crear pedido]]></es>
+        </locale>
+        <locale name="history.order.create.already_exists">
+<es><![CDATA[PayPal :: El pedido ya existe; se actualiza con los nuevos datos]]></es>
+        </locale>
+        <locale name="history.order.create.success">
+<es><![CDATA[PayPal :: Pedido creado correctamente]]></es>
+        </locale>
+        <locale name="history.order.update.start">
+<es><![CDATA[PayPal :: Actualizar pedido]]></es>
+        </locale>
+        <locale name="history.order.update.not_created">
+<es><![CDATA[PayPal :: No se puede actualizar el pedido porque aún no se ha creado]]></es>
+        </locale>
+        <locale name="history.order.update.success">
+<es><![CDATA[PayPal :: Pedido actualizado correctamente]]></es>
+        </locale>
+        <locale name="history.order.authorize.start">
+<es><![CDATA[PayPal :: Autorizar pedido]]></es>
+        </locale>
+        <locale name="history.order.authorize.already_authorized">
+<es><![CDATA[PayPal :: El pedido ya está autorizado]]></es>
+        </locale>
+        <locale name="history.order.authorize.error.unknown">
+<es><![CDATA[PayPal :: PayPal no ha autorizado el pedido debido a un error desconocido]]></es>
+        </locale>
+        <locale name="history.order.authorize.error.reason">
+<es><![CDATA[PayPal :: PayPal no ha autorizado el pedido. Motivo: «[reason]»]]></es>
+        </locale>
+        <locale name="history.order.authorize.success">
+<es><![CDATA[PayPal :: Pedido autorizado correctamente y listo para el cobro]]></es>
+        </locale>
+        <locale name="history.order.capture.start">
+<es><![CDATA[PayPal :: Cobrar el pedido]]></es>
+        </locale>
+        <locale name="history.order.capture.already_captured">
+<es><![CDATA[PayPal :: El pedido ya se ha cobrado]]></es>
+        </locale>
+        <locale name="history.order.capture.api_error_but_completed">
+<es><![CDATA[PayPal :: La solicitud REST de cobro del pedido ha fallado, pero PayPal ha completado el cobro. Se continúa con el proceso de pago.]]></es>
+        </locale>
+        <locale name="history.order.capture.error.reason">
+<es><![CDATA[PayPal :: PayPal no ha completado el cobro del pedido. Código del motivo: «[reasonCode]» | El cobro ha fallado por: [captureFailure]]]></es>
+        </locale>
+        <locale name="history.order.capture.error.unknown">
+<es><![CDATA[PayPal :: PayPal no ha completado el cobro del pedido. Código del motivo desconocido. | El cobro ha fallado por: [captureFailure]]]></es>
+        </locale>
+        <locale name="history.order.capture.request_success">
+<es><![CDATA[PayPal :: Solicitud de cobro del pedido completada correctamente. Comprobando el estado del cobro...]]></es>
+        </locale>
+        <locale name="history.gateway.purchase.start">
+<es><![CDATA[PayPal :: Registrar el pago en la pasarela]]></es>
+        </locale>
+        <locale name="history.order.capture.completed">
+<es><![CDATA[PayPal :: Cobro del pedido completado. Transacción [transactionId] añadida.]]></es>
+        </locale>
+        <locale name="history.order.capture.pending">
+<es><![CDATA[PayPal :: El cobro del pedido no se ha completado inmediatamente. El pago está PENDIENTE y debe añadirse manualmente al pedido o comprobarse mediante la tarea cron.]]></es>
+        </locale>
+        <locale name="history.gateway.purchase.completed">
+<es><![CDATA[PayPal :: Pago en la pasarela completado.]]></es>
+        </locale>
+        <locale name="history.refund.start">
+<es><![CDATA[PayPal :: Iniciar el reembolso de la transacción #[transactionId]]]></es>
+        </locale>
+        <locale name="history.refund.error.not_captured">
+<es><![CDATA[PayPal :: No se puede reembolsar la transacción porque aún no se ha cobrado o completado.]]></es>
+        </locale>
+        <locale name="history.refund.error.request">
+<es><![CDATA[PayPal :: El reembolso ha fallado. Motivo: «[reason]». Código del motivo: «[reasonCode]». Transacción #[transactionId]]]></es>
+        </locale>
+        <locale name="history.refund.error.state">
+<es><![CDATA[PayPal :: PayPal no ha completado el reembolso del pedido debido a un error desconocido. Estado del reembolso: [state]]]></es>
+        </locale>
+        <locale name="history.order.void.start">
+<es><![CDATA[PayPal :: Anular el pedido]]></es>
+        </locale>
+        <locale name="history.order.void.not_possible">
+<es><![CDATA[PayPal :: No se puede anular el pedido porque aún no se ha creado o ya se ha anulado]]></es>
+        </locale>
+        <locale name="history.order.void.success">
+<es><![CDATA[PayPal :: Pedido anulado.]]></es>
+        </locale>
+        <locale name="history.order.capture.pending_completed">
+<es><![CDATA[PayPal :: Cobro pendiente del pedido completado. Transacción [transactionId] añadida.]]></es>
+        </locale>
+        <locale name="history.express.payment.start">
+<es><![CDATA[PayPal Express :: Establecer el método de pago del pedido]]></es>
+        </locale>
+        <locale name="history.express.payment.error.not_configured">
+<es><![CDATA[PayPal Express :: No se ha podido establecer el método de pago del pedido porque no existe ningún método PayPal Express]]></es>
+        </locale>
+        <locale name="history.express.payment.success">
+<es><![CDATA[PayPal Express :: Método de pago del pedido establecido correctamente (ID del método: #[paymentId])]]></es>
+        </locale>
+        <locale name="history.express.invoice_address.start">
+<es><![CDATA[PayPal Express :: Establecer la dirección de facturación del pedido]]></es>
+        </locale>
+        <locale name="history.express.invoice_address.error.no_data">
+<es><![CDATA[PayPal Express :: No se ha podido establecer la dirección de facturación porque PayPal no ha proporcionado datos de dirección]]></es>
+        </locale>
+        <locale name="history.express.invoice_address.create">
+<es><![CDATA[PayPal Express :: No se ha encontrado una dirección coincidente para el usuario de QUIQQER; se añade la dirección de PayPal a QUIQQER]]></es>
+        </locale>
+        <locale name="history.express.invoice_address.default">
+<es><![CDATA[PayPal Express :: Dirección de PayPal establecida como predeterminada en QUIQQER]]></es>
+        </locale>
+        <locale name="history.express.invoice_address.created">
+<es><![CDATA[PayPal Express :: Dirección de PayPal creada correctamente en QUIQQER]]></es>
+        </locale>
+        <locale name="history.express.invoice_address.success">
+<es><![CDATA[PayPal Express :: Dirección de facturación del pedido establecida (ID de dirección en QUIQQER: #[addressId])]]></es>
+        </locale>
+        <locale name="history.refund.billing_agreement.start">
+<es><![CDATA[PayPal :: Iniciar el reembolso del acuerdo de facturación para la transacción #[transactionId]]]></es>
+        </locale>
+        <locale name="history.refund.billing_agreement.error.not_transaction">
+<es><![CDATA[PayPal :: No se puede reembolsar la transacción porque no corresponde a un acuerdo de facturación de PayPal.]]></es>
+        </locale>
+        <locale name="history.refund.billing_agreement.error.state">
+<es><![CDATA[PayPal :: PayPal no ha completado el reembolso de la transacción del acuerdo de facturación debido a un error desconocido. Estado del reembolso: [state]]]></es>
+        </locale>
+        <locale name="history.order.subscription.created">
+<es><![CDATA[PayPal :: Suscripción creada: [subscriptionId]]]></es>
+        </locale>
+        <locale name="history.order.subscription.approved">
+<es><![CDATA[PayPal :: Suscripción aprobada: [subscriptionId]]]></es>
+        </locale>
+        <locale name="history.order.no_longer_exists_at_paypal">
+<es><![CDATA[Ya no se puede consultar el estado de pago de este pedido en PayPal porque PayPal ya no conserva sus datos. Por tanto, el estado de pago permanecerá sin cambios a partir de ahora. Cambia el método de pago y comprueba manualmente si se ha recibido el pago de este pedido.]]></es>
+        </locale>
+        <locale name="history.order.billing_plan_created">
+<es><![CDATA[Plan de facturación de PayPal creado. ID: [billingPlanId]]]></es>
+        </locale>
+        <locale name="history.order.read_billing_plan.error">
+<es><![CDATA[Error al crear el plan de facturación de PayPal -> No se ha podido leer la información del plan (suscripción) del pedido]]></es>
+        </locale>
+        <locale name="history.order.billing_agreement_created">
+<es><![CDATA[Acuerdo de facturación de PayPal creado. Enlace de aprobación: [approvalUrl]]]></es>
+        </locale>
+        <locale name="history.order.billing_agreement_accepted">
+<es><![CDATA[El cliente ha aceptado el acuerdo de facturación de PayPal. Token de aprobación: [agreementToken]. ID de aprobación: [agreementId].]]></es>
+        </locale>
+        <locale name="history.invoice.error.agreement_id_not_found">
+<es><![CDATA[Se ha intentado pagar la factura de pagos periódicos con PayPal, pero sus datos no contienen ningún acuerdo de facturación asociado.]]></es>
+        </locale>
+        <locale name="history.invoice.error.agreement_not_found">
+<es><![CDATA[Se ha intentado pagar la factura de pagos periódicos con PayPal, pero no se ha encontrado en el sistema el acuerdo de facturación asociado [billingAgreementId].]]></es>
+        </locale>
+        <locale name="history.invoice.error.general">
+<es><![CDATA[Se ha producido un error de QUIQQER al intentar pagar la factura con PayPal. Consulta los registros de errores.]]></es>
+        </locale>
+        <locale name="history.invoice.add_paypal_transaction">
+<es><![CDATA[Transacción de factura [quiqqerTransactionId] creada a partir de la transacción de PayPal [paypalTransactionId].]]></es>
+        </locale>
+
+<!-- Permissions -->
+        <locale name="permission.quiqqer.payments.paypal._header">
+<es><![CDATA[PayPal]]></es>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_plans._header">
+<es><![CDATA[PayPal - Planes de facturación]]></es>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_agreements._header">
+<es><![CDATA[PayPal - Acuerdos de facturación]]></es>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_plans.view">
+<es><![CDATA[Puede ver los planes de facturación]]></es>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_plans.delete">
+<es><![CDATA[Puede eliminar los planes de facturación]]></es>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_agreements.view">
+<es><![CDATA[Puede ver los acuerdos de facturación]]></es>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.billing_agreements.cancel">
+<es><![CDATA[Puede cancelar los acuerdos de facturación]]></es>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.subscriptions._header">
+<es><![CDATA[PayPal - Suscripciones]]></es>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.subscriptions.view">
+<es><![CDATA[Puede ver las suscripciones de PayPal]]></es>
+        </locale>
+        <locale name="permission.quiqqer.payments.paypal.subscriptions.manage">
+<es><![CDATA[Puede gestionar las suscripciones de PayPal]]></es>
+        </locale>
+
+<!-- Cron -->
+        <locale name="cron.processUnpaidInvoices.title">
+<es><![CDATA[PayPal - Procesar facturas de pagos periódicos]]></es>
+        </locale>
+        <locale name="cron.processUnpaidInvoices.description">
+<es><![CDATA[Busca las transacciones de PayPal correspondientes a todas las facturas pendientes de pagos periódicos y las contabiliza internamente.]]></es>
+        </locale>
+        <locale name="cron.processSubscriptionUnpaidInvoices.title">
+<es><![CDATA[PayPal - Procesar facturas de suscripciones]]></es>
+        </locale>
+        <locale name="cron.processSubscriptionUnpaidInvoices.description">
+<es><![CDATA[Busca los pagos recibidos por webhook que corresponden a las facturas pendientes de suscripciones de PayPal y los contabiliza internamente.]]></es>
+        </locale>
+        <locale name="cron.checkPendingCaptures.title">
+<es><![CDATA[PayPal - Comprobar pagos pendientes]]></es>
+        </locale>
+        <locale name="cron.checkPendingCaptures.description">
+<es><![CDATA[Comprueba el estado de pago de todos los pedidos realizados con PayPal cuyo pago está pendiente.]]></es>
+        </locale>
+
+    </groups>
+
+    <groups name="quiqqer/payment-paypal" datatype="php">
+
+<!-- Ajax -->
+        <locale name="message.ajax.recurring.deleteBillingPlan.success">
+<es><![CDATA[El plan de facturación [billingPlanId] se ha eliminado correctamente.]]></es>
+        </locale>
+        <locale name="message.ajax.recurring.cancelBillingAgreement.success">
+<es><![CDATA[El acuerdo de facturación [billingAgreementId] se ha cancelado correctamente.]]></es>
+        </locale>
+        <locale name="message.ajax.recurring.cancelSubscription.success">
+<es><![CDATA[La suscripción [subscriptionId] se ha cancelado correctamente.]]></es>
+        </locale>
+        <locale name="message.ajax.recurring.suspendSubscription.success">
+<es><![CDATA[La suscripción [subscriptionId] se ha suspendido correctamente.]]></es>
+        </locale>
+        <locale name="message.ajax.recurring.activateSubscription.success">
+<es><![CDATA[La suscripción [subscriptionId] se ha activado correctamente.]]></es>
+        </locale>
+        <locale name="message.ajax.recurring.deleteUnassignedSubscription.success">
+<es><![CDATA[Se ha eliminado el registro local de suscripción no asignado [subscriptionId].]]></es>
+        </locale>
+
+<!-- Payment -->
+        <locale name="payment.step.title">
+<es><![CDATA[Pago con PayPal]]></es>
+        </locale>
+        <locale name="Payment.order.create.description">
+<es><![CDATA[Pedido #[orderId]]]></es>
+        </locale>
+        <locale name="history.order_id">
+<es><![CDATA[ID del pedido de PayPal: [orderId]]]></es>
+        </locale>
+        <locale name="history.capture_id">
+<es><![CDATA[Código de transacción del pago de PayPal: [captureId]]]></es>
+        </locale>
+        <locale name="history.refund">
+<es><![CDATA[Reembolso de PayPal: ID #[refundId] | Importe: [amount] [currency]]]></es>
+        </locale>
+        <locale name="exception.Payment.refund_error">
+<es><![CDATA[No se ha podido completar el reembolso con PayPal. Consulta los registros de errores.]]></es>
+        </locale>
+
+<!-- PaymentDisplay -->
+        <locale name="PaymentDisplay.no_javascript">
+<es><![CDATA[JavaScript está desactivado en tu navegador. Actívalo para realizar pagos con PayPal.]]></es>
+        </locale>
+        <locale name="PaymentDisplay.header.title">
+<es><![CDATA[Pago con PayPal]]></es>
+        </locale>
+
+        <locale name="exception.message.missing.setup">
+<es><![CDATA[El pago con PayPal no está disponible en este momento. Contacta con el responsable de la tienda y/o elige otro método de pago.]]></es>
+        </locale>
+
+<!-- Class: QUI\ERP\Payments\PayPal\Recurring\Payment -->
+        <locale name="exception.Recurring.order.error">
+<es><![CDATA[Se ha producido un error al procesar tu pedido con PayPal. Elige otro método de pago.]]></es>
+        </locale>
+        <locale name="exception.admin.subscription.not_found">
+<es><![CDATA[No se ha encontrado la suscripción de PayPal en QUIQQER.]]></es>
+        </locale>
+        <locale name="exception.admin.subscription.delete_unassigned">
+<es><![CDATA[No se ha podido eliminar el registro de la suscripción. Solo se pueden eliminar de esta forma los registros locales no asignados.]]></es>
+        </locale>
+        <locale name="exception.Recurring.subscription.capture_not_implemented">
+<es><![CDATA[La contabilización automática de las suscripciones de PayPal aún no está completamente implementada en esta revisión. Utiliza por ahora el procedimiento de pagos periódicos anterior o completa la siguiente fase de implementación.]]></es>
+        </locale>
+        <locale name="recurring.payment_definition.name">
+<es><![CDATA[Tu factura de [planTitle] en [url]]]></es>
+        </locale>
+        <locale name="recurring.billing_agreement.name">
+<es><![CDATA[Tu aceptación del plan de facturación para el pedido [orderReference]]]></es>
+        </locale>
+        <locale name="recurring.billing_agreement.description">
+<es><![CDATA[Pedido [orderReference] en [url]]]></es>
+        </locale>
+        <locale name="exception.Recurring.agreement_not_found">
+<es><![CDATA[No se ha encontrado el acuerdo de facturación de PayPal [billingAgreementId].]]></es>
+        </locale>
+        <locale name="recurring.billing_agreement.bill_balance.note">
+<es><![CDATA[Pago de tu suscripción en [url]. Número de documento: [invoiceReference]]]></es>
+        </locale>
+        <locale name="exception.Recurring.agreement_id_not_found">
+<es><![CDATA[No se ha encontrado el ID del acuerdo de facturación de PayPal en la factura #[invoiceId].]]></es>
+        </locale>
+        <locale name="recurring.billing_agreement.cancel.note">
+<es><![CDATA[Cancelación de tu suscripción del pedido [globalProcessId] en [url]]]></es>
+        </locale>
+        <locale name="recurring.billing_agreement.suspension.note">
+<es><![CDATA[Desactivación de tu suscripción del pedido [globalProcessId] en [url] debido a la cancelación del contrato. Este acuerdo de facturación finalizará automáticamente cuando termine el contrato.]]></es>
+        </locale>
+        <locale name="recurring.billing_agreement.resume.note">
+<es><![CDATA[Reactivación de tu suscripción del pedido [globalProcessId] en [url] tras retirar la cancelación del contrato.]]></es>
+        </locale>
+        <locale name="exception.Recurring.cancel.error">
+<es><![CDATA[No se ha podido cancelar el acuerdo de facturación. Inténtalo de nuevo o contacta con un administrador.]]></es>
+        </locale>
+        <locale name="exception.Recurring.suspension.error">
+<es><![CDATA[No se ha podido suspender el acuerdo de facturación. Inténtalo de nuevo o contacta con un administrador.]]></es>
+        </locale>
+        <locale name="exception.Recurring.resume.error">
+<es><![CDATA[No se ha podido reactivar el acuerdo de facturación. Inténtalo de nuevo o contacta con un administrador.]]></es>
+        </locale>
+        <locale name="recurring.additional_invoice_text">
+<es><![CDATA[El importe se cargará automáticamente en tu cuenta de PayPal.]]></es>
+        </locale>
+
+<!-- Events -->
+        <locale name="exception.onPaymentsCreateBegin.erp_plans_missing" html="true">
+<es><![CDATA[No se puede crear el método de pago porque el módulo <b>quiqqer/erp-plans</b> no está instalado. Instálalo para crear métodos de pago periódicos.]]></es>
+        </locale>
+
+    </groups>
+
+    <groups name="quiqqer/payment-paypal" datatype="js">
+
+<!-- Control: PaymentDisplay -->
+        <locale name="PaymentDisplay.info">
+<es><![CDATA[Haz clic en el botón de PayPal para iniciar el pago.]]></es>
+        </locale>
+        <locale name="PaymentDisplay.confirm_payment">
+<es><![CDATA[Confirmar pago con PayPal]]></es>
+        </locale>
+        <locale name="PaymentDisplay.execute_payment">
+<es><![CDATA[Procesando el pago]]></es>
+        </locale>
+
+<!-- Control: ExpressBtn -->
+        <locale name="ExpressBtn.confirm_payment">
+<es><![CDATA[Enviando los datos del pedido a PayPal]]></es>
+        </locale>
+        <locale name="ExpressBtn.error.title">
+<es><![CDATA[Error]]></es>
+        </locale>
+        <locale name="ExpressBtn.error.text_title">
+<es><![CDATA[Se ha producido un error]]></es>
+        </locale>
+        <locale name="ExpressBtn.processing_error">
+<es><![CDATA[El pago con PayPal Express no está disponible en este momento. No se ha realizado ningún cargo en tu cuenta de PayPal. Repite el proceso o inténtalo más tarde.]]></es>
+        </locale>
+
+<!-- Control: ExpressPaymentDisplay -->
+        <locale name="ExpressPaymentDisplay.order.execute">
+<es><![CDATA[Procesando el pago con PayPal]]></es>
+        </locale>
+        <locale name="ExpressPaymentDisplay.msg.error">
+<es><![CDATA[Se ha producido un error al pagar con PayPal. No se ha realizado ningún cargo en tu cuenta de PayPal. Elige otro método de pago. En unos segundos volverás al paso «Método de pago».]]></es>
+        </locale>
+
+<!-- Control: recurring/PaymentDisplay -->
+        <locale name="controls.recurring.PaymentDisplay.PaymentDisplay.info">
+<es><![CDATA[Haz clic en el botón de PayPal para confirmar el pago periódico de tu suscripción. Se te redirigirá al sitio web de PayPal.]]></es>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.btn.text">
+<es><![CDATA[Configurar ahora el pago con PayPal]]></es>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.btn.text_create">
+<es><![CDATA[Enviando la información de pago a PayPal...]]></es>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.Loader.create_billing_agreement">
+<es><![CDATA[Cargando PayPal...]]></es>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.error">
+<es><![CDATA[Se ha producido un error de comunicación con PayPal. No se ha realizado ningún cargo en tu cuenta de PayPal. Elige otro método de pago o inténtalo más tarde.]]></es>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.popup.open.error">
+<es><![CDATA[No se ha podido abrir la ventana emergente. Comprueba la configuración del navegador y permite las ventanas emergentes para esta página.]]></es>
+        </locale>
+        <locale name="controls.recurring.PaymentDisplay.popup.payment.error">
+<es><![CDATA[Se ha producido un error durante el pago. Inténtalo de nuevo o contacta con el administrador para obtener ayuda.]]></es>
+        </locale>
+
+<!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions -->
+        <locale name="controls.backend.Subscriptions.information" html="true">
+<es><![CDATA[<b>Las suscripciones de PayPal son las suscripciones concretas de cada cliente y se basan en un plan de PayPal.</b> Una marca de verificación indica que el registro está activo localmente. El estado de PayPal muestra si la suscripción está pendiente de aprobación por el cliente, activa, suspendida o finalizada. Utiliza <b>Ver detalles</b> para gestionar la suscripción y consultar su historial de pagos.]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.search.placeholder">
+<es><![CDATA[Buscar por ID, cliente o número de proceso]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.search.button">
+<es><![CDATA[Buscar]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.tbl.btn.details">
+<es><![CDATA[Ver detalles]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.tbl.btn.delete_unassigned">
+<es><![CDATA[Eliminar localmente]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.status.unassigned">
+<es><![CDATA[Sin asignar]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_unassigned.title">
+<es><![CDATA[Eliminar registro no asignado]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_unassigned.information">
+<es><![CDATA[Solo se eliminará el registro local de QUIQQER, incluidas sus transacciones y eventos de webhook guardados localmente. No se modificará nada en PayPal.]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_unassigned.text">
+<es><![CDATA[¿Quieres eliminar localmente el registro de suscripción no asignado [subscriptionId]?]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_unassigned.confirm">
+<es><![CDATA[Eliminar localmente]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.tbl.active">
+<es><![CDATA[Activo localmente]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.tbl.status">
+<es><![CDATA[Estado de PayPal]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.tbl.subscription_id">
+<es><![CDATA[ID de suscripción]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.tbl.plan_id">
+<es><![CDATA[ID del plan]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.tbl.customer">
+<es><![CDATA[Cliente]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.tbl.next_billing">
+<es><![CDATA[Próxima facturación]]></es>
+        </locale>
+        <locale name="controls.backend.Subscriptions.tbl.global_process_id">
+<es><![CDATA[Número de proceso]]></es>
+        </locale>
+
+<!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/SubscriptionWindow -->
+        <locale name="controls.backend.SubscriptionWindow.title">
+<es><![CDATA[Suscripción de PayPal]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.loading">
+<es><![CDATA[Cargando la suscripción desde PayPal...]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.not_found">
+<es><![CDATA[No se ha encontrado la suscripción en QUIQQER.]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.load_error">
+<es><![CDATA[No se ha podido cargar la suscripción. Consulta los registros de errores.]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.subscription">
+<es><![CDATA[Suscripción de PayPal]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.provider_unavailable" html="true">
+<es><![CDATA[PayPal no está disponible en este momento. Se muestran los últimos datos guardados en QUIQQER y las acciones de gestión están desactivadas.]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.unassigned" html="true">
+<es><![CDATA[No se ha encontrado esta suscripción con la cuenta de PayPal y el modo configurados actualmente. El registro local no está asignado y las acciones en PayPal están desactivadas.]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.section.overview">
+<es><![CDATA[Resumen]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.section.customer">
+<es><![CDATA[Cliente]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.section.billing">
+<es><![CDATA[Facturación]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.section.transactions">
+<es><![CDATA[Transacciones]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.plan_id">
+<es><![CDATA[ID del plan]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.global_process_id">
+<es><![CDATA[Número de proceso]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.created">
+<es><![CDATA[Creado]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.updated">
+<es><![CDATA[Estado actualizado]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.next_billing">
+<es><![CDATA[Próxima facturación]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.local_active">
+<es><![CDATA[Activo en QUIQQER]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.customer">
+<es><![CDATA[Nombre]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.email">
+<es><![CDATA[Correo electrónico]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.payer_id">
+<es><![CDATA[ID del pagador de PayPal]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.outstanding">
+<es><![CDATA[Saldo pendiente]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.last_payment">
+<es><![CDATA[Último pago]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.last_payment_time">
+<es><![CDATA[Fecha del último pago]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.field.failed_payments">
+<es><![CDATA[Pagos fallidos]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.value.yes">
+<es><![CDATA[Sí]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.value.no">
+<es><![CDATA[No]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.transactions.empty">
+<es><![CDATA[Aún no hay transacciones guardadas para esta suscripción.]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.transactions.id">
+<es><![CDATA[ID de PayPal]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.transactions.date">
+<es><![CDATA[Fecha]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.transactions.status">
+<es><![CDATA[Estado]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.transactions.amount">
+<es><![CDATA[Importe]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.transactions.quiqqer">
+<es><![CDATA[Transacción de QUIQQER]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.btn.suspend">
+<es><![CDATA[Suspender]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.btn.activate">
+<es><![CDATA[Activar]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.btn.cancel">
+<es><![CDATA[Cancelar]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.suspend.title">
+<es><![CDATA[Suspender suscripción]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.suspend.information" html="true">
+<es><![CDATA[Mientras la suscripción esté suspendida, PayPal <b>no realizará más cobros periódicos</b>. Podrás volver a activarla más adelante.]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.suspend.text">
+<es><![CDATA[¿Quieres suspender la suscripción?]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.suspend.confirm">
+<es><![CDATA[Suspender ahora]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.activate.title">
+<es><![CDATA[Activar suscripción]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.activate.information" html="true">
+<es><![CDATA[PayPal reanudará los cobros periódicos de esta suscripción.]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.activate.text">
+<es><![CDATA[¿Quieres volver a activar la suscripción?]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.activate.confirm">
+<es><![CDATA[Activar ahora]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.cancel.title">
+<es><![CDATA[Cancelar suscripción]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.cancel.information" html="true">
+<es><![CDATA[PayPal <b>no realizará más cobros</b>. La cancelación no se puede deshacer.]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.cancel.text">
+<es><![CDATA[¿Quieres cancelar la suscripción de forma definitiva?]]></es>
+        </locale>
+        <locale name="controls.backend.SubscriptionWindow.action.cancel.confirm">
+<es><![CDATA[Cancelar ahora]]></es>
+        </locale>
+
+<!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingPlans -->
+        <locale name="controls.backend.BillingPlans.tbl.btn.delete">
+<es><![CDATA[Eliminar]]></es>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.id">
+<es><![CDATA[ID]]></es>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.name">
+<es><![CDATA[Nombre]]></es>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.description">
+<es><![CDATA[Descripción]]></es>
+        </locale>
+        <locale name="controls.backend.BillingPlans.tbl.create_time">
+<es><![CDATA[Fecha de creación]]></es>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.information" html="true">
+<es><![CDATA[El plan de facturación <b>[billingPlanId]</b> pasará al estado <b>DELETED</b> en PayPal.]]></es>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.title">
+<es><![CDATA[Eliminar plan de facturación de PayPal]]></es>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.text">
+<es><![CDATA[¿Quieres eliminar el plan de facturación?]]></es>
+        </locale>
+        <locale name="controls.backend.BillingPlans.delete.ok">
+<es><![CDATA[Eliminar plan de facturación]]></es>
+        </locale>
+
+<!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreementWindow -->
+        <locale name="controls.backend.BillingAgreementWindow.title">
+<es><![CDATA[Acuerdo de facturación de PayPal]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.btn.cancel">
+<es><![CDATA[Cancelar acuerdo]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.title">
+<es><![CDATA[Cancelar acuerdo de facturación]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.information">
+<es><![CDATA[Tras esta acción, PayPal <b>no realizará más cobros</b> relacionados con este acuerdo de facturación. ¡Esta acción <b>no se puede deshacer!</b>]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.text">
+<es><![CDATA[¿Quieres cancelar el acuerdo de facturación?]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.cancel.confirm">
+<es><![CDATA[Cancelar ahora]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.load_error">
+<es><![CDATA[No se han podido obtener los detalles del acuerdo de facturación desde PayPal. Puede deberse a que el acuerdo se creó con una clave de API distinta de la utilizada actualmente (por ejemplo, de Sandbox).]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.inactive_warning" html="true">
+<es><![CDATA[<b>¡Atención!</b> Este acuerdo de facturación se ha cancelado en PayPal, pero sigue marcado como activo en este sistema QUIQQER. Es posible que el cliente lo haya cancelado en su cuenta de PayPal sin cancelar su contrato o afiliación en este sistema QUIQQER. En consecuencia, PayPal <b>no cobrará más pagos</b> de las facturas asociadas. Contacta con el cliente para aclarar la situación.]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreementWindow.loading_data">
+<es><![CDATA[Consultando los datos en PayPal...]]></es>
+        </locale>
+
+<!-- Control: package/quiqqer/payment-paypal/bin/controls/backend/BillingAgreements -->
+        <locale name="controls.backend.BillingAgreements.tbl.btn.details">
+<es><![CDATA[Ver detalles]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.paypal_agreement_id">
+<es><![CDATA[ID del acuerdo de facturación]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.paypal_plan_id">
+<es><![CDATA[ID del plan de facturación]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.customer_text">
+<es><![CDATA[Cliente]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.global_process_id">
+<es><![CDATA[Número de proceso]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.tbl.active_status">
+<es><![CDATA[Activo]]></es>
+        </locale>
+        <locale name="controls.backend.BillingAgreements.search.placeholder">
+<es><![CDATA[Número de proceso]]></es>
+        </locale>
+
+    </groups>
+
+</locales>
