@@ -11,6 +11,9 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
     const scriptName = 'paypal-web-sdk-v6';
     let sdkPromise = null;
     let sdkEnvironment = null;
+    let diagnosticsToken = null;
+    let correlationId = null;
+    const errorOperations = new WeakMap();
 
     const isSandbox = function (sandbox) {
         return sandbox === true || sandbox === 1 || sandbox === '1' || sandbox === 'true';
@@ -39,12 +42,24 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
 
     const loadSdk = function (environment) {
         return new Promise(function (resolve, reject) {
+            // The SDK is a page-global singleton, so verify the script even after a failed initialization.
+            let Script = document.querySelector('[data-name="' + scriptName + '"]');
+
+            if (Script && Script.src !== getSdkUrl(environment)) {
+                reject(new Error('PayPal Web SDK environments cannot be mixed on one page.'));
+                return;
+            }
+
             if (window.paypal) {
+                if (!Script) {
+                    reject(new Error('PayPal Web SDK environment is unknown.'));
+                    return;
+                }
+
                 assertSdkLoaded(resolve, reject);
                 return;
             }
 
-            let Script = document.querySelector('[data-name="' + scriptName + '"]');
             let appendScript = false;
 
             if (!Script) {
@@ -55,11 +70,18 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
                 appendScript = true;
             }
 
+            const timeout = setTimeout(function () {
+                Script.remove();
+                reject(new Error('PayPal JavaScript Web SDK v6 could not be loaded.'));
+            }, 15000);
+
             Script.addEventListener('load', function () {
+                clearTimeout(timeout);
                 assertSdkLoaded(resolve, reject);
             }, {once: true});
 
             Script.addEventListener('error', function () {
+                clearTimeout(timeout);
                 Script.remove();
                 reject(new Error('PayPal JavaScript Web SDK v6 could not be loaded.'));
             }, {once: true});
@@ -71,6 +93,48 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
     };
 
     return {
+        /** Send only diagnostic metadata; never send the raw SDK error, stack, URL or credentials. */
+        reportError: function (Error, operation, sandbox) {
+            if (!diagnosticsToken) {
+                return;
+            }
+
+            const message = typeof Error?.message === 'string' ? Error.message : '';
+            let reason = 'operation_failed';
+
+            if (message.includes('missing clientToken or clientId auth')) {
+                reason = 'missing_auth';
+            } else if (message === 'PayPal client ID is missing.') {
+                reason = 'missing_client_id';
+            } else if (message.includes('environment')) {
+                reason = 'environment_mismatch';
+            } else if (message === 'PayPal JavaScript Web SDK v6 could not be loaded.') {
+                reason = 'sdk_load_failed';
+            } else if (message === 'PayPal is not eligible for this order.') {
+                reason = 'not_eligible';
+            }
+
+            const Script = document.querySelector('[data-name="' + scriptName + '"]');
+            const loadedEnvironment = Script?.src === getSdkUrl('sandbox') ? 'sandbox'
+                : Script?.src === getSdkUrl('production') ? 'production' : 'unknown';
+            const debugId = Error?.debugId ?? Error?.debug_id;
+            const status = Error?.statusCode ?? Error?.status;
+            const payload = {
+                operation: errorOperations.get(Error) || operation,
+                reason: reason,
+                reportedEnvironment: getEnvironment(sandbox),
+                sdkEnvironment: loadedEnvironment,
+                correlationId: correlationId,
+                errorName: ['Error', 'TypeError', 'SdkInitError', 'SdkError'].includes(Error?.name)
+                    ? Error.name : undefined,
+                debugId: typeof debugId === 'string' && /^[a-f0-9]{8,32}$/i.test(debugId) ? debugId : undefined,
+                httpStatus: Number.isInteger(status) && status >= 100 && status <= 599 ? status : undefined
+            };
+
+            // Logging must never prevent the checkout from displaying its original error.
+            Promise.resolve().then(() => PayPalApi.logBrowserError(diagnosticsToken, payload)).catch(() => {});
+        },
+
         /**
          * Return the shared PayPal v6 SDK instance.
          *
@@ -91,23 +155,41 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
             }
 
             sdkEnvironment = environment;
-            sdkPromise = Promise.all([
-                loadSdk(environment),
-                PayPalApi.getClientId()
-            ]).then(function (result) {
-                const PayPal = result[0];
-                const clientId = result[1];
+            let operation = 'sdkConfiguration';
+            sdkPromise = PayPalApi.getSdkConfig().then(function (config) {
+                diagnosticsToken = config.diagnosticsToken;
+                correlationId = window.crypto?.randomUUID?.() || null;
+                const clientId = config.clientId;
 
-                if (!clientId) {
+                if (typeof clientId !== 'string' || !clientId.trim()) {
                     throw new Error('PayPal client ID is missing.');
                 }
 
-                return PayPal.createInstance({
-                    clientId: clientId,
-                    components: ['paypal-payments'],
-                    pageType: 'checkout'
+                // Fetch credentials and environment together to detect stale checkout markup/configuration changes.
+                if (typeof config.sandbox !== 'boolean' || getEnvironment(config.sandbox) !== environment) {
+                    throw new Error('PayPal Web SDK environment does not match server configuration.');
+                }
+
+                operation = 'loadSdk';
+                return loadSdk(environment).then(function (PayPal) {
+                    operation = 'createInstance';
+                    const options = {
+                        clientId: clientId.trim(),
+                        components: ['paypal-payments'],
+                        pageType: 'checkout'
+                    };
+
+                    if (correlationId) {
+                        options.clientMetadataId = correlationId;
+                    }
+
+                    return PayPal.createInstance(options);
                 });
             }).catch(function (Error) {
+                if (Error && (typeof Error === 'object' || typeof Error === 'function')) {
+                    errorOperations.set(Error, operation);
+                }
+
                 sdkPromise = null;
                 sdkEnvironment = null;
                 throw Error;

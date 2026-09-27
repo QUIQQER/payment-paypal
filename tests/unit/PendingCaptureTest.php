@@ -127,6 +127,20 @@ final class PendingCaptureTest extends TestCase
         self::assertSame(0, $Payment->saveCount);
     }
 
+    public function testHttpFailureWithStructuredErrorCodeStillMarksMissingPayPalOrder(): void
+    {
+        $Order = $this->order();
+        $Payment = $this->paymentWithOrder($Order);
+        $Payment->apiException = new PayPalSystemException(
+            'PayPal API returned an unsuccessful HTTP response.',
+            404,
+            ['paypalError' => Payment::PAYPAL_API_EXCEPTION_MESSAGE_RESOURCE_NOT_FOUND]
+        );
+        $Payment->checkPendingCaptures();
+        self::assertTrue($Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST));
+        self::assertSame(1, $Payment->saveCount);
+    }
+
     public function testMissingPaymentTypesAndEmptyResponsesAreIgnored(): void
     {
         $Payment = new PendingCapturePaymentDouble();

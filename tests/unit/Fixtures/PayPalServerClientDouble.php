@@ -12,6 +12,7 @@ final class PayPalServerClientDouble implements ServerClientInterface
     public array $calls = [];
     public ?array $response = ['id' => 'PAYPAL-RESULT-ID'];
     public bool $fail = false;
+    public ?\Exception $exception = null;
 
     public function createOrder(array $body): ?array
     {
@@ -44,6 +45,10 @@ final class PayPalServerClientDouble implements ServerClientInterface
             'operation' => $operation,
             'arguments' => $arguments
         ];
+
+        if ($this->exception !== null) {
+            throw $this->exception;
+        }
 
         if ($this->fail) {
             throw new RuntimeException('PayPal unavailable');

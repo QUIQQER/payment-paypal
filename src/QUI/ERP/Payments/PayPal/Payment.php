@@ -1323,27 +1323,15 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 JSON_THROW_ON_ERROR
             );
         } catch (Exception $Exception) {
-            $message = $Exception->getCode() . " :: \n\n";
-            $message .= $Exception->getMessage() . "\n";
-            $message .= $Exception->getTraceAsString();
-
-            QUI\System\Log::write(
-                $message,
-                QUI\System\Log::LEVEL_WARNING,
-                [
-                    'paypalRequestClass' => get_class($Request),
-                    'requestBody' => $Request->body,
-                    'transactionObject' => get_debug_type($TransactionObj)
-                ],
-                'paypal_api'
-            );
+            $diagnostics = Diagnostics::logApiFailure(get_class($Request), $Exception);
 
             if ($throwSystemException) {
                 throw new PayPalSystemException(
                     $Exception->getMessage(),
                     $Exception->getCode(),
                     [
-                        'request' => $request
+                        'request' => $request,
+                        'paypalError' => $diagnostics['paypalError'] ?? null
                     ]
                 );
             }
@@ -1425,27 +1413,15 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     $this->throwPayPalException();
             }
         } catch (Exception $Exception) {
-            $message = $Exception->getCode() . " :: \n\n";
-            $message .= $Exception->getMessage() . "\n";
-            $message .= $Exception->getTraceAsString();
-
-            QUI\System\Log::write(
-                $message,
-                QUI\System\Log::LEVEL_WARNING,
-                [
-                    'paypalOperation' => $operation,
-                    'requestBody' => $body,
-                    'transactionObject' => get_debug_type($TransactionObj)
-                ],
-                'paypal_api'
-            );
+            $diagnostics = Diagnostics::logApiFailure($operation, $Exception);
 
             if ($throwSystemException) {
                 throw new PayPalSystemException(
                     $Exception->getMessage(),
                     $Exception->getCode(),
                     [
-                        'request' => $request
+                        'request' => $request,
+                        'paypalError' => $diagnostics['paypalError'] ?? null
                     ]
                 );
             }
@@ -1546,12 +1522,13 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     $exMsg = $Exception->getMessage();
                     $exMsg = json_decode($exMsg, true);
 
-                    if (
-                        is_array($exMsg) &&
-                        json_last_error() === JSON_ERROR_NONE &&
-                        !empty($exMsg['name']) &&
-                        $exMsg['name'] == self::PAYPAL_API_EXCEPTION_MESSAGE_RESOURCE_NOT_FOUND
-                    ) {
+                    $errorName = $Exception->getContext()['paypalError'] ?? null;
+
+                    if (!$errorName && is_array($exMsg)) {
+                        $errorName = $exMsg['name'] ?? null;
+                    }
+
+                    if ($errorName === self::PAYPAL_API_EXCEPTION_MESSAGE_RESOURCE_NOT_FOUND) {
                         $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST, true);
 
                         $Order->addHistory(
