@@ -10,9 +10,35 @@ use QUI\ERP\Accounting\CalculationValue;
 use QUI\ERP\Currency\Currency;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Payments\PayPal\PaymentDisplay;
+use QUI\ERP\Payments\PayPal\Settings;
 
 final class PaymentDisplayTest extends TestCase
 {
+    public function testEnvironmentSurvivesHtmlSerialization(): void
+    {
+        $Config = Settings::getConfig();
+        $original = $Config->get('api', 'sandbox');
+
+        try {
+            foreach ([0, 1] as $sandbox) {
+                $Config->setValue('api', 'sandbox', $sandbox);
+                $Display = new class extends PaymentDisplay {
+                    public function getBody(): string
+                    {
+                        return '';
+                    }
+                };
+
+                self::assertStringContainsString(
+                    'data-qui-options-sandbox="' . $sandbox . '"',
+                    $Display->create()
+                );
+            }
+        } finally {
+            $Config->setValue('api', 'sandbox', $original);
+        }
+    }
+
     public function testDisplayRendersOrderAndWidgetOptions(): void
     {
         $Sum = $this->createMock(CalculationValue::class);

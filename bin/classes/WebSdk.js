@@ -13,7 +13,7 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
     let sdkEnvironment = null;
 
     const isSandbox = function (sandbox) {
-        return sandbox !== false && sandbox !== 0 && sandbox !== '0';
+        return sandbox === true || sandbox === 1 || sandbox === '1' || sandbox === 'true';
     };
 
     const getEnvironment = function (sandbox) {
