@@ -10,6 +10,7 @@ use PaypalServerSdkLib\Http\ApiResponse;
 use PaypalServerSdkLib\PaypalServerSdkClient;
 use PHPUnit\Framework\TestCase;
 use QUI\ERP\Payments\PayPal\Api\ServerClient;
+use QUI\ERP\Payments\PayPal\Api\ResponseException;
 use stdClass;
 
 final class ServerClientTest extends TestCase
@@ -77,7 +78,7 @@ final class ServerClientTest extends TestCase
                 'id' => 'ORDER-3',
                 'body' => $body
             ])
-            ->willReturn($this->createResponse(''));
+            ->willReturn($this->createResponse('', 204));
 
         self::assertNull(
             $this->createClient($Orders)->patchOrder('ORDER-3', $body)
@@ -159,9 +160,10 @@ final class ServerClientTest extends TestCase
         return new ServerClient('', '', false, $Sdk);
     }
 
-    private function createResponse(mixed $result): ApiResponse
+    private function createResponse(mixed $result, int $status = 200): ApiResponse
     {
         $Response = $this->createMock(ApiResponse::class);
+        $Response->method('getStatusCode')->willReturn($status);
 
         if ($result === null) {
             $Response->method('getResult')->willReturn(null);
@@ -182,5 +184,76 @@ final class ServerClientTest extends TestCase
         $Response->method('getResult')->willReturn($object);
 
         return $Response;
+    }
+
+    public function testHtmlHttpFailurePreservesStatusAndDebugId(): void
+    {
+        $Response = $this->createMock(ApiResponse::class);
+        $Response->method('getStatusCode')->willReturn(503);
+        $Response->method('getHeaders')->willReturn(['PayPal-Debug-Id' => 'abcdef1234567']);
+        $Response->method('getBody')->willReturn('<html>private upstream error</html>');
+        $Response->expects(self::never())->method('getResult');
+        $Orders = $this->createMock(OrdersController::class);
+        $Orders->method('getOrder')->willReturn($Response);
+
+        try {
+            $this->createClient($Orders)->getOrder('ORDER-FAIL');
+            self::fail('HTTP errors must not become normal results.');
+        } catch (ResponseException $Error) {
+            self::assertSame(503, $Error->getCode());
+            self::assertSame([
+                'httpStatus' => 503,
+                'responseType' => 'non-json',
+                'debugId' => 'abcdef1234567'
+            ], $Error->getDiagnostics());
+            self::assertStringNotContainsString('private', $Error->getMessage());
+        }
+    }
+
+    public function testStructuredHttpFailureIsRejectedBeforeResultNormalization(): void
+    {
+        $Response = $this->createMock(ApiResponse::class);
+        $Response->method('getStatusCode')->willReturn(422);
+        $Response->method('getBody')->willReturn(json_encode([
+            'name' => 'UNPROCESSABLE_ENTITY',
+            'debug_id' => 'abcdef1234567',
+            'details' => [['issue' => 'PAYEE_ACCOUNT_RESTRICTED', 'value' => 'private@example.com']]
+        ]));
+        $Response->expects(self::never())->method('getResult');
+        $Orders = $this->createMock(OrdersController::class);
+        $Orders->method('captureOrder')->willReturn($Response);
+
+        try {
+            $this->createClient($Orders)->captureOrder('ORDER-FAIL', []);
+            self::fail('Structured API errors must not be returned as successful results.');
+        } catch (ResponseException $Error) {
+            self::assertSame('UNPROCESSABLE_ENTITY', $Error->getDiagnostics()['paypalError']);
+            self::assertSame(['PAYEE_ACCOUNT_RESTRICTED'], $Error->getDiagnostics()['paypalIssues']);
+            self::assertStringNotContainsString('private', json_encode($Error->getDiagnostics()));
+        }
+    }
+
+    public function testFailedPatchIsNotTreatedAsSuccessfulNoContent(): void
+    {
+        $Response = $this->createMock(ApiResponse::class);
+        $Response->method('getStatusCode')->willReturn(500);
+        $Orders = $this->createMock(OrdersController::class);
+        $Orders->method('patchOrder')->willReturn($Response);
+        $this->expectException(ResponseException::class);
+        $this->createClient($Orders)->patchOrder('ORDER-FAIL', []);
+    }
+
+    public function testInvalidSuccessfulResponseRetainsHttpContext(): void
+    {
+        $Response = $this->createResponse('unexpected text');
+        $Orders = $this->createMock(OrdersController::class);
+        $Orders->method('getOrder')->willReturn($Response);
+
+        try {
+            $this->createClient($Orders)->getOrder('ORDER-INVALID');
+            self::fail('Invalid response must throw.');
+        } catch (ResponseException $Error) {
+            self::assertSame(200, $Error->getDiagnostics()['httpStatus']);
+        }
     }
 }

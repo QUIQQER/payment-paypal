@@ -271,10 +271,32 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
         },
 
         /**
-         * Get PayPal API client ID
+         * Get the public client ID, its environment and a session-scoped diagnostics token.
          *
          * @return {Promise}
          */
+        getSdkConfig: function() {
+            return new Promise((resolve, reject) => {
+                QUIAjax.get('package_quiqqer_payment-paypal_ajax_getSdkConfig', resolve, {
+                    'package': pkg,
+                    onError: reject
+                });
+            });
+        },
+
+        /** Report bounded diagnostic metadata without transmitting the original error object. */
+        logBrowserError: function(token, payload) {
+            return new Promise((resolve, reject) => {
+                QUIAjax.post('package_quiqqer_payment-paypal_ajax_logBrowserError', resolve, {
+                    'package': pkg,
+                    token: token,
+                    payload: JSON.stringify(payload),
+                    onError: reject
+                });
+            });
+        },
+
+        /** Get the public client ID (retained for existing consumers). */
         getClientId: function() {
             return new Promise(function(resolve, reject) {
                 QUIAjax.get('package_quiqqer_payment-paypal_ajax_getClientId', resolve, {

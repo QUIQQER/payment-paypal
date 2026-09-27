@@ -94,7 +94,9 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
         $loadPayPalWidgets: function () {
             this.$OrderProcess.Loader.show();
 
+            this.$paypalOperation = 'sdkConfiguration';
             WebSdk.getInstance(this.getAttribute('sandbox')).then((Sdk) => {
+                this.$paypalOperation = 'findEligibleMethods';
                 return Sdk.findEligibleMethods({
                     currencyCode: String(this.getAttribute('currency')).toUpperCase()
                 }).then((Methods) => {
@@ -102,6 +104,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                         throw new Error('PayPal is not eligible for this order.');
                     }
 
+                    this.$paypalOperation = 'createSession';
                     this.$PaymentSession = Sdk.createPayPalOneTimePaymentSession({
                         onApprove: () => this.$executeOrder(),
                         onCancel: () => this.$handleCancel(),
@@ -132,6 +135,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                 QUILocale.get(pkg, 'PaymentDisplay.confirm_payment')
             );
 
+            this.$paypalOperation = 'createOrder';
             const orderPromise = PayPalApi.createOrder(
                 this.getAttribute('orderhash'),
                 this.getAttribute('basketid'),
@@ -141,6 +145,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                     throw new Error('PayPal order could not be created.');
                 }
 
+                this.$paypalOperation = 'startSession';
                 this.$hash = Order.hash;
                 return {orderId: Order.payPalOrderId};
             }).catch((Error) => {
@@ -162,6 +167,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
          * @return {Promise<Object>}
          */
         $executeOrder: function () {
+            this.$paypalOperation = 'executeOrder';
             this.$OrderProcess.Loader.show(
                 QUILocale.get(pkg, 'PaymentDisplay.execute_payment')
             );
@@ -199,7 +205,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                 return;
             }
 
-            console.error('PayPal Web SDK v6 payment error', Error);
+            WebSdk.reportError(Error, this.$paypalOperation, this.getAttribute('sandbox'));
 
             this.$flowErrorHandled = true;
             this.$OrderProcess.Loader.hide();
@@ -217,6 +223,7 @@ define('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay', [
                 return;
             }
 
+            WebSdk.reportError(Error, this.$paypalOperation, this.getAttribute('sandbox'));
             this.$flowErrorHandled = true;
             this.$OrderProcess.Loader.hide();
 

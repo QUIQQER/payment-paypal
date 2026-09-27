@@ -60,6 +60,20 @@ final class AjaxCallbacksTest extends TestCase
         );
     }
 
+    public function testSdkConfigurationCallbackExposesOnlyPublicConfigurationAndScopedReportingToken(): void
+    {
+        $config = $this->registeredCallback('getSdkConfig')();
+        self::assertSame(['clientId', 'sandbox', 'diagnosticsToken'], array_keys($config));
+        self::assertIsBool($config['sandbox']);
+        self::assertSame(
+            Provider::getApiSetting($config['sandbox'] ? 'sandbox_client_id' : 'client_id'),
+            $config['clientId']
+        );
+        self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/', $config['diagnosticsToken']);
+        self::assertFalse($this->registeredCallback('logBrowserError')('wrong-token', '{}'));
+        self::assertFalse($this->registeredCallback('logBrowserError')([], []));
+    }
+
     public function testLegacyAgreementAdminCallbacksUseHandler(): void
     {
         $this->Payment->apiResponse = [

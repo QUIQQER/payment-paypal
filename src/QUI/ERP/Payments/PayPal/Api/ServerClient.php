@@ -10,7 +10,7 @@ use PaypalServerSdkLib\Environment;
 use PaypalServerSdkLib\Http\ApiResponse;
 use PaypalServerSdkLib\PaypalServerSdkClient;
 use PaypalServerSdkLib\PaypalServerSdkClientBuilder;
-use UnexpectedValueException;
+use QUI\ERP\Payments\PayPal\Diagnostics;
 
 use function is_array;
 use function json_decode;
@@ -77,10 +77,12 @@ final class ServerClient implements ServerClientInterface
      */
     public function patchOrder(string $orderId, array $body): ?array
     {
-        $this->Client->getOrdersController()->patchOrder([
+        $Response = $this->Client->getOrdersController()->patchOrder([
             'id' => $orderId,
             'body' => $body
         ]);
+
+        $this->assertSuccessfulResponse($Response);
 
         // PayPal returns 204 No Content for successful order updates.
         return null;
@@ -129,23 +131,43 @@ final class ServerClient implements ServerClientInterface
      */
     private function normalizeResponse(ApiResponse $Response): ?array
     {
+        $this->assertSuccessfulResponse($Response);
         $result = $Response->getResult();
 
         if ($result === null) {
             return null;
         }
 
-        $normalizedResult = json_decode(
-            json_encode($result, JSON_THROW_ON_ERROR),
-            true,
-            512,
-            JSON_THROW_ON_ERROR
-        );
+        try {
+            $normalizedResult = json_decode(
+                json_encode($result, JSON_THROW_ON_ERROR),
+                true,
+                512,
+                JSON_THROW_ON_ERROR
+            );
+        } catch (JsonException) {
+            $normalizedResult = null;
+        }
 
         if (!is_array($normalizedResult)) {
-            throw new UnexpectedValueException('PayPal API response could not be normalized to an array.');
+            throw new ResponseException(
+                'PayPal API response could not be normalized to an array.',
+                Diagnostics::responseContext($Response->getStatusCode(), $Response->getBody(), $Response->getHeaders())
+            );
         }
 
         return $normalizedResult;
+    }
+
+    private function assertSuccessfulResponse(ApiResponse $Response): void
+    {
+        $status = $Response->getStatusCode();
+
+        if ($status === null || $status < 200 || $status >= 300) {
+            throw new ResponseException(
+                'PayPal API returned an unsuccessful HTTP response.',
+                Diagnostics::responseContext($status, $Response->getBody(), $Response->getHeaders())
+            );
+        }
     }
 }

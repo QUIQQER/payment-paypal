@@ -137,6 +137,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     protected ?ServerClientInterface $PayPalServerClient = null;
 
+    private bool $pendingCaptureCheck = false;
+
     /**
      * @return string
      */
@@ -1323,19 +1325,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 JSON_THROW_ON_ERROR
             );
         } catch (Exception $Exception) {
-            $message = $Exception->getCode() . " :: \n\n";
-            $message .= $Exception->getMessage() . "\n";
-            $message .= $Exception->getTraceAsString();
-
-            QUI\System\Log::write(
-                $message,
-                QUI\System\Log::LEVEL_WARNING,
-                [
-                    'paypalRequestClass' => get_class($Request),
-                    'requestBody' => $Request->body,
-                    'transactionObject' => get_debug_type($TransactionObj)
-                ],
-                'paypal_api'
+            $diagnostics = Diagnostics::logApiFailure(
+                get_class($Request),
+                $Exception,
+                $TransactionObj instanceof AbstractOrder ? $TransactionObj : null,
+                $this->pendingCaptureCheck
             );
 
             if ($throwSystemException) {
@@ -1343,7 +1337,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     $Exception->getMessage(),
                     $Exception->getCode(),
                     [
-                        'request' => $request
+                        'request' => $request,
+                        'paypalError' => $diagnostics['paypalError'] ?? null
                     ]
                 );
             }
@@ -1425,19 +1420,11 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     $this->throwPayPalException();
             }
         } catch (Exception $Exception) {
-            $message = $Exception->getCode() . " :: \n\n";
-            $message .= $Exception->getMessage() . "\n";
-            $message .= $Exception->getTraceAsString();
-
-            QUI\System\Log::write(
-                $message,
-                QUI\System\Log::LEVEL_WARNING,
-                [
-                    'paypalOperation' => $operation,
-                    'requestBody' => $body,
-                    'transactionObject' => get_debug_type($TransactionObj)
-                ],
-                'paypal_api'
+            $diagnostics = Diagnostics::logApiFailure(
+                $operation,
+                $Exception,
+                $TransactionObj instanceof AbstractOrder ? $TransactionObj : null,
+                $this->pendingCaptureCheck
             );
 
             if ($throwSystemException) {
@@ -1445,7 +1432,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     $Exception->getMessage(),
                     $Exception->getCode(),
                     [
-                        'request' => $request
+                        'request' => $request,
+                        'paypalError' => $diagnostics['paypalError'] ?? null
                     ]
                 );
             }
@@ -1529,29 +1517,41 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             try {
                 $Order = $this->getPendingCaptureOrder($row['id']);
 
+                if (!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
+                    continue;
+                }
+
                 // Some order entities do not exist any longer at PayPal - we do not have to check these
                 if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST)) {
                     continue;
                 }
 
                 try {
-                    $payPalOrderData = $this->payPalApiRequest(
-                        self::PAYPAL_REQUEST_TYPE_GET_ORDER,
-                        [],
-                        $Order,
-                        true
-                    );
+                    $previousPendingCaptureCheck = $this->pendingCaptureCheck;
+                    $this->pendingCaptureCheck = true;
+
+                    try {
+                        $payPalOrderData = $this->payPalApiRequest(
+                            self::PAYPAL_REQUEST_TYPE_GET_ORDER,
+                            [],
+                            $Order,
+                            true
+                        );
+                    } finally {
+                        $this->pendingCaptureCheck = $previousPendingCaptureCheck;
+                    }
                 } catch (PayPalSystemException $Exception) {
                     // Check if Order does not exist anymore at PayPal
                     $exMsg = $Exception->getMessage();
                     $exMsg = json_decode($exMsg, true);
 
-                    if (
-                        is_array($exMsg) &&
-                        json_last_error() === JSON_ERROR_NONE &&
-                        !empty($exMsg['name']) &&
-                        $exMsg['name'] == self::PAYPAL_API_EXCEPTION_MESSAGE_RESOURCE_NOT_FOUND
-                    ) {
+                    $errorName = $Exception->getContext()['paypalError'] ?? null;
+
+                    if (!$errorName && is_array($exMsg)) {
+                        $errorName = $exMsg['name'] ?? null;
+                    }
+
+                    if ($errorName === self::PAYPAL_API_EXCEPTION_MESSAGE_RESOURCE_NOT_FOUND) {
                         $Order->setPaymentData(self::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST, true);
 
                         $Order->addHistory(

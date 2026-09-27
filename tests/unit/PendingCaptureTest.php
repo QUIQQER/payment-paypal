@@ -14,6 +14,31 @@ use QUITests\ERP\Payments\PayPal\Unit\Fixtures\PendingCapturePaymentDouble;
 
 final class PendingCaptureTest extends TestCase
 {
+    public function testOrdersWithoutPayPalIdAreSkippedUntilAnIdIsAssigned(): void
+    {
+        $Order = new OrderDouble();
+        $EmptyOrder = new OrderDouble();
+        $EmptyOrder->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, '');
+        $Payment = $this->paymentWithOrder($Order);
+        $Payment->rows[] = ['id' => 2];
+        $Payment->orders[2] = $EmptyOrder;
+
+        $Payment->checkPendingCaptures();
+
+        self::assertSame(0, $Payment->apiRequestCount);
+        self::assertSame(0, $Payment->saveCount);
+        self::assertSame([], $Payment->purchase);
+        self::assertSame([], $Order->history);
+        self::assertSame([], $EmptyOrder->history);
+        self::assertFalse((bool)$Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST));
+        self::assertFalse((bool)$EmptyOrder->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST));
+
+        $EmptyOrder->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'ORDER-PENDING');
+        $Payment->checkPendingCaptures();
+
+        self::assertSame(1, $Payment->apiRequestCount);
+    }
+
     public function testCompletedCapturesCreateCombinedTransaction(): void
     {
         $Order = $this->order();
@@ -125,6 +150,20 @@ final class PendingCaptureTest extends TestCase
 
         self::assertSame([], $Payment->purchase);
         self::assertSame(0, $Payment->saveCount);
+    }
+
+    public function testHttpFailureWithStructuredErrorCodeStillMarksMissingPayPalOrder(): void
+    {
+        $Order = $this->order();
+        $Payment = $this->paymentWithOrder($Order);
+        $Payment->apiException = new PayPalSystemException(
+            'PayPal API returned an unsuccessful HTTP response.',
+            404,
+            ['paypalError' => Payment::PAYPAL_API_EXCEPTION_MESSAGE_RESOURCE_NOT_FOUND]
+        );
+        $Payment->checkPendingCaptures();
+        self::assertTrue($Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST));
+        self::assertSame(1, $Payment->saveCount);
     }
 
     public function testMissingPaymentTypesAndEmptyResponsesAreIgnored(): void

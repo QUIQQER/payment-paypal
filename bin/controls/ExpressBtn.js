@@ -182,12 +182,15 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 return;
             }
 
+            this.$paypalOperation = 'sdkConfiguration';
             WebSdk.getInstance(this.getAttribute('sandbox')).then((Sdk) => {
+                this.$paypalOperation = 'findEligibleMethods';
                 return Sdk.findEligibleMethods({currencyCode: currency}).then((Methods) => {
                     if (!Methods.isEligible('paypal')) {
                         throw new Error('PayPal is not eligible for this order.');
                     }
 
+                    this.$paypalOperation = 'createSession';
                     this.$PaymentSession = Sdk.createPayPalOneTimePaymentSession({
                         onApprove: () => this.$executeOrder(),
                         onCancel: () => this.$handleCancel(),
@@ -219,6 +222,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
             this.$flowErrorHandled = false;
             this.$showLoader(QUILocale.get(pkg, 'ExpressBtn.confirm_payment'));
 
+            this.$paypalOperation = 'createOrder';
             const orderPromise = PayPalApi.createOrder(
                 this.$hash,
                 this.getAttribute('basketid'),
@@ -228,6 +232,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                     throw new Error('PayPal order could not be created.');
                 }
 
+                this.$paypalOperation = 'startSession';
                 this.$hash = Order.hash;
                 return {orderId: Order.payPalOrderId};
             }).catch((Error) => {
@@ -249,6 +254,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
          * @return {Promise<Object>}
          */
         $executeOrder: function () {
+            this.$paypalOperation = 'executeOrder';
             this.$PayPalBtnElm.addClass('quiqqer-payment-paypal__hidden');
 
             return PayPalApi.executeOrder(this.$hash, true).then((success) => {
@@ -283,7 +289,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 return;
             }
 
-            console.error('PayPal Web SDK v6 Express payment error', Error);
+            WebSdk.reportError(Error, this.$paypalOperation, this.getAttribute('sandbox'));
 
             this.$flowErrorHandled = true;
             this.$hideLoader();
@@ -300,6 +306,7 @@ define('package/quiqqer/payment-paypal/bin/controls/ExpressBtn', [
                 return;
             }
 
+            WebSdk.reportError(Error, this.$paypalOperation, this.getAttribute('sandbox'));
             this.$flowErrorHandled = true;
             this.$hideLoader();
 
