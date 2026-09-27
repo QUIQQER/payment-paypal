@@ -126,6 +126,20 @@ final class Diagnostics
         return ['clientId' => $clientId, 'sandbox' => $sandbox, 'diagnosticsToken' => $token];
     }
 
+    /** @param array<string, mixed> $context Sanitized diagnostic metadata, never raw API responses. */
+    public static function logConnectionTestFailure(
+        string $operation,
+        array $context,
+        string $testId,
+        bool $sandbox
+    ): void {
+        self::write('PayPal administration connection test failed.', $operation, [
+            'source' => 'admin_connection_test',
+            'testId' => $testId,
+            'testedEnvironment' => $sandbox ? 'sandbox' : 'production'
+        ] + $context);
+    }
+
     /** Accept a bounded, session-authenticated browser report, including guest checkouts. */
     public static function logBrowserError(string $token, string $payload): bool
     {

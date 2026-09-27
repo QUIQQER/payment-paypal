@@ -182,6 +182,34 @@ final class AjaxCallbacksTest extends TestCase
         }
     }
 
+    public function testConnectionTestRequiresAdministratorAndSettingsPermission(): void
+    {
+        $this->registeredCallback('testConnection');
+        $Permissions = new \ReflectionProperty(QUI\Ajax::class, 'permissions');
+        $permissions = $Permissions->getValue();
+        self::assertSame(
+            ['Permission::checkAdminUser', 'quiqqer.settings'],
+            $permissions['package_quiqqer_payment-paypal_ajax_testConnection']
+        );
+    }
+
+    public function testConnectionTestRejectsMalformedParametersBeforeNetworkRequests(): void
+    {
+        $callback = $this->registeredCallback('testConnection');
+        $this->expectException(QUI\Exception::class);
+        $callback([], 'DE');
+    }
+
+    public function testPaypalLogUsesTheCentralLogViewerSuperuserRestriction(): void
+    {
+        $this->registeredCallback('getLog');
+        $Permissions = new \ReflectionProperty(QUI\Ajax::class, 'permissions');
+        self::assertSame(
+            ['Permission::checkSU'],
+            $Permissions->getValue()['package_quiqqer_payment-paypal_ajax_getLog']
+        );
+    }
+
     private function registeredCallback(string $relativePath): callable
     {
         require dirname(__DIR__, 2) . '/ajax/' . $relativePath . '.php';
