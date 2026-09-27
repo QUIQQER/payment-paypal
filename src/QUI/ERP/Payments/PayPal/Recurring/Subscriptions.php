@@ -362,11 +362,21 @@ class Subscriptions
      */
     public static function isSubscriptionActiveAtPaymentProvider(string $subscriptionId): bool
     {
-        try {
-            $subscription = self::getSubscriptionDetails($subscriptionId);
-        } catch (Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
-            return true;
+        // Unknown is neither active nor inactive: the caller must skip this
+        // subscription instead of cancelling it or changing its contract.
+        $subscription = self::getSubscriptionDetails($subscriptionId);
+
+        if (
+            !in_array($subscription['status'] ?? '', [
+            self::STATUS_ACTIVE,
+            self::STATUS_APPROVAL_PENDING,
+            self::STATUS_APPROVED,
+            self::STATUS_SUSPENDED,
+            self::STATUS_CANCELLED,
+            self::STATUS_EXPIRED
+            ], true)
+        ) {
+            throw self::createInvalidSubscriptionException();
         }
 
         return in_array($subscription['status'] ?? '', [

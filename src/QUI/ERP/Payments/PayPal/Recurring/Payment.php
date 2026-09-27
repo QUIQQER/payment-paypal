@@ -583,15 +583,17 @@ class Payment extends BasePayment implements RecurringPaymentInterface
             return Subscriptions::isSubscriptionActiveAtPaymentProvider((string)$subscriptionId);
         }
 
-        try {
-            $billingAgreement = BillingAgreements::getBillingAgreementDetails((string)$subscriptionId);
-        } catch (\Exception $Exception) {
-            QUI\System\Log::writeException($Exception);
-            return true;
-        }
+        $billingAgreement = BillingAgreements::getBillingAgreementDetails((string)$subscriptionId);
 
-        if (empty($billingAgreement['state'])) {
-            return false;
+        if (
+            !in_array($billingAgreement['state'] ?? '', [
+            BillingAgreements::BILLING_AGREEMENT_STATE_ACTIVE,
+            BillingAgreements::BILLING_AGREEMENT_STATE_SUSPENDED,
+            BillingAgreements::BILLING_AGREEMENT_STATE_CANCELLED,
+            BillingAgreements::BILLING_AGREEMENT_STATE_EXPIRED
+            ], true)
+        ) {
+            throw new PayPalException('PayPal returned an unknown billing agreement state.');
         }
 
         return match ($billingAgreement['state']) {

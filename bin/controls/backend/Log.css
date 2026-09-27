@@ -1,0 +1,43 @@
+.quiqqer-paypal-log {
+    --_log-height: var(--quiqqer-paypal-log-height, var(--_q-controlConf-logHeight, 300px));
+    /* Log lines must not determine the intrinsic width of the settings table. */
+    contain: inline-size;
+    max-width: 100%;
+}
+
+.quiqqer-paypal-log select {
+    background: var(--_surface);
+    border: 1px solid var(--_border);
+    border-radius: 4px;
+    box-sizing: border-box;
+    color: inherit;
+    font: inherit;
+    font-weight: normal;
+    height: 40px;
+    padding: 8px 12px;
+    width: 100%;
+}
+
+.quiqqer-paypal-log-content {
+    background: var(--_surface);
+    border: 1px solid var(--_border);
+    border-radius: 4px;
+    box-sizing: border-box;
+    color: var(--_text);
+    font: 12px/1.6 monospace;
+    height: var(--_log-height);
+    margin: 0;
+    max-width: 100%;
+    min-width: 0;
+    overflow: auto;
+    overflow-wrap: anywhere;
+    padding: 16px;
+    tab-size: 4;
+    white-space: pre-wrap;
+    width: 100%;
+}
+
+.quiqqer-paypal-log :is(select, pre):focus-visible {
+    outline: 2px solid var(--_focus);
+    outline-offset: 3px;
+}

@@ -126,6 +126,20 @@ final class Diagnostics
         return ['clientId' => $clientId, 'sandbox' => $sandbox, 'diagnosticsToken' => $token];
     }
 
+    /** @param array<string, mixed> $context Sanitized diagnostic metadata, never raw API responses. */
+    public static function logConnectionTestFailure(
+        string $operation,
+        array $context,
+        string $testId,
+        bool $sandbox
+    ): void {
+        self::write('PayPal administration connection test failed.', $operation, [
+            'source' => 'admin_connection_test',
+            'testId' => $testId,
+            'testedEnvironment' => $sandbox ? 'sandbox' : 'production'
+        ] + $context);
+    }
+
     /** Accept a bounded, session-authenticated browser report, including guest checkouts. */
     public static function logBrowserError(string $token, string $payload): bool
     {
@@ -173,11 +187,40 @@ final class Diagnostics
             $context['httpStatus'] = $data['httpStatus'];
         }
 
-        if (in_array($data['errorName'] ?? null, ['Error', 'TypeError', 'SdkInitError', 'SdkError'], true)) {
+        $errorNames = ['Error', 'TypeError', 'SdkInitError', 'SdkError', 'DevError', 'PaymentFlowError'];
+
+        if (in_array($data['errorName'] ?? null, $errorNames, true)) {
             $context['errorName'] = $data['errorName'];
         }
 
+        $sdkCode = self::code($data['sdkErrorCode'] ?? null);
+        $context['sdkErrorCode'] = $sdkCode !== null && str_starts_with($sdkCode, 'ERR_') ? $sdkCode : null;
+        $context['paypalError'] = self::code($data['paypalError'] ?? null);
+        $issues = [];
+
+        foreach (is_array($data['paypalIssues'] ?? null) ? array_slice($data['paypalIssues'], 0, 10) : [] as $issue) {
+            if (($code = self::code($issue)) !== null) {
+                $issues[] = $code;
+            }
+        }
+
+        if ($issues !== []) {
+            $context['paypalIssues'] = array_values(array_unique($issues));
+        }
+
         $context['debugId'] = self::debugId($data['debugId'] ?? null);
+        if (
+            $data['operation'] === 'findEligibleMethods'
+            && $context['reason'] === 'operation_failed'
+            && $context['paypalError'] === null
+            && $issues === []
+            && !isset($context['httpStatus'])
+            && $context['debugId'] === null
+        ) {
+            $context['diagnosticHint'] = 'The SDK did not expose the underlying PayPal API error. '
+                . 'Inspect find-eligible-methods in browser Network: HTTP status, name, details[].issue and debug_id.';
+        }
+
         $context['correlationId'] = is_string($data['correlationId'] ?? null)
             && preg_match('/\A[0-9a-f-]{36}\z/D', $data['correlationId']) === 1 ? $data['correlationId'] : null;
         self::write('PayPal browser operation failed.', $data['operation'], $context);

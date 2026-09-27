@@ -21,16 +21,16 @@ final class LocaleFiles
         Assert::assertInstanceOf(SimpleXMLElement::class, $Index);
         $documents = [];
 
-        if ($Index->xpath('/locales/groups/locale')) {
+        if ($Index->xpath('//locales/groups/locale')) {
             $documents[] = $Index;
         }
 
-        foreach ($Index->file as $File) {
+        foreach ($Index->xpath('//locales/file') ?: [] as $File) {
             $path = $directory . '/' . ltrim((string)$File['file'], '/');
             Assert::assertFileExists($path);
             $Document = simplexml_load_file($path);
             Assert::assertInstanceOf(SimpleXMLElement::class, $Document);
-            Assert::assertNotEmpty($Document->xpath('/locales/groups/locale'), $path);
+            Assert::assertNotEmpty($Document->xpath('//locales/groups/locale'), $path);
             $documents[] = $Document;
         }
 

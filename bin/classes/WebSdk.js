@@ -15,6 +15,68 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
     let correlationId = null;
     const errorOperations = new WeakMap();
 
+    const diagnosticCode = function (value) {
+        return typeof value === 'string' && /^[A-Z][A-Z0-9_]{1,79}$/.test(value) ? value : undefined;
+    };
+
+    const errorMetadata = function (Error) {
+        const result = {};
+        const issues = new Set();
+        const seen = new Set();
+        const pending = [Error];
+
+        // Read only known error containers, with bounded work even for cyclic SDK errors.
+        for (let index = 0; index < pending.length && index < 20; index++) {
+            const current = pending[index];
+
+            if (!current || typeof current !== 'object' || seen.has(current)) {
+                continue;
+            }
+
+            seen.add(current);
+            const code = diagnosticCode(current.code);
+            const name = diagnosticCode(current.name);
+            const debugId = current.debugId ?? current.debug_id;
+            const status = current.statusCode ?? current.status;
+
+            if (code?.startsWith('ERR_')) {
+                result.sdkErrorCode ??= code;
+            }
+
+            result.paypalError ??= name;
+
+            if (typeof debugId === 'string' && /^[a-f0-9]{8,32}$/i.test(debugId)) {
+                result.debugId ??= debugId;
+            }
+
+            if (Number.isInteger(status) && status >= 100 && status <= 599) {
+                result.httpStatus ??= status;
+            }
+
+            if (Array.isArray(current.details)) {
+                for (const detail of current.details.slice(0, 10)) {
+                    const issue = diagnosticCode(detail?.issue);
+
+                    if (issue && issues.size < 10) {
+                        issues.add(issue);
+                    }
+                }
+            }
+
+            for (const key of ['cause', 'response', 'data', 'body', 'error']) {
+                if (pending.length < 20 && current[key] && typeof current[key] === 'object') {
+                    pending.push(current[key]);
+                }
+            }
+        }
+
+        if (issues.size) {
+            result.paypalIssues = Array.from(issues);
+        }
+
+        return result;
+    };
+
     const isSandbox = function (sandbox) {
         return sandbox === true || sandbox === 1 || sandbox === '1' || sandbox === 'true';
     };
@@ -117,18 +179,23 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
             const Script = document.querySelector('[data-name="' + scriptName + '"]');
             const loadedEnvironment = Script?.src === getSdkUrl('sandbox') ? 'sandbox'
                 : Script?.src === getSdkUrl('production') ? 'production' : 'unknown';
-            const debugId = Error?.debugId ?? Error?.debug_id;
-            const status = Error?.statusCode ?? Error?.status;
+            let metadata = {};
+
+            try {
+                metadata = errorMetadata(Error);
+            } catch (_) {
+                // Unexpected SDK getters must not interfere with the original checkout error.
+            }
+
             const payload = {
                 operation: errorOperations.get(Error) || operation,
                 reason: reason,
                 reportedEnvironment: getEnvironment(sandbox),
                 sdkEnvironment: loadedEnvironment,
                 correlationId: correlationId,
-                errorName: ['Error', 'TypeError', 'SdkInitError', 'SdkError'].includes(Error?.name)
+                errorName: ['Error', 'TypeError', 'SdkInitError', 'SdkError', 'DevError', 'PaymentFlowError'].includes(Error?.name)
                     ? Error.name : undefined,
-                debugId: typeof debugId === 'string' && /^[a-f0-9]{8,32}$/i.test(debugId) ? debugId : undefined,
-                httpStatus: Number.isInteger(status) && status >= 100 && status <= 599 ? status : undefined
+                ...metadata
             };
 
             // Logging must never prevent the checkout from displaying its original error.

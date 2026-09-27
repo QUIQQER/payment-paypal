@@ -374,7 +374,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
             const hasSelection = selected.length === 1;
             const canDelete = hasSelection
                 && this.$CanManage
-                && selected[0].account_context_valid === false;
+                && this.$canDeleteLocally(selected[0]);
 
             if (hasSelection) {
                 Buttons.details.enable();
@@ -389,18 +389,32 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
             }
         },
 
+        $canDeleteLocally: function(row) {
+            return row.account_context_valid === false
+                || (row.account_context_valid === true
+                    && row.subscription_data?.status === 'APPROVAL_PENDING');
+        },
+
         $deleteUnassigned: function() {
             const selected = this.$Grid.getSelectedData();
 
             if (
                 selected.length !== 1
-                || selected[0].account_context_valid !== false
+                || !this.$canDeleteLocally(selected[0])
                 || !this.$CanManage
             ) {
                 return;
             }
 
             const subscriptionId = selected[0].paypal_subscription_id;
+            const isAssigned = selected[0].account_context_valid === true;
+            const localePrefix = isAssigned
+                ? 'controls.backend.Subscriptions.delete_missing.'
+                : 'controls.backend.Subscriptions.delete_unassigned.';
+            const deleteSubscription = isAssigned
+                ? PayPal.deleteMissingSubscription.bind(PayPal)
+                : PayPal.deleteUnassignedSubscription.bind(PayPal);
+            let submitting = false;
 
             new QUIConfirm({
                 maxHeight: 360,
@@ -408,16 +422,16 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
                 autoclose: false,
                 information: QUILocale.get(
                     lg,
-                    'controls.backend.Subscriptions.delete_unassigned.information'
+                    localePrefix + 'information'
                 ),
                 title: QUILocale.get(
                     lg,
-                    'controls.backend.Subscriptions.delete_unassigned.title'
+                    localePrefix + 'title'
                 ),
                 texticon: 'fa fa-warning',
                 text: QUILocale.get(
                     lg,
-                    'controls.backend.Subscriptions.delete_unassigned.text',
+                    localePrefix + 'text',
                     {subscriptionId: subscriptionId}
                 ),
                 icon: 'fa fa-trash',
@@ -434,14 +448,18 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/Subscriptions', [
                 },
                 events: {
                     onSubmit: (Popup) => {
+                        if (submitting) {
+                            return;
+                        }
+
+                        submitting = true;
                         Popup.Loader.show();
 
-                        PayPal.deleteUnassignedSubscription(
-                            subscriptionId
-                        ).then(() => {
+                        deleteSubscription(subscriptionId).then(() => {
                             Popup.close();
                             this.refresh();
                         }).catch(() => {
+                            submitting = false;
                             Popup.Loader.hide();
                         });
                     }
