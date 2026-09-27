@@ -14,6 +14,31 @@ use QUITests\ERP\Payments\PayPal\Unit\Fixtures\PendingCapturePaymentDouble;
 
 final class PendingCaptureTest extends TestCase
 {
+    public function testOrdersWithoutPayPalIdAreSkippedUntilAnIdIsAssigned(): void
+    {
+        $Order = new OrderDouble();
+        $EmptyOrder = new OrderDouble();
+        $EmptyOrder->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, '');
+        $Payment = $this->paymentWithOrder($Order);
+        $Payment->rows[] = ['id' => 2];
+        $Payment->orders[2] = $EmptyOrder;
+
+        $Payment->checkPendingCaptures();
+
+        self::assertSame(0, $Payment->apiRequestCount);
+        self::assertSame(0, $Payment->saveCount);
+        self::assertSame([], $Payment->purchase);
+        self::assertSame([], $Order->history);
+        self::assertSame([], $EmptyOrder->history);
+        self::assertFalse((bool)$Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST));
+        self::assertFalse((bool)$EmptyOrder->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST));
+
+        $EmptyOrder->setPaymentData(Payment::ATTR_PAYPAL_ORDER_ID, 'ORDER-PENDING');
+        $Payment->checkPendingCaptures();
+
+        self::assertSame(1, $Payment->apiRequestCount);
+    }
+
     public function testCompletedCapturesCreateCombinedTransaction(): void
     {
         $Order = $this->order();

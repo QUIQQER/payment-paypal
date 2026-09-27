@@ -1505,6 +1505,10 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
             try {
                 $Order = $this->getPendingCaptureOrder($row['id']);
 
+                if (!$Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_ID)) {
+                    continue;
+                }
+
                 // Some order entities do not exist any longer at PayPal - we do not have to check these
                 if ($Order->getPaymentDataEntry(self::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST)) {
                     continue;

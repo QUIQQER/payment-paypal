@@ -19,6 +19,7 @@ final class PendingCapturePaymentDouble extends Payment
     public ?Transaction $Transaction = null;
     public array $purchase = [];
     public int $saveCount = 0;
+    public int $apiRequestCount = 0;
 
     protected function getPendingCapturePaymentTypeIds(): array
     {
@@ -41,6 +42,8 @@ final class PendingCapturePaymentDouble extends Payment
         Transaction|AbstractOrder|array $TransactionObj,
         bool $throwSystemException = false
     ): null|bool|array {
+        $this->apiRequestCount++;
+
         if ($this->apiException instanceof Throwable) {
             throw $this->apiException;
         }
