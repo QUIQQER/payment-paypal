@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<quiqqer xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://www.quiqqer.com/docs/schemas/2.x/locale.xsd">
 <locales>
     <groups name="quiqqer/payment-paypal" datatype="php,js">
 
@@ -468,6 +470,24 @@
 <en><![CDATA[Checks the payment status for all orders that have been executed with PayPal and whose payment status is "pending".]]></en>
         </locale>
 
+        <locale name="controls.backend.Subscriptions.delete_missing.title">
+            <en><![CDATA[Delete pending subscription locally]]></en>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.information">
+            <en><![CDATA[The subscription is checked with PayPal before deletion. It is only deleted if PayPal cannot find it in the assigned account and it has no linked local contract or payments. Nothing is cancelled or changed at PayPal.]]></en>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.text">
+            <en><![CDATA[Check pending subscription [subscriptionId] and delete it locally if these conditions are met?]]></en>
+        </locale>
+        <locale name="exception.subscription.cleanup.protected">
+            <en><![CDATA[This entry cannot be deleted locally. Cleanup is only available for pending subscriptions assigned to the current PayPal account. Please refresh the list.]]></en>
+        </locale>
+        <locale name="exception.subscription.cleanup.linked">
+            <en><![CDATA[The subscription is kept because it has a linked contract or locally stored payments.]]></en>
+        </locale>
+        <locale name="exception.subscription.cleanup.exists">
+            <en><![CDATA[PayPal found the subscription. It was not deleted locally. Check its current status using “Show details”.]]></en>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
@@ -926,3 +946,4 @@
     </groups>
 
 </locales>
+</quiqqer>

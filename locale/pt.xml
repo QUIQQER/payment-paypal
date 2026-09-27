@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<quiqqer xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://www.quiqqer.com/docs/schemas/2.x/locale.xsd">
 <locales>
     <groups name="quiqqer/payment-paypal" datatype="php,js">
 
@@ -463,6 +465,24 @@
 <pt><![CDATA[Verifica o estado do pagamento de todas as encomendas efetuadas com PayPal cujo pagamento está pendente.]]></pt>
         </locale>
 
+        <locale name="controls.backend.Subscriptions.delete_missing.title">
+            <pt><![CDATA[Eliminar localmente a subscrição pendente]]></pt>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.information">
+            <pt><![CDATA[A subscrição é verificada no PayPal antes de ser eliminada. Só é eliminada se o PayPal não a encontrar na conta associada e não tiver contratos nem pagamentos locais associados. Nada é cancelado ou alterado no PayPal.]]></pt>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.text">
+            <pt><![CDATA[Verificar a subscrição pendente [subscriptionId] e eliminá-la localmente se estas condições forem cumpridas?]]></pt>
+        </locale>
+        <locale name="exception.subscription.cleanup.protected">
+            <pt><![CDATA[Esta entrada não pode ser eliminada localmente. A limpeza só está disponível para subscrições pendentes associadas à conta PayPal atual. Atualize a lista.]]></pt>
+        </locale>
+        <locale name="exception.subscription.cleanup.linked">
+            <pt><![CDATA[A subscrição é mantida porque tem um contrato ou pagamentos guardados localmente associados.]]></pt>
+        </locale>
+        <locale name="exception.subscription.cleanup.exists">
+            <pt><![CDATA[O PayPal encontrou a subscrição. Não foi eliminada localmente. Verifique o seu estado atual através de «Mostrar detalhes».]]></pt>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
@@ -917,3 +937,4 @@
     </groups>
 
 </locales>
+</quiqqer>

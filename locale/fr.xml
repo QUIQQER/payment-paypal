@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<quiqqer xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://www.quiqqer.com/docs/schemas/2.x/locale.xsd">
 <locales>
     <groups name="quiqqer/payment-paypal" datatype="php,js">
 
@@ -463,6 +465,24 @@
 <fr><![CDATA[Vérifie l’état du paiement de toutes les commandes effectuées avec PayPal dont le paiement est en attente.]]></fr>
         </locale>
 
+        <locale name="controls.backend.Subscriptions.delete_missing.title">
+            <fr><![CDATA[Supprimer localement l’abonnement en attente]]></fr>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.information">
+            <fr><![CDATA[L’abonnement est vérifié auprès de PayPal avant sa suppression. Il n’est supprimé que si PayPal ne le trouve pas dans le compte associé et qu’aucun contrat ni paiement local ne lui est lié. Rien n’est annulé ni modifié chez PayPal.]]></fr>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.text">
+            <fr><![CDATA[Vérifier l’abonnement en attente [subscriptionId] et le supprimer localement si ces conditions sont remplies ?]]></fr>
+        </locale>
+        <locale name="exception.subscription.cleanup.protected">
+            <fr><![CDATA[Cette entrée ne peut pas être supprimée localement. Le nettoyage est réservé aux abonnements en attente associés au compte PayPal actuel. Veuillez actualiser la liste.]]></fr>
+        </locale>
+        <locale name="exception.subscription.cleanup.linked">
+            <fr><![CDATA[L’abonnement est conservé, car un contrat ou des paiements enregistrés localement lui sont liés.]]></fr>
+        </locale>
+        <locale name="exception.subscription.cleanup.exists">
+            <fr><![CDATA[PayPal a trouvé l’abonnement. Il n’a pas été supprimé localement. Vérifiez son état actuel avec « Afficher les détails ».]]></fr>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
@@ -917,3 +937,4 @@
     </groups>
 
 </locales>
+</quiqqer>

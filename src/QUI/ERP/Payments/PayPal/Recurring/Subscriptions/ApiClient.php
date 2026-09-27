@@ -163,14 +163,15 @@ class ApiClient
                 );
             }
 
-            throw new PayPalException(
+            throw new RequestException(
                 !empty($response['message'])
                     ? $response['message']
                     : QUI::getLocale()->get(
                         'quiqqer/payment-paypal',
                         'exception.Recurring.order.error'
                     ),
-                $status
+                $status,
+                is_string($response['name'] ?? null) ? $response['name'] : ''
             );
         }
 

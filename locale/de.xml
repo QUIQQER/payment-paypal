@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<quiqqer xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://www.quiqqer.com/docs/schemas/2.x/locale.xsd">
 <locales>
     <groups name="quiqqer/payment-paypal" datatype="php,js">
 
@@ -469,6 +471,24 @@
 <de><![CDATA[Prüft den Zahlungsstatus für alle Bestellungen, die mit PayPal durchgeführt wurden und deren Zahlungsstatus "ausstehend" ist.]]></de>
         </locale>
 
+        <locale name="controls.backend.Subscriptions.delete_missing.title">
+            <de><![CDATA[Ausstehende Subscription lokal löschen]]></de>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.information">
+            <de><![CDATA[Vor dem Löschen wird die Subscription bei PayPal geprüft. Gelöscht wird nur, wenn PayPal sie im zugeordneten Konto nicht findet und lokal weder ein Vertrag noch Zahlungen daran hängen. Bei PayPal wird nichts gekündigt oder verändert.]]></de>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.text">
+            <de><![CDATA[Soll die ausstehende Subscription [subscriptionId] geprüft und bei erfüllten Voraussetzungen lokal gelöscht werden?]]></de>
+        </locale>
+        <locale name="exception.subscription.cleanup.protected">
+            <de><![CDATA[Dieser Eintrag kann nicht lokal gelöscht werden. Die Bereinigung ist nur für ausstehende Subscriptions im aktuell zugeordneten PayPal-Konto möglich. Bitte aktualisieren Sie die Liste.]]></de>
+        </locale>
+        <locale name="exception.subscription.cleanup.linked">
+            <de><![CDATA[Die Subscription bleibt erhalten, weil ein Vertrag oder lokal gespeicherte Zahlungen damit verknüpft sind.]]></de>
+        </locale>
+        <locale name="exception.subscription.cleanup.exists">
+            <de><![CDATA[PayPal hat die Subscription gefunden. Sie wurde nicht lokal gelöscht. Prüfen Sie ihren aktuellen Status über „Details anzeigen“.]]></de>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
@@ -926,3 +946,4 @@
     </groups>
 
 </locales>
+</quiqqer>

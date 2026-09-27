@@ -182,6 +182,18 @@ final class AjaxCallbacksTest extends TestCase
         }
     }
 
+    public function testMissingSubscriptionCleanupRequiresManagePermissionAndValidInput(): void
+    {
+        $callback = $this->registeredCallback('recurring/deleteMissingSubscription');
+        $Permissions = new \ReflectionProperty(QUI\Ajax::class, 'permissions');
+        self::assertSame(
+            ['Permission::checkAdminUser', 'quiqqer.payments.paypal.subscriptions.manage'],
+            $Permissions->getValue()['package_quiqqer_payment-paypal_ajax_recurring_deleteMissingSubscription']
+        );
+        $this->expectException(QUI\Exception::class);
+        $callback([]);
+    }
+
     public function testConnectionTestRequiresAdministratorAndSettingsPermission(): void
     {
         $this->registeredCallback('testConnection');

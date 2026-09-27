@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<quiqqer xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://www.quiqqer.com/docs/schemas/2.x/locale.xsd">
 <locales>
     <groups name="quiqqer/payment-paypal" datatype="php,js">
 
@@ -463,6 +465,24 @@
 <pl><![CDATA[Sprawdza status płatności wszystkich zamówień złożonych z użyciem PayPal, których płatność oczekuje na realizację.]]></pl>
         </locale>
 
+        <locale name="controls.backend.Subscriptions.delete_missing.title">
+            <pl><![CDATA[Usuń lokalnie oczekującą subskrypcję]]></pl>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.information">
+            <pl><![CDATA[Przed usunięciem subskrypcja jest sprawdzana w PayPal. Zostanie usunięta tylko wtedy, gdy PayPal nie znajdzie jej na przypisanym koncie i nie ma ona powiązanych lokalnych umów ani płatności. W PayPal nic nie jest anulowane ani zmieniane.]]></pl>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.text">
+            <pl><![CDATA[Sprawdzić oczekującą subskrypcję [subscriptionId] i usunąć ją lokalnie, jeśli te warunki są spełnione?]]></pl>
+        </locale>
+        <locale name="exception.subscription.cleanup.protected">
+            <pl><![CDATA[Tego wpisu nie można usunąć lokalnie. Czyszczenie jest dostępne tylko dla oczekujących subskrypcji przypisanych do bieżącego konta PayPal. Odśwież listę.]]></pl>
+        </locale>
+        <locale name="exception.subscription.cleanup.linked">
+            <pl><![CDATA[Subskrypcja zostaje zachowana, ponieważ ma powiązaną umowę lub lokalnie zapisane płatności.]]></pl>
+        </locale>
+        <locale name="exception.subscription.cleanup.exists">
+            <pl><![CDATA[PayPal znalazł subskrypcję. Nie została usunięta lokalnie. Sprawdź jej aktualny status za pomocą opcji „Pokaż szczegóły”.]]></pl>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
@@ -917,3 +937,4 @@
     </groups>
 
 </locales>
+</quiqqer>

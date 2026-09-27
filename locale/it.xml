@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<quiqqer xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://www.quiqqer.com/docs/schemas/2.x/locale.xsd">
 <locales>
     <groups name="quiqqer/payment-paypal" datatype="php,js">
 
@@ -463,6 +465,24 @@
 <it><![CDATA[Verifica lo stato del pagamento di tutti gli ordini effettuati con PayPal il cui pagamento è in sospeso.]]></it>
         </locale>
 
+        <locale name="controls.backend.Subscriptions.delete_missing.title">
+            <it><![CDATA[Elimina localmente l’abbonamento in attesa]]></it>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.information">
+            <it><![CDATA[Prima dell’eliminazione, l’abbonamento viene verificato su PayPal. Viene eliminato solo se PayPal non lo trova nell’account associato e non sono presenti contratti o pagamenti locali collegati. Su PayPal non viene annullato o modificato nulla.]]></it>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.text">
+            <it><![CDATA[Verificare l’abbonamento in attesa [subscriptionId] ed eliminarlo localmente se queste condizioni sono soddisfatte?]]></it>
+        </locale>
+        <locale name="exception.subscription.cleanup.protected">
+            <it><![CDATA[Questa voce non può essere eliminata localmente. La pulizia è disponibile solo per gli abbonamenti in attesa associati all’account PayPal attuale. Aggiornare l’elenco.]]></it>
+        </locale>
+        <locale name="exception.subscription.cleanup.linked">
+            <it><![CDATA[L’abbonamento viene conservato perché è collegato a un contratto o a pagamenti memorizzati localmente.]]></it>
+        </locale>
+        <locale name="exception.subscription.cleanup.exists">
+            <it><![CDATA[PayPal ha trovato l’abbonamento. Non è stato eliminato localmente. Verificarne lo stato attuale tramite «Mostra dettagli».]]></it>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
@@ -917,3 +937,4 @@
     </groups>
 
 </locales>
+</quiqqer>
