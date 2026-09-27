@@ -137,6 +137,8 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
      */
     protected ?ServerClientInterface $PayPalServerClient = null;
 
+    private bool $pendingCaptureCheck = false;
+
     /**
      * @return string
      */
@@ -1323,7 +1325,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 JSON_THROW_ON_ERROR
             );
         } catch (Exception $Exception) {
-            $diagnostics = Diagnostics::logApiFailure(get_class($Request), $Exception);
+            $diagnostics = Diagnostics::logApiFailure(
+                get_class($Request),
+                $Exception,
+                $TransactionObj instanceof AbstractOrder ? $TransactionObj : null,
+                $this->pendingCaptureCheck
+            );
 
             if ($throwSystemException) {
                 throw new PayPalSystemException(
@@ -1413,7 +1420,12 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                     $this->throwPayPalException();
             }
         } catch (Exception $Exception) {
-            $diagnostics = Diagnostics::logApiFailure($operation, $Exception);
+            $diagnostics = Diagnostics::logApiFailure(
+                $operation,
+                $Exception,
+                $TransactionObj instanceof AbstractOrder ? $TransactionObj : null,
+                $this->pendingCaptureCheck
+            );
 
             if ($throwSystemException) {
                 throw new PayPalSystemException(
@@ -1515,12 +1527,19 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 }
 
                 try {
-                    $payPalOrderData = $this->payPalApiRequest(
-                        self::PAYPAL_REQUEST_TYPE_GET_ORDER,
-                        [],
-                        $Order,
-                        true
-                    );
+                    $previousPendingCaptureCheck = $this->pendingCaptureCheck;
+                    $this->pendingCaptureCheck = true;
+
+                    try {
+                        $payPalOrderData = $this->payPalApiRequest(
+                            self::PAYPAL_REQUEST_TYPE_GET_ORDER,
+                            [],
+                            $Order,
+                            true
+                        );
+                    } finally {
+                        $this->pendingCaptureCheck = $previousPendingCaptureCheck;
+                    }
                 } catch (PayPalSystemException $Exception) {
                     // Check if Order does not exist anymore at PayPal
                     $exMsg = $Exception->getMessage();

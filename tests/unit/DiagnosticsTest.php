@@ -7,6 +7,8 @@ namespace QUITests\ERP\Payments\PayPal\Unit;
 use Monolog\Handler\TestHandler;
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Constants;
+use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Payments\PayPal\Api\ResponseException;
 use QUI\ERP\Payments\PayPal\Diagnostics;
 use QUI\ERP\Payments\PayPal\Settings;
@@ -158,5 +160,98 @@ final class DiagnosticsTest extends TestCase
             self::assertStringNotContainsString('private', json_encode($record));
             self::assertStringNotContainsString('secret', json_encode($record));
         }
+    }
+
+    public function testCronApiFailuresIdentifyEachOrderAndResetCronContext(): void
+    {
+        $Client = new PayPalServerClientDouble();
+        $Client->exception = new ResponseException('private response secret-token', [
+            'httpStatus' => 503,
+            'paypalError' => 'SERVICE_UNAVAILABLE',
+            'debugId' => 'abcdef1234567'
+        ]);
+        $orders = [];
+
+        foreach ([41 => Constants::PAYMENT_STATUS_OPEN, 42 => Constants::PAYMENT_STATUS_PART] as $id => $status) {
+            $Order = $this->createMock(AbstractOrder::class);
+            $Order->method('getId')->willReturn($id);
+            $Order->method('getUUID')->willReturn('11111111-2222-4333-8444-5555555555' . $id);
+            $Order->method('getAttribute')->with('paid_status')->willReturn($status);
+            $Order->method('getPaymentDataEntry')->willReturnMap([
+                [Payment::ATTR_PAYPAL_ORDER_ID, 'PAYPAL-ORDER-' . $id],
+                [Payment::ATTR_PAYPAL_ORDER_DOES_NOT_EXIST, false]
+            ]);
+            $Order->expects(self::never())->method('update');
+            $orders[$id] = $Order;
+        }
+
+        $Payment = $this->getMockBuilder(Payment::class)
+            ->disableOriginalConstructor()
+            ->onlyMethods([
+                'getPendingCapturePaymentTypeIds', 'getPendingCaptureOrderRows',
+                'getPendingCaptureOrder', 'getPayPalServerClient', 'saveOrder'
+            ])
+            ->getMock();
+        $Payment->method('getPendingCapturePaymentTypeIds')->willReturn([1]);
+        $Payment->method('getPendingCaptureOrderRows')->willReturn([['id' => 41], ['id' => 42]]);
+        $Payment->method('getPendingCaptureOrder')->willReturnCallback(static fn ($id) => $orders[$id]);
+        $Payment->method('getPayPalServerClient')->willReturn($Client);
+        $Payment->expects(self::never())->method('saveOrder');
+
+        $Payment->checkPendingCaptures();
+
+        $records = $this->Handler->getRecords();
+        self::assertCount(2, $records);
+
+        foreach ($records as $index => $record) {
+            $context = $record['context'];
+            $id = 41 + $index;
+            self::assertSame($id, $context['orderId']);
+            self::assertSame($orders[$id]->getUUID(), $context['orderUuid']);
+            self::assertSame('PAYPAL-ORDER-' . $id, $context['paypalOrderId']);
+            self::assertSame($index === 0 ? Constants::PAYMENT_STATUS_OPEN : Constants::PAYMENT_STATUS_PART, $context['paidStatus']);
+            self::assertSame($index === 0 ? 'open' : 'partially_paid', $context['paidStatusName']);
+            self::assertSame('cron', $context['source']);
+            self::assertSame('checkPendingCaptures', $context['cronJob']);
+            self::assertSame('OrdersController::getOrder', $context['paypalOperation']);
+            self::assertSame(503, $context['httpStatus']);
+            self::assertSame('SERVICE_UNAVAILABLE', $context['paypalError']);
+            self::assertSame('abcdef1234567', $context['debugId']);
+        }
+
+        try {
+            $Payment->payPalApiRequest(Payment::PAYPAL_REQUEST_TYPE_GET_ORDER, [], $orders[41], true);
+            self::fail('Failed API call must throw.');
+        } catch (PayPalSystemException) {
+            $records = $this->Handler->getRecords();
+            self::assertCount(3, $records);
+            self::assertArrayNotHasKey('cronJob', $records[2]['context']);
+            self::assertArrayNotHasKey('source', $records[2]['context']);
+            self::assertSame(41, $records[2]['context']['orderId']);
+        }
+
+        self::assertStringNotContainsString('private', json_encode($records));
+        self::assertStringNotContainsString('secret', json_encode($records));
+    }
+
+    public function testOrderDiagnosticsRejectMalformedIdsAndPaymentStatus(): void
+    {
+        $Order = $this->createMock(AbstractOrder::class);
+        $Order->method('getId')->willReturn(41);
+        $Order->method('getUUID')->willReturn('private@example.com');
+        $Order->method('getPaymentDataEntry')->willReturn("PAYPAL-ID\nsecret-token");
+        $Order->method('getAttribute')->willReturn('private payment data');
+
+        Diagnostics::logApiFailure('OrdersController::getOrder', new \RuntimeException('secret'), $Order);
+
+        $record = $this->Handler->getRecords()[0];
+        self::assertSame(41, $record['context']['orderId']);
+
+        foreach (['orderUuid', 'paypalOrderId', 'paidStatus', 'paidStatusName'] as $key) {
+            self::assertArrayNotHasKey($key, $record['context']);
+        }
+
+        self::assertStringNotContainsString('private', json_encode($record));
+        self::assertStringNotContainsString('secret', json_encode($record));
     }
 }

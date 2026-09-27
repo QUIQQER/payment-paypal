@@ -6,6 +6,8 @@ namespace QUI\ERP\Payments\PayPal;
 
 use PaypalServerSdkLib\Exceptions\ApiException;
 use QUI;
+use QUI\ERP\Constants;
+use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Payments\PayPal\Api\ResponseException;
 use Throwable;
 
@@ -45,8 +47,12 @@ final class Diagnostics
     }
 
     /** @return array<string, mixed> */
-    public static function logApiFailure(string $operation, Throwable $Error): array
-    {
+    public static function logApiFailure(
+        string $operation,
+        Throwable $Error,
+        ?AbstractOrder $Order = null,
+        bool $pendingCaptureCheck = false
+    ): array {
         $context = ['exceptionType' => get_class($Error)];
 
         if ($Error instanceof ResponseException) {
@@ -65,6 +71,35 @@ final class Diagnostics
                 $Error->getMessage(),
                 []
             );
+        }
+
+        if ($Order !== null) {
+            $context['orderId'] = $Order->getId();
+            $context['orderUuid'] = self::identifier($Order->getUUID());
+            $context['paypalOrderId'] = self::identifier($Order->getPaymentDataEntry(Payment::ATTR_PAYPAL_ORDER_ID));
+            $paidStatus = $Order->getAttribute('paid_status');
+            $statuses = [
+                Constants::PAYMENT_STATUS_OPEN => 'open',
+                Constants::PAYMENT_STATUS_PAID => 'paid',
+                Constants::PAYMENT_STATUS_PART => 'partially_paid',
+                Constants::PAYMENT_STATUS_ERROR => 'error',
+                Constants::PAYMENT_STATUS_CANCELED => 'canceled',
+                Constants::PAYMENT_STATUS_DEBIT => 'debit',
+                Constants::PAYMENT_STATUS_PLAN => 'plan'
+            ];
+
+            if (
+                (is_int($paidStatus) || (is_string($paidStatus) && ctype_digit($paidStatus)))
+                && isset($statuses[(int)$paidStatus])
+            ) {
+                $context['paidStatus'] = (int)$paidStatus;
+                $context['paidStatusName'] = $statuses[(int)$paidStatus];
+            }
+        }
+
+        if ($pendingCaptureCheck) {
+            $context['source'] = 'cron';
+            $context['cronJob'] = 'checkPendingCaptures';
         }
 
         self::write('PayPal API operation failed.', $operation, $context);
@@ -162,6 +197,11 @@ final class Diagnostics
     private static function code(mixed $value): ?string
     {
         return is_string($value) && preg_match('/\A[A-Za-z][A-Za-z0-9_]{1,79}\z/D', $value) === 1 ? $value : null;
+    }
+
+    private static function identifier(mixed $value): ?string
+    {
+        return is_string($value) && preg_match('/\A[A-Za-z0-9_-]{1,64}\z/D', $value) === 1 ? $value : null;
     }
 
     private static function debugId(mixed $value): ?string
