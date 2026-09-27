@@ -483,6 +483,135 @@
         <locale name="exception.subscription.cleanup.exists">
             <es><![CDATA[PayPal ha encontrado la suscripción. No se ha eliminado localmente. Compruebe su estado actual mediante «Mostrar detalles».]]></es>
         </locale>
+        <locale name="connectionTest.title">
+            <es><![CDATA[Prueba de conexión con PayPal]]></es>
+        </locale>
+        <locale name="connectionTest.description">
+            <es><![CDATA[Compruebe si PayPal está disponible con la configuración guardada. No se crea ningún pedido ni se realiza ningún cargo.]]></es>
+        </locale>
+        <locale name="connectionTest.currency">
+            <es><![CDATA[Moneda]]></es>
+        </locale>
+        <locale name="connectionTest.country">
+            <es><![CDATA[País del comprador]]></es>
+        </locale>
+        <locale name="connectionTest.start">
+            <es><![CDATA[Probar PayPal]]></es>
+        </locale>
+        <locale name="connectionTest.running">
+            <es><![CDATA[Comprobando PayPal …]]></es>
+        </locale>
+        <locale name="connectionTest.testId">
+            <es><![CDATA[ID de prueba]]></es>
+        </locale>
+        <locale name="connectionTest.production">
+            <es><![CDATA[Producción]]></es>
+        </locale>
+        <locale name="connectionTest.sandbox">
+            <es><![CDATA[Sandbox]]></es>
+        </locale>
+        <locale name="connectionTest.configuration">
+            <es><![CDATA[Configuración]]></es>
+        </locale>
+        <locale name="connectionTest.authentication">
+            <es><![CDATA[Credenciales de acceso]]></es>
+        </locale>
+        <locale name="connectionTest.findEligibleMethods">
+            <es><![CDATA[Conexión con PayPal]]></es>
+        </locale>
+        <locale name="connectionTest.browser">
+            <es><![CDATA[PayPal en el navegador]]></es>
+        </locale>
+        <locale name="connectionTest.success">
+            <es><![CDATA[Correcto]]></es>
+        </locale>
+        <locale name="connectionTest.failed">
+            <es><![CDATA[La comprobación ha fallado]]></es>
+        </locale>
+        <locale name="connectionTest.httpStatus">
+            <es><![CDATA[Estado HTTP]]></es>
+        </locale>
+        <locale name="connectionTest.paypalError">
+            <es><![CDATA[Código de error de PayPal]]></es>
+        </locale>
+        <locale name="connectionTest.paypalIssues">
+            <es><![CDATA[Códigos de detalle de PayPal]]></es>
+        </locale>
+        <locale name="connectionTest.debugId">
+            <es><![CDATA[ID de depuración de PayPal]]></es>
+        </locale>
+        <locale name="connectionTest.transportErrorCode">
+            <es><![CDATA[Error de conexión (código cURL)]]></es>
+        </locale>
+        <locale name="connectionTest.eligible">
+            <es><![CDATA[PayPal está disponible para esta consulta.]]></es>
+        </locale>
+        <locale name="connectionTest.not_eligible">
+            <es><![CDATA[La consulta se ha realizado correctamente, pero PayPal no está disponible en estas condiciones.]]></es>
+        </locale>
+        <locale name="connectionTest.missing_credentials">
+            <es><![CDATA[Falta el ID de cliente o el secreto en el entorno seleccionado.]]></es>
+        </locale>
+        <locale name="connectionTest.invalid_token_response">
+            <es><![CDATA[PayPal no ha devuelto un token de acceso válido.]]></es>
+        </locale>
+        <locale name="connectionTest.invalid_eligibility_response">
+            <es><![CDATA[PayPal no ha devuelto una respuesta válida sobre la disponibilidad de los métodos de pago.]]></es>
+        </locale>
+        <locale name="connectionTest.transport_error">
+            <es><![CDATA[No se ha podido establecer la conexión con PayPal.]]></es>
+        </locale>
+        <locale name="connectionTest.browser_error">
+            <es><![CDATA[No se ha podido iniciar PayPal en este navegador. Solicite al soporte que revise la configuración y el registro de PayPal.]]></es>
+        </locale>
+        <locale name="connectionTest.request_error">
+            <es><![CDATA[No se ha podido iniciar la prueba. Compruebe sus permisos e inténtelo de nuevo.]]></es>
+        </locale>
+        <locale name="connectionTest.hint">
+            <es><![CDATA[Guarde los cambios antes de iniciar la prueba. La comprobación del servidor utiliza un importe de ejemplo de 1,00 en la moneda seleccionada.]]></es>
+        </locale>
+        <locale name="connectionTest.help_title">
+            <es><![CDATA[Información sobre la prueba de conexión]]></es>
+        </locale>
+        <locale name="connectionTest.help">
+            <es><![CDATA[El servidor y el navegador se comprueban por separado porque PayPal utiliza métodos de autenticación distintos. Una comprobación correcta del servidor no confirma que el pago funcione en el navegador. Los errores se guardan en el registro de PayPal (var/log/paypal_api-YYYY-MM-DD.log). Si el SDK descarta la respuesta de la API, los detalles originales solo estarán disponibles en la pestaña Red de las herramientas de desarrollo del navegador.]]></es>
+        </locale>
+        <locale name="connectionTest.technical_details">
+            <es><![CDATA[Detalles técnicos]]></es>
+        </locale>
+        <locale name="connectionTest.unavailable">
+            <es><![CDATA[No disponible]]></es>
+        </locale>
+        <locale name="paypalLog.title">
+            <es><![CDATA[Registro de PayPal]]></es>
+        </locale>
+        <locale name="paypalLog.description">
+            <es><![CDATA[Aquí puede consultar los errores de PayPal registrados. Seleccione un día o actualice esta vista después de realizar una prueba de conexión.]]></es>
+        </locale>
+        <locale name="paypalLog.date">
+            <es><![CDATA[Fecha]]></es>
+        </locale>
+        <locale name="paypalLog.refresh">
+            <es><![CDATA[Actualizar]]></es>
+        </locale>
+        <locale name="paypalLog.loading">
+            <es><![CDATA[Cargando el registro …]]></es>
+        </locale>
+        <locale name="paypalLog.empty">
+            <es><![CDATA[Todavía no hay registros de PayPal disponibles.]]></es>
+        </locale>
+        <locale name="paypalLog.empty_file">
+            <es><![CDATA[Este registro todavía no contiene entradas.]]></es>
+        </locale>
+        <locale name="paypalLog.truncated">
+            <es><![CDATA[Se muestran los últimos 256 KB. Las entradas anteriores de este archivo se han omitido en esta vista.]]></es>
+        </locale>
+        <locale name="paypalLog.loaded">
+            <es><![CDATA[Las entradas más recientes están al final del registro.]]></es>
+        </locale>
+        <locale name="paypalLog.error">
+            <es><![CDATA[No se ha podido cargar el registro. Se requieren permisos de superusuario, como en el visor central de registros. Si el archivo se ha eliminado, vuelva a abrir esta categoría.]]></es>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
