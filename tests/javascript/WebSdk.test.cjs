@@ -152,6 +152,68 @@ test('logging failure does not become an unhandled rejection', async () => {
     await flush();
 });
 
+test('nested API errors preserve authorization details without raw response data', async () => {
+    const {WebSdk, state} = setup();
+    await WebSdk.getInstance(0);
+    WebSdk.reportError({
+        name: 'SdkInitError', code: 'ERR_INIT_FIND_ELIGIBLE_METHODS',
+        cause: {response: {status: 403, data: {
+            name: 'NOT_AUTHORIZED', debug_id: '730b69995797f',
+            message: 'private response secret-token',
+            details: [{issue: 'NOT_AUTHORIZED', description: 'private data'}, {issue: 'NOT_AUTHORIZED'}],
+            headers: {Authorization: 'Bearer secret-token'}
+        }}}
+    }, 'findEligibleMethods', false);
+    await flush();
+    const payload = state.reports[0].payload;
+    assert.equal(payload.sdkErrorCode, 'ERR_INIT_FIND_ELIGIBLE_METHODS');
+    assert.equal(payload.paypalError, 'NOT_AUTHORIZED');
+    assert.deepEqual(Array.from(payload.paypalIssues), ['NOT_AUTHORIZED']);
+    assert.equal(payload.httpStatus, 403);
+    assert.equal(payload.debugId, '730b69995797f');
+    assert.doesNotMatch(JSON.stringify(payload), /private|secret|Authorization|description|message/);
+});
+
+test('current SDK eligibility wrapper logs its code without inventing discarded API details', async () => {
+    const {WebSdk, state} = setup();
+    await WebSdk.getInstance(0);
+    // Current SDK catches the pixel error and throws a fresh error without cause/response/details.
+    WebSdk.reportError({
+        name: 'SdkInitError', code: 'ERR_INIT_FIND_ELIGIBLE_METHODS',
+        message: 'something went wrong when fetching eligible methods'
+    }, 'findEligibleMethods', false);
+    await flush();
+    const payload = state.reports[0].payload;
+    assert.equal(payload.sdkErrorCode, 'ERR_INIT_FIND_ELIGIBLE_METHODS');
+    for (const key of ['httpStatus', 'debugId', 'paypalError', 'paypalIssues']) {
+        assert.equal(payload[key], undefined);
+    }
+});
+
+test('cyclic errors and excessive or malformed issues are bounded and filtered', async () => {
+    const {WebSdk, state} = setup();
+    await WebSdk.getInstance(0);
+    const error = {
+        name: 'private@example.com', code: 'ERR_secret-token', status: '403', debug_id: 'private data',
+        details: [{issue: 'private@example.com'}, ...Array.from({length: 100}, (_, i) => ({issue: `ISSUE_${i}`}))]
+    };
+    error.cause = error;
+    WebSdk.reportError(error, 'findEligibleMethods', false);
+    await flush();
+    const payload = state.reports[0].payload;
+    assert.equal(payload.paypalIssues.length, 9);
+    assert.doesNotMatch(JSON.stringify(payload), /private|secret|403|ISSUE_99/);
+});
+
+test('throwing nested SDK getters do not interrupt failure reporting', async () => {
+    const {WebSdk, state} = setup();
+    await WebSdk.getInstance(0);
+    WebSdk.reportError({name: 'SdkError', get cause() { throw new Error('unavailable'); }}, 'executeOrder', false);
+    await flush();
+    assert.equal(state.reports.length, 1);
+    assert.equal(state.reports[0].payload.errorName, 'SdkError');
+});
+
 for (const name of ['PaymentDisplay', 'ExpressBtn']) {
     test(`${name} reports SDK errors once and preserves the checkout error UI`, () => {
         let methods;

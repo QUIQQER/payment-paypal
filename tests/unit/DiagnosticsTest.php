@@ -113,6 +113,73 @@ final class DiagnosticsTest extends TestCase
         self::assertCount(10, $this->Handler->getRecords());
     }
 
+    public function testBrowserAuthorizationFailureIncludesPaypalCodesAndDebugId(): void
+    {
+        $config = Diagnostics::getSdkConfig();
+        self::assertTrue(Diagnostics::logBrowserError($config['diagnosticsToken'], json_encode([
+            'operation' => 'findEligibleMethods',
+            'sdkErrorCode' => 'ERR_INIT_FIND_ELIGIBLE_METHODS',
+            'paypalError' => 'NOT_AUTHORIZED',
+            'paypalIssues' => ['NOT_AUTHORIZED', 'NOT_AUTHORIZED', 'private@example.com'],
+            'httpStatus' => 403,
+            'debugId' => '730b69995797f',
+            'diagnosticHint' => 'private injected hint',
+            'response' => ['message' => 'private response', 'token' => 'secret-token']
+        ], JSON_THROW_ON_ERROR)));
+        $context = $this->Handler->getRecords()[0]['context'];
+        self::assertSame('ERR_INIT_FIND_ELIGIBLE_METHODS', $context['sdkErrorCode']);
+        self::assertSame('NOT_AUTHORIZED', $context['paypalError']);
+        self::assertSame(['NOT_AUTHORIZED'], $context['paypalIssues']);
+        self::assertSame(403, $context['httpStatus']);
+        self::assertSame('730b69995797f', $context['debugId']);
+        self::assertArrayNotHasKey('diagnosticHint', $context);
+        self::assertStringNotContainsString('private', json_encode($context));
+        self::assertStringNotContainsString('secret', json_encode($context));
+    }
+
+    public function testOpaqueSdkEligibilityFailureIncludesTargetedDiagnosticHint(): void
+    {
+        $config = Diagnostics::getSdkConfig();
+        self::assertTrue(Diagnostics::logBrowserError($config['diagnosticsToken'], json_encode([
+            'operation' => 'findEligibleMethods',
+            'errorName' => 'SdkInitError',
+            'sdkErrorCode' => 'ERR_INIT_FIND_ELIGIBLE_METHODS'
+        ], JSON_THROW_ON_ERROR)));
+        $context = $this->Handler->getRecords()[0]['context'];
+        self::assertStringContainsString('find-eligible-methods in browser Network', $context['diagnosticHint']);
+        self::assertArrayNotHasKey('httpStatus', $context);
+        self::assertArrayNotHasKey('paypalError', $context);
+        self::assertArrayNotHasKey('debugId', $context);
+    }
+
+    public function testBrowserDiagnosticFieldsRejectMalformedValuesAndBoundIssues(): void
+    {
+        $config = Diagnostics::getSdkConfig();
+        foreach ([['private@example.com', ['secret']], "NOT_AUTHORIZED\nsecret", str_repeat('A', 81)] as $invalid) {
+            self::assertTrue(Diagnostics::logBrowserError($config['diagnosticsToken'], json_encode([
+                'operation' => 'executeOrder',
+                'sdkErrorCode' => $invalid,
+                'paypalError' => $invalid,
+                'paypalIssues' => [$invalid],
+                'debugId' => $invalid,
+                'httpStatus' => '403'
+            ], JSON_THROW_ON_ERROR)));
+        }
+
+        foreach ($this->Handler->getRecords() as $record) {
+            foreach (['sdkErrorCode', 'paypalError', 'paypalIssues', 'debugId', 'httpStatus', 'diagnosticHint'] as $key) {
+                self::assertArrayNotHasKey($key, $record['context']);
+            }
+        }
+
+        self::assertTrue(Diagnostics::logBrowserError($config['diagnosticsToken'], json_encode([
+            'operation' => 'executeOrder',
+            'paypalIssues' => array_map(static fn ($i) => 'ISSUE_' . $i, range(1, 30))
+        ], JSON_THROW_ON_ERROR)));
+        $records = $this->Handler->getRecords();
+        self::assertCount(10, end($records)['context']['paypalIssues']);
+    }
+
     public function testApiLogContainsStatusAndCodesButNoResponseBody(): void
     {
         $context = Diagnostics::responseContext(422, json_encode([
