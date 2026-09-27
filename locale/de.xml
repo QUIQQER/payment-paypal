@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<quiqqer xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://www.quiqqer.com/docs/schemas/2.x/locale.xsd">
 <locales>
     <groups name="quiqqer/payment-paypal" datatype="php,js">
 
@@ -469,6 +471,153 @@
 <de><![CDATA[Prüft den Zahlungsstatus für alle Bestellungen, die mit PayPal durchgeführt wurden und deren Zahlungsstatus "ausstehend" ist.]]></de>
         </locale>
 
+        <locale name="controls.backend.Subscriptions.delete_missing.title">
+            <de><![CDATA[Ausstehende Subscription lokal löschen]]></de>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.information">
+            <de><![CDATA[Vor dem Löschen wird die Subscription bei PayPal geprüft. Gelöscht wird nur, wenn PayPal sie im zugeordneten Konto nicht findet und lokal weder ein Vertrag noch Zahlungen daran hängen. Bei PayPal wird nichts gekündigt oder verändert.]]></de>
+        </locale>
+        <locale name="controls.backend.Subscriptions.delete_missing.text">
+            <de><![CDATA[Soll die ausstehende Subscription [subscriptionId] geprüft und bei erfüllten Voraussetzungen lokal gelöscht werden?]]></de>
+        </locale>
+        <locale name="exception.subscription.cleanup.protected">
+            <de><![CDATA[Dieser Eintrag kann nicht lokal gelöscht werden. Die Bereinigung ist nur für ausstehende Subscriptions im aktuell zugeordneten PayPal-Konto möglich. Bitte aktualisieren Sie die Liste.]]></de>
+        </locale>
+        <locale name="exception.subscription.cleanup.linked">
+            <de><![CDATA[Die Subscription bleibt erhalten, weil ein Vertrag oder lokal gespeicherte Zahlungen damit verknüpft sind.]]></de>
+        </locale>
+        <locale name="exception.subscription.cleanup.exists">
+            <de><![CDATA[PayPal hat die Subscription gefunden. Sie wurde nicht lokal gelöscht. Prüfen Sie ihren aktuellen Status über „Details anzeigen“.]]></de>
+        </locale>
+        <locale name="connectionTest.title">
+            <de><![CDATA[PayPal-Verbindungstest]]></de>
+        </locale>
+        <locale name="connectionTest.description">
+            <de><![CDATA[Prüfen Sie, ob PayPal mit Ihren gespeicherten Einstellungen erreichbar ist. Es wird keine Bestellung angelegt und kein Geld abgebucht.]]></de>
+        </locale>
+        <locale name="connectionTest.currency">
+            <de><![CDATA[Währung]]></de>
+        </locale>
+        <locale name="connectionTest.country">
+            <de><![CDATA[Käuferland]]></de>
+        </locale>
+        <locale name="connectionTest.start">
+            <de><![CDATA[PayPal testen]]></de>
+        </locale>
+        <locale name="connectionTest.running">
+            <de><![CDATA[PayPal wird geprüft …]]></de>
+        </locale>
+        <locale name="connectionTest.testId">
+            <de><![CDATA[Test-ID]]></de>
+        </locale>
+        <locale name="connectionTest.production">
+            <de><![CDATA[Live]]></de>
+        </locale>
+        <locale name="connectionTest.sandbox">
+            <de><![CDATA[Sandbox]]></de>
+        </locale>
+        <locale name="connectionTest.configuration">
+            <de><![CDATA[Konfiguration]]></de>
+        </locale>
+        <locale name="connectionTest.authentication">
+            <de><![CDATA[Zugangsdaten]]></de>
+        </locale>
+        <locale name="connectionTest.findEligibleMethods">
+            <de><![CDATA[PayPal-Verbindung]]></de>
+        </locale>
+        <locale name="connectionTest.browser">
+            <de><![CDATA[PayPal im Browser]]></de>
+        </locale>
+        <locale name="connectionTest.success">
+            <de><![CDATA[OK]]></de>
+        </locale>
+        <locale name="connectionTest.failed">
+            <de><![CDATA[Prüfung fehlgeschlagen]]></de>
+        </locale>
+        <locale name="connectionTest.httpStatus">
+            <de><![CDATA[HTTP-Status]]></de>
+        </locale>
+        <locale name="connectionTest.paypalError">
+            <de><![CDATA[PayPal-Fehlercode]]></de>
+        </locale>
+        <locale name="connectionTest.paypalIssues">
+            <de><![CDATA[PayPal-Detailcodes]]></de>
+        </locale>
+        <locale name="connectionTest.debugId">
+            <de><![CDATA[PayPal-Debug-ID]]></de>
+        </locale>
+        <locale name="connectionTest.transportErrorCode">
+            <de><![CDATA[Verbindungsfehler (cURL-Code)]]></de>
+        </locale>
+        <locale name="connectionTest.eligible">
+            <de><![CDATA[PayPal ist für diese Abfrage verfügbar.]]></de>
+        </locale>
+        <locale name="connectionTest.not_eligible">
+            <de><![CDATA[Die Abfrage war erfolgreich, PayPal ist für diese Bedingungen aber nicht verfügbar.]]></de>
+        </locale>
+        <locale name="connectionTest.missing_credentials">
+            <de><![CDATA[Client-ID oder Secret fehlt in der ausgewählten Umgebung.]]></de>
+        </locale>
+        <locale name="connectionTest.invalid_token_response">
+            <de><![CDATA[PayPal lieferte kein gültiges Access-Token.]]></de>
+        </locale>
+        <locale name="connectionTest.invalid_eligibility_response">
+            <de><![CDATA[PayPal lieferte keine gültige Zahlungsarten-Antwort.]]></de>
+        </locale>
+        <locale name="connectionTest.transport_error">
+            <de><![CDATA[PayPal konnte nicht erfolgreich erreicht werden.]]></de>
+        </locale>
+        <locale name="connectionTest.browser_error">
+            <de><![CDATA[PayPal konnte in diesem Browser nicht gestartet werden. Lassen Sie die Einstellungen und das PayPal-Protokoll vom Support prüfen.]]></de>
+        </locale>
+        <locale name="connectionTest.request_error">
+            <de><![CDATA[Der Test konnte nicht gestartet werden. Bitte prüfen Sie Ihre Berechtigung und versuchen Sie es erneut.]]></de>
+        </locale>
+        <locale name="connectionTest.hint">
+            <de><![CDATA[Bitte Änderungen vorher speichern. Die Serverprüfung verwendet einen Beispielbetrag von 1,00 in der gewählten Währung.]]></de>
+        </locale>
+        <locale name="connectionTest.help_title">
+            <de><![CDATA[Hinweise zum Verbindungstest]]></de>
+        </locale>
+        <locale name="connectionTest.help">
+            <de><![CDATA[Server und Browser werden getrennt geprüft, da PayPal dafür unterschiedliche Anmeldungen verwendet. Ein grünes Serverergebnis bestätigt noch nicht den Browser-Bezahlvorgang. Fehler werden im PayPal-Protokoll gespeichert (var/log/paypal_api-YYYY-MM-DD.log). Wenn das SDK seine API-Antwort verwirft, kann nur der Browser-Network-Tab die ursprünglichen Details zeigen.]]></de>
+        </locale>
+        <locale name="connectionTest.technical_details">
+            <de><![CDATA[Technische Details]]></de>
+        </locale>
+        <locale name="connectionTest.unavailable">
+            <de><![CDATA[Nicht verfügbar]]></de>
+        </locale>
+        <locale name="paypalLog.title">
+            <de><![CDATA[PayPal-Protokoll]]></de>
+        </locale>
+        <locale name="paypalLog.description">
+            <de><![CDATA[Hier finden Sie die aufgezeichneten PayPal-Fehler. Wählen Sie einen Tag aus oder aktualisieren Sie die Ansicht nach einem Verbindungstest.]]></de>
+        </locale>
+        <locale name="paypalLog.date">
+            <de><![CDATA[Datum]]></de>
+        </locale>
+        <locale name="paypalLog.refresh">
+            <de><![CDATA[Aktualisieren]]></de>
+        </locale>
+        <locale name="paypalLog.loading">
+            <de><![CDATA[Protokoll wird geladen …]]></de>
+        </locale>
+        <locale name="paypalLog.empty">
+            <de><![CDATA[Es sind noch keine PayPal-Protokolle vorhanden.]]></de>
+        </locale>
+        <locale name="paypalLog.empty_file">
+            <de><![CDATA[Dieses Protokoll enthält noch keine Einträge.]]></de>
+        </locale>
+        <locale name="paypalLog.truncated">
+            <de><![CDATA[Angezeigt werden die letzten 256 KB. Ältere Einträge dieser Datei wurden für die Anzeige gekürzt.]]></de>
+        </locale>
+        <locale name="paypalLog.loaded">
+            <de><![CDATA[Die neuesten Einträge stehen am Ende des Protokolls.]]></de>
+        </locale>
+        <locale name="paypalLog.error">
+            <de><![CDATA[Das Protokoll konnte nicht geladen werden. Wie beim zentralen Protokollzugriff sind Superuser-Rechte erforderlich. Falls die Datei inzwischen entfernt wurde, öffnen Sie die Kategorie erneut.]]></de>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
@@ -926,3 +1075,4 @@
     </groups>
 
 </locales>
+</quiqqer>

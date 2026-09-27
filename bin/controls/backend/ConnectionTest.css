@@ -1,0 +1,148 @@
+.quiqqer-paypal-connection-test {
+    --_gap: var(--quiqqer-paypal-connection-test-gap, 16px);
+    --_border: var(--qui-colors-gray-100);
+    --_muted: var(--qui-colors-gray-700);
+    --_surface: var(--qui-colors-white);
+    --_text: var(--qui-colors-gray-900);
+    --_focus: var(--qui-colors-primary);
+
+    box-sizing: border-box;
+    color: var(--_text);
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: var(--_gap);
+    line-height: 1.6;
+    min-width: 0;
+    padding: 12px;
+    width: 100%;
+}
+
+.quiqqer-paypal-connection-test p,
+.quiqqer-paypal-connection-test label,
+.data-table .quiqqer-paypal-connection-test p,
+.data-table .quiqqer-paypal-connection-test label {
+    clear: none;
+    float: none;
+    margin: 0;
+    width: auto;
+}
+
+.quiqqer-paypal-connection-test .messages-message {
+    box-sizing: border-box;
+    float: none;
+    font: inherit;
+    margin: 0;
+    padding: 16px;
+    width: 100%;
+}
+
+.quiqqer-paypal-connection-test .messages-message:hover {
+    opacity: 1;
+}
+
+.quiqqer-paypal-connection-test-fields {
+    align-items: end;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--_gap);
+    padding-top: 4px;
+}
+
+.quiqqer-paypal-connection-test .quiqqer-paypal-connection-test-field {
+    display: flex;
+    flex: 1 1 140px;
+    flex-direction: column;
+    font-weight: 600;
+    gap: 6px;
+    max-width: 240px;
+    min-width: 0;
+}
+
+.quiqqer-paypal-connection-test-field input {
+    background: var(--_surface);
+    border: 1px solid var(--_border);
+    border-radius: 4px;
+    box-sizing: border-box;
+    color: inherit;
+    font: inherit;
+    font-weight: normal;
+    height: 40px;
+    margin: 0;
+    padding: 8px 12px;
+    width: 100%;
+}
+
+.quiqqer-paypal-connection-test-fields .btn {
+    flex-shrink: 0;
+    min-height: 40px;
+}
+
+.quiqqer-paypal-connection-test :is(button, input, summary):focus-visible {
+    outline: 2px solid var(--_focus);
+    outline-offset: 3px;
+}
+
+.quiqqer-paypal-connection-test-hint,
+.quiqqer-paypal-connection-test-summary {
+    color: var(--_muted);
+    font-size: 0.95em;
+}
+
+.quiqqer-paypal-connection-test-results {
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+}
+
+.quiqqer-paypal-connection-test-results:empty {
+    display: none;
+}
+
+.quiqqer-paypal-connection-test-summary {
+    overflow-wrap: anywhere;
+}
+
+.quiqqer-paypal-connection-test-step {
+    display: grid;
+    gap: 10px;
+    min-width: 0;
+}
+
+.quiqqer-paypal-connection-test-step-title {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: space-between;
+}
+
+.quiqqer-paypal-connection-test-status {
+    font-size: 0.9em;
+    font-weight: 600;
+}
+
+.quiqqer-paypal-connection-test-metadata {
+    display: grid;
+    gap: 4px 16px;
+    grid-template-columns: minmax(100px, max-content) minmax(0, 1fr);
+    margin: 8px 0 0;
+}
+
+.quiqqer-paypal-connection-test-metadata:empty {
+    display: none;
+}
+
+.quiqqer-paypal-connection-test-metadata dt {
+    font-weight: normal;
+}
+
+.quiqqer-paypal-connection-test-metadata dd {
+    font-family: monospace;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.quiqqer-paypal-connection-test summary {
+    cursor: pointer;
+}

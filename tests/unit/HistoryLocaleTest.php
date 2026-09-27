@@ -56,7 +56,7 @@ final class HistoryLocaleTest extends TestCase
 
                     foreach ($localeDocuments as $LocaleXml) {
                         $Matches = $LocaleXml->xpath(
-                            "/locales/groups/locale[@name='history.{$historyKey}']/{$language}"
+                            "//locales/groups/locale[@name='history.{$historyKey}']/{$language}"
                         );
                         self::assertIsArray($Matches);
                         $translations = [...$translations, ...$Matches];

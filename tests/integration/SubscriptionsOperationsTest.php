@@ -348,8 +348,9 @@ final class SubscriptionsOperationsTest extends TestCase
         }
     }
 
-    public function testProviderActivityRemainsTrueWhenApiIsUnavailable(): void
+    public function testProviderActivityPropagatesTransportFailureWithoutChangingLocalState(): void
     {
+        $this->insertSubscription();
         $Client = new SubscriptionsApiClientDouble();
         $Client->setAccessToken('ACCESS-TOKEN');
         $Client->responses[] = [
@@ -358,9 +359,51 @@ final class SubscriptionsOperationsTest extends TestCase
         ];
         $this->setApiClient($Client);
 
-        self::assertTrue(
-            Subscriptions::isSubscriptionActiveAtPaymentProvider(self::SUBSCRIPTION_ID)
-        );
+        try {
+            Subscriptions::isSubscriptionActiveAtPaymentProvider(self::SUBSCRIPTION_ID);
+            self::fail('An unknown provider state must not be reported as active or inactive.');
+        } catch (PayPalException $Exception) {
+            self::assertSame('PayPal request failed.', $Exception->getMessage());
+        }
+
+        self::assertTrue(Subscriptions::isSubscriptionActiveAtQuiqqer(self::SUBSCRIPTION_ID));
+        self::assertCount(1, $Client->requests);
+        self::assertSame('GET', $Client->requests[0]['options'][CURLOPT_CUSTOMREQUEST]);
+    }
+
+    public function testProviderActivityPropagatesHttpFailures(): void
+    {
+        foreach ([401, 403, 404, 429, 500, 503] as $status) {
+            $Client = new SubscriptionsApiClientDouble();
+            $Client->setAccessToken('ACCESS-TOKEN');
+            $Client->responses[] = ['body' => '{"message":"Provider error"}', 'status' => $status];
+            $this->setApiClient($Client);
+
+            try {
+                Subscriptions::isSubscriptionActiveAtPaymentProvider(self::SUBSCRIPTION_ID);
+                self::fail('HTTP errors must reach the cron caller.');
+            } catch (PayPalException $Exception) {
+                self::assertSame($status, $Exception->getCode());
+            }
+
+            self::assertCount(1, $Client->requests);
+            self::assertSame('GET', $Client->requests[0]['options'][CURLOPT_CUSTOMREQUEST]);
+        }
+    }
+
+    public function testProviderActivityRejectsMissingAndUnknownStatus(): void
+    {
+        foreach ([[], ['status' => 'UNKNOWN'], ['status' => ['ACTIVE']]] as $response) {
+            $Client = $this->apiClientWithResponses([$response]);
+            $this->setApiClient($Client);
+
+            try {
+                Subscriptions::isSubscriptionActiveAtPaymentProvider(self::SUBSCRIPTION_ID);
+                self::fail('Malformed responses must not change contracts.');
+            } catch (PayPalException) {
+                self::assertCount(1, $Client->requests);
+            }
+        }
     }
 
     public function testApproveSubscriptionInsertsAndUpdatesStoredRecord(): void

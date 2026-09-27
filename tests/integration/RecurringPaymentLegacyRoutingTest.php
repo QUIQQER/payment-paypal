@@ -7,6 +7,7 @@ namespace QUITests\ERP\Payments\PayPal\Integration;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\TestCase;
 use QUI;
+use QUI\ERP\Payments\PayPal\PayPalException;
 use QUI\ERP\Payments\PayPal\Recurring\BillingAgreements;
 use QUI\ERP\Payments\PayPal\Recurring\Payment;
 use Throwable;
@@ -115,6 +116,28 @@ final class RecurringPaymentLegacyRoutingTest extends TestCase
         self::assertFalse($Payment->isSubscriptionActiveAtQuiqqer(self::AGREEMENT_ID));
         self::assertNotContains(self::AGREEMENT_ID, $Payment->getSubscriptionIds());
         self::assertContains(self::AGREEMENT_ID, $Payment->getSubscriptionIds(true));
+    }
+
+    public function testProviderErrorsPropagateWithoutCancellingLegacyAgreement(): void
+    {
+        $this->ApiPayment->apiException = new PayPalException('Unavailable', 503);
+
+        try {
+            (new Payment())->isSubscriptionActiveAtPaymentProvider(self::AGREEMENT_ID);
+            self::fail('Unknown provider state must reach the cron caller.');
+        } catch (PayPalException $Exception) {
+            self::assertSame(503, $Exception->getCode());
+        }
+
+        self::assertCount(1, $this->ApiPayment->apiCalls);
+        self::assertTrue((new Payment())->isSubscriptionActiveAtQuiqqer(self::AGREEMENT_ID));
+    }
+
+    public function testMissingLegacyStateCannotBeTreatedAsInactive(): void
+    {
+        $this->ApiPayment->apiResponse = [];
+        $this->expectException(PayPalException::class);
+        (new Payment())->isSubscriptionActiveAtPaymentProvider(self::AGREEMENT_ID);
     }
 
     public function testUnknownLegacyAgreementIsReportedAsInactive(): void

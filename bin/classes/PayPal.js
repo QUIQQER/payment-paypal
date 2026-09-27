@@ -271,6 +271,26 @@ define('package/quiqqer/payment-paypal/bin/classes/PayPal', [
         },
 
         /**
+         * Verify and delete an abandoned pending Subscription locally.
+         *
+         * @param {String} subscriptionId
+         * @return {Promise}
+         */
+        deleteMissingSubscription: function(subscriptionId) {
+            return new Promise((resolve, reject) => {
+                QUIAjax.post(
+                    'package_quiqqer_payment-paypal_ajax_recurring_deleteMissingSubscription',
+                    resolve,
+                    {
+                        'package': pkg,
+                        subscriptionId: subscriptionId,
+                        onError: reject
+                    }
+                );
+            });
+        },
+
+        /**
          * Get the public client ID, its environment and a session-scoped diagnostics token.
          *
          * @return {Promise}

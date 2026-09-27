@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<quiqqer>
+<quiqqer xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://www.quiqqer.com/docs/schemas/2.x/settings.xsd">
     <settings>
 
         <config>
@@ -156,6 +157,32 @@
                             </description>
                         </input>
 
+                    </settings>
+                </category>
+
+                <category name="connection_test" index="6">
+                    <icon>fa fa-stethoscope</icon>
+                    <title>
+                        <locale group="quiqqer/payment-paypal" var="connectionTest.title"/>
+                    </title>
+                    <settings name="connection_test" title="connection_test">
+                        <title>
+                            <locale group="quiqqer/payment-paypal" var="connectionTest.title"/>
+                        </title>
+                        <input type="hidden" data-qui="package/quiqqer/payment-paypal/bin/controls/backend/ConnectionTest" label="false"/>
+                    </settings>
+                </category>
+
+                <category name="paypal_log" index="7">
+                    <icon>fa fa-file-text-o</icon>
+                    <title>
+                        <locale group="quiqqer/payment-paypal" var="paypalLog.title"/>
+                    </title>
+                    <settings name="paypal_log" title="paypal_log">
+                        <title>
+                            <locale group="quiqqer/payment-paypal" var="paypalLog.title"/>
+                        </title>
+                        <input type="hidden" data-qui="package/quiqqer/payment-paypal/bin/controls/backend/Log" label="false"/>
                     </settings>
                 </category>
 
