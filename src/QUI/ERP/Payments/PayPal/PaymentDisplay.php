@@ -28,7 +28,8 @@ class PaymentDisplay extends QUI\Control
 
         $this->addCSSClass('quiqqer-payment-paypal');
         $this->setJavaScriptControl('package/quiqqer/payment-paypal/bin/controls/PaymentDisplay');
-        $this->setJavaScriptControlOption('sandbox', boolval(Provider::getApiSetting('sandbox')));
+        // HTML serializes false as an empty string, not as the numeric flag expected by JavaScript.
+        $this->setJavaScriptControlOption('sandbox', Provider::getApiSetting('sandbox') ? 1 : 0);
 
 //        if (Provider::isApiSetUp() === false) {
 //            throw new QUI\ERP\Order\ProcessingException([
