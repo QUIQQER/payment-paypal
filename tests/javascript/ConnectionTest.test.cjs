@@ -7,9 +7,10 @@ const {test} = require('node:test');
 function setup(steps, browserError = null, ajaxError = null) {
     const state = {calls: [], reports: [], steps: [], sdkCalls: 0};
     const sdk = {
-        async getInstance(sandbox) {
+        async getInstance(sandbox, options) {
             state.sdkCalls++;
             assert.equal(sandbox, false);
+            assert.equal(options.refresh, true);
             return {async findEligibleMethods(options) {
                 assert.equal(options.currencyCode, 'EUR');
                 if (browserError) throw browserError;
