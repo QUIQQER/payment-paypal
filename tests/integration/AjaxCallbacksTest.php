@@ -212,6 +212,53 @@ final class AjaxCallbacksTest extends TestCase
         $callback([], 'DE');
     }
 
+    public function testConnectionTestRejectsUnknownEnvironment(): void
+    {
+        $callback = $this->registeredCallback('testConnection');
+        $this->expectException(QUI\Exception::class);
+        $callback('EUR', 'DE', 'unexpected');
+    }
+
+    public function testConnectionTestSelectsBothEnvironmentsWithoutChangingShopMode(): void
+    {
+        $callback = $this->registeredCallback('testConnection');
+        $Config = \QUI\ERP\Payments\PayPal\Settings::getConfig();
+        $keys = ['sandbox', 'client_id', 'client_secret', 'sandbox_client_id', 'sandbox_client_secret'];
+        $original = [];
+
+        foreach ($keys as $key) {
+            $original[$key] = $Config->get('api', $key);
+        }
+
+        try {
+            // Missing secrets prevent all external requests in this integration test.
+            foreach (['client_secret', 'sandbox_client_secret'] as $key) {
+                $Config->setValue('api', $key, '');
+            }
+
+            foreach ([0, 1] as $active) {
+                $Config->setValue('api', 'sandbox', $active);
+
+                foreach (['production', 'sandbox'] as $environment) {
+                    $result = $callback('EUR', 'DE', $environment);
+                    self::assertSame($environment, $result['environment']);
+                    self::assertSame($active ? 'sandbox' : 'production', $result['activeEnvironment']);
+                    self::assertSame('missing_credentials', $result['steps'][0]['reason']);
+                    self::assertNull($result['browserConfig']);
+                    self::assertSame((bool)$active, (bool)$Config->get('api', 'sandbox'));
+                }
+
+                // Existing callers and the public checkout endpoint still use the active environment.
+                self::assertSame($active ? 'sandbox' : 'production', $callback('EUR', 'DE')['environment']);
+                self::assertSame((bool)$active, $this->registeredCallback('getSdkConfig')()['sandbox']);
+            }
+        } finally {
+            foreach ($original as $key => $value) {
+                $Config->setValue('api', $key, $value);
+            }
+        }
+    }
+
     public function testPaypalLogUsesTheCentralLogViewerSuperuserRestriction(): void
     {
         $this->registeredCallback('getLog');

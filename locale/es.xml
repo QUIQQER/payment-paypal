@@ -487,7 +487,16 @@
             <es><![CDATA[Prueba de conexión con PayPal]]></es>
         </locale>
         <locale name="connectionTest.description">
-            <es><![CDATA[Compruebe si PayPal está disponible con la configuración guardada. No se crea ningún pedido ni se realiza ningún cargo.]]></es>
+            <es><![CDATA[Producción y Sandbox se comprueban con sus respectivas credenciales guardadas, independientemente del modo activo de la tienda. No se crea ningún pedido ni se realiza ningún cargo.]]></es>
+        </locale>
+        <locale name="connectionTest.active">
+            <es><![CDATA[Activo en la tienda]]></es>
+        </locale>
+        <locale name="connectionTest.not_configured">
+            <es><![CDATA[Sin configurar]]></es>
+        </locale>
+        <locale name="connectionTest.browser_timeout">
+            <es><![CDATA[La prueba del navegador ha agotado el tiempo de espera. Compruebe la conexión e inténtelo de nuevo.]]></es>
         </locale>
         <locale name="connectionTest.currency">
             <es><![CDATA[Moneda]]></es>

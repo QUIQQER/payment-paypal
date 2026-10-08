@@ -487,7 +487,16 @@
             <pt><![CDATA[Teste de ligação ao PayPal]]></pt>
         </locale>
         <locale name="connectionTest.description">
-            <pt><![CDATA[Verifique se o PayPal está acessível com as definições guardadas. Não é criada nenhuma encomenda nem é cobrado qualquer montante.]]></pt>
+            <pt><![CDATA[Produção e Sandbox são testados com as respetivas credenciais guardadas, independentemente do modo ativo da loja. Não é criada qualquer encomenda nem efetuada qualquer cobrança.]]></pt>
+        </locale>
+        <locale name="connectionTest.active">
+            <pt><![CDATA[Ativo na loja]]></pt>
+        </locale>
+        <locale name="connectionTest.not_configured">
+            <pt><![CDATA[Não configurado]]></pt>
+        </locale>
+        <locale name="connectionTest.browser_timeout">
+            <pt><![CDATA[O teste do navegador excedeu o tempo limite. Verifique a ligação e tente novamente.]]></pt>
         </locale>
         <locale name="connectionTest.currency">
             <pt><![CDATA[Moeda]]></pt>

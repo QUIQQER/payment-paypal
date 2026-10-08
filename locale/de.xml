@@ -493,7 +493,16 @@
             <de><![CDATA[PayPal-Verbindungstest]]></de>
         </locale>
         <locale name="connectionTest.description">
-            <de><![CDATA[Prüfen Sie, ob PayPal mit Ihren gespeicherten Einstellungen erreichbar ist. Es wird keine Bestellung angelegt und kein Geld abgebucht.]]></de>
+            <de><![CDATA[Produktion und Sandbox werden mit den jeweils gespeicherten Zugangsdaten unabhängig vom aktiven Shop-Modus geprüft. Es wird keine Bestellung angelegt und kein Geld abgebucht.]]></de>
+        </locale>
+        <locale name="connectionTest.active">
+            <de><![CDATA[Im Shop aktiv]]></de>
+        </locale>
+        <locale name="connectionTest.not_configured">
+            <de><![CDATA[Nicht eingerichtet]]></de>
+        </locale>
+        <locale name="connectionTest.browser_timeout">
+            <de><![CDATA[Die Browserprüfung hat zu lange gedauert. Bitte prüfen Sie die Verbindung und versuchen Sie es erneut.]]></de>
         </locale>
         <locale name="connectionTest.currency">
             <de><![CDATA[Währung]]></de>

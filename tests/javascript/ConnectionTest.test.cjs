@@ -4,88 +4,90 @@ const {resolve} = require('node:path');
 const {runInNewContext} = require('node:vm');
 const {test} = require('node:test');
 
-function setup(steps, browserError = null, ajaxError = null) {
-    const state = {calls: [], reports: [], steps: [], sdkCalls: 0};
-    const sdk = {
-        async getInstance(sandbox, options) {
-            state.sdkCalls++;
-            assert.equal(sandbox, false);
-            assert.equal(options.refresh, true);
-            return {async findEligibleMethods(options) {
-                assert.equal(options.currencyCode, 'EUR');
-                if (browserError) throw browserError;
-                return {isEligible: method => method === 'paypal'};
-            }};
-        },
-        reportError(...args) { state.reports.push(args); }
-    };
+function element() {
+    return {textContent: '', children: [], append(...items) { this.children.push(...items); },
+        remove() {}, replaceChildren() { this.children = []; }, setAttribute() {}};
+}
+
+function setup(results = {}, browserResults = {}) {
+    const state = {calls: [], steps: [], browserCalls: []};
+    const browser = {async run(config, currency, signal) {
+        state.browserCalls.push({config, currency, signal});
+        return browserResults[config.sandbox ? 'sandbox' : 'production']
+            || {operation: 'browser', ok: true, paypalEligible: true};
+    }};
     const ajax = {post(name, resolve, options) {
         state.calls.push({name, options});
-        if (ajaxError) options.onError(ajaxError);
-        else resolve({environment: 'production', currency: 'EUR', country: 'DE', testId: 'test-id', steps});
+        const environment = options.environment;
+        const custom = results[environment];
+        if (custom instanceof Error) {
+            options.onError(custom);
+        } else {
+            resolve({environment, currency: 'EUR', country: 'DE', activeEnvironment: 'production',
+                testId: environment + '-test', steps: [{operation: 'authentication', ok: true}],
+                browserConfig: {sandbox: environment === 'sandbox', clientId: environment + '-client',
+                    diagnosticsToken: 'session-token'}, ...custom});
+        }
     }};
     let definition;
     runInNewContext(readFileSync(resolve(__dirname, '../../bin/controls/backend/ConnectionTest.js'), 'utf8'), {
-        document: {createElement: () => ({textContent: '', children: [], append(...items) { this.children.push(...items); }})},
+        document: {createElement: element}, AbortController, setTimeout, clearTimeout,
         Class: function (value) { return value; },
-        define(name, deps, factory) { definition = factory({}, ajax, {get: (group, key) => key}, sdk); }
+        define(name, deps, factory) { definition = factory({}, ajax, {get: (group, key) => key}, browser); }
     });
     const inputs = {currency: {value: 'eur', reportValidity: () => true}, country: {value: 'de', reportValidity: () => true}};
     const control = {
         $Content: {querySelector: selector => inputs[selector.includes('currency') ? 'currency' : 'country']},
-        $Button: {disabled: false},
-        $ButtonIcon: {className: ''},
-        $ButtonLabel: {textContent: ''},
-        $Results: {textContent: '', replaceChildren() {}, setAttribute() {}, append() {}},
-        $showStep: step => state.steps.push(step)
+        $Button: {disabled: false}, $ButtonIcon: {}, $ButtonLabel: {}, $Results: element(),
+        $showStep: (step, group) => state.steps.push({step, group})
     };
-    return {run: () => definition.$run.call(control), state, control, inputs};
+    return {run: () => definition.$run.call(control), state, control, inputs, definition};
 }
 
-test('server authorization error and browser SDK failure are reported separately', async () => {
-    const error = Object.assign(new Error('private SDK message'), {name: 'SdkInitError'});
-    const serverFailure = {operation: 'findEligibleMethods', ok: false, httpStatus: 403,
-        paypalError: 'NOT_AUTHORIZED', debugId: '730b69995797f'};
-    const {run, state, control} = setup([{operation: 'authentication', ok: true}, serverFailure], error);
+test('both environments are requested explicitly and rendered separately', async () => {
+    const {run, state, control} = setup();
     await run();
-    assert.equal(state.steps[1].debugId, '730b69995797f');
-    assert.equal(state.steps[2].operation, 'browser');
-    assert.equal(state.steps[2].ok, false);
-    assert.equal(state.steps[2].reason, 'browser_error');
-    assert.equal(state.reports[0][0], error);
-    assert.equal(state.reports[0][1], 'findEligibleMethods');
+    assert.deepEqual(state.calls.map(call => call.options.environment), ['production', 'sandbox']);
+    assert.deepEqual(state.browserCalls.map(call => call.config.clientId), ['production-client', 'sandbox-client']);
+    assert.equal(control.$Results.children.length, 2);
+    assert.match(control.$Results.children[0].children[0].textContent, /active/);
+    assert.doesNotMatch(control.$Results.children[1].children[0].textContent, /active/);
+    assert.notEqual(state.steps[0].group, state.steps[1].group);
     assert.equal(control.$Button.disabled, false);
-    assert.doesNotMatch(JSON.stringify(state.steps), /private/);
 });
 
-test('successful server response does not hide browser-only failure', async () => {
-    const {run, state} = setup([{operation: 'findEligibleMethods', ok: true}], new Error('SDK failure'));
+test('a failed server request does not prevent the other environment test', async () => {
+    const {run, state} = setup({production: new Error('Permission denied')});
     await run();
-    assert.equal(state.steps[0].ok, true);
-    assert.equal(state.steps[1].ok, false);
+    assert.equal(state.browserCalls.length, 1);
+    assert.equal(state.browserCalls[0].config.sandbox, true);
+    assert.ok(state.steps.some(({step}) => step.reason === 'request_error'));
+    assert.ok(state.steps.some(({step}) => step.operation === 'browser' && step.ok));
 });
 
-test('browser test runs independently when server authentication fails', async () => {
-    const {run, state} = setup([{operation: 'authentication', ok: false}]);
+test('missing credentials skip the browser test and render a neutral status', async () => {
+    const {run, state, definition} = setup({sandbox: {
+        browserConfig: null, steps: [{operation: 'configuration', ok: false, reason: 'missing_credentials'}]
+    }});
     await run();
-    assert.equal(state.steps[0].ok, false);
-    assert.equal(state.steps[1].ok, true);
-    assert.equal(state.steps[1].paypalEligible, true);
-    assert.equal(state.calls[0].options.currency, 'EUR');
-    assert.equal(state.calls[0].options.country, 'DE');
-    assert.equal(state.reports.length, 0);
+    assert.equal(state.browserCalls.length, 1);
+    const target = element();
+    definition.$showStep({operation: 'configuration', ok: false, reason: 'missing_credentials'}, target);
+    assert.match(target.children[0].className, /message-information/);
+    assert.equal(target.children[0].children[0].children[1].textContent, 'connectionTest.not_configured');
 });
 
-test('rejected admin request stops before browser diagnostics and reenables button', async () => {
-    const {run, state, control} = setup([], null, new Error('Permission denied'));
+test('server success cannot hide browser failure and results remain assigned to the environment', async () => {
+    const {run, state, control} = setup({}, {production: {operation: 'browser', ok: false, reason: 'browser_error'}});
     await run();
-    assert.equal(state.sdkCalls, 0);
-    assert.equal(control.$Button.disabled, false);
-    assert.equal(control.$Results.textContent, 'connectionTest.request_error');
+    const failed = state.steps.find(({step}) => step.reason === 'browser_error');
+    assert.equal(failed.group, control.$Results.children[0]);
+    assert.ok(state.steps.some(({step, group}) => step.operation === 'browser' && step.ok
+        && group === control.$Results.children[1]));
 });
 
 test('invalid input and duplicate clicks do not send additional requests', async () => {
-    const {run, state, inputs} = setup([]);
+    const {run, state, inputs} = setup();
     inputs.currency.reportValidity = () => false;
     await run();
     assert.equal(state.calls.length, 0);
@@ -93,5 +95,22 @@ test('invalid input and duplicate clicks do not send additional requests', async
     const first = run();
     await run();
     await first;
-    assert.equal(state.calls.length, 1);
+    assert.equal(state.calls.length, 2);
+});
+
+test('cancellation prevents starting browser tests for late server responses', async () => {
+    const {run, state, control} = setup();
+    const pending = run();
+    control.$Destroyed = true;
+    control.$Abort.abort();
+    await pending;
+    assert.equal(state.browserCalls.length, 0);
+});
+
+test('mismatched environment cannot start a browser test', async () => {
+    const {run, state} = setup({production: {browserConfig: {sandbox: true}}});
+    await run();
+    assert.equal(state.browserCalls.length, 1);
+    assert.equal(state.browserCalls[0].config.sandbox, true);
+    assert.ok(state.steps.some(({step}) => step.reason === 'request_error'));
 });

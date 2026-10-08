@@ -146,3 +146,17 @@
 .quiqqer-paypal-connection-test summary {
     cursor: pointer;
 }
+
+.quiqqer-paypal-connection-test-environment {
+    border: 1px solid var(--_border);
+    border-radius: 4px;
+    display: grid;
+    gap: 12px;
+    min-width: 0;
+    padding: 12px;
+}
+
+.quiqqer-paypal-connection-test-environment h3 {
+    font-size: 1.1em;
+    margin: 0;
+}

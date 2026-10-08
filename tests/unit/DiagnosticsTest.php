@@ -63,6 +63,33 @@ final class DiagnosticsTest extends TestCase
         }
     }
 
+    public function testExplicitSdkEnvironmentDoesNotChangeActiveShopConfiguration(): void
+    {
+        $Config = Settings::getConfig();
+        $original = $Config->get('api', 'sandbox');
+
+        try {
+            foreach ([0, 1] as $active) {
+                $Config->setValue('api', 'sandbox', $active);
+
+                foreach ([false, true] as $sandbox) {
+                    $result = Diagnostics::getSdkConfig($sandbox);
+                    self::assertSame($sandbox, $result['sandbox']);
+                    self::assertSame(
+                        $Config->get('api', $sandbox ? 'sandbox_client_id' : 'client_id'),
+                        $result['clientId']
+                    );
+                    self::assertArrayNotHasKey('clientSecret', $result);
+                    self::assertSame((bool)$active, (bool)$Config->get('api', 'sandbox'));
+                }
+
+                self::assertSame((bool)$active, Diagnostics::getSdkConfig()['sandbox']);
+            }
+        } finally {
+            $Config->setValue('api', 'sandbox', $original);
+        }
+    }
+
     public function testFailedBrowserEligibilityProducesSafeUsefulLog(): void
     {
         $config = Diagnostics::getSdkConfig();
