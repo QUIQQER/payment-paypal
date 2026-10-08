@@ -44,7 +44,7 @@ QUI::getAjax()->registerFunction(
         $plans = [];
         $count = 0;
 
-        if (!empty($list)) {
+        if (is_array($list) && !empty($list)) {
             $plans = $list['plans'];
             $count = $list['total_items'];
         }
