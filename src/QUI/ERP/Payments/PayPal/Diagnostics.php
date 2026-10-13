@@ -107,9 +107,9 @@ final class Diagnostics
     }
 
     /** @return array{clientId: bool|string, sandbox: bool, diagnosticsToken: string} */
-    public static function getSdkConfig(): array
+    public static function getSdkConfig(?bool $sandbox = null): array
     {
-        $sandbox = (bool)Provider::getApiSetting('sandbox');
+        $sandbox ??= (bool)Provider::getApiSetting('sandbox');
         $token = QUI::getSession()->get('paypalDiagnosticsToken');
 
         if (!is_string($token) || $token === '') {

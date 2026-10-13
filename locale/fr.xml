@@ -54,7 +54,7 @@
 <fr><![CDATA[Client ID]]></fr>
         </locale>
         <locale name="settings.api.client_id.description" html="true">
-<fr><![CDATA[Vous trouverez le « Client ID » de votre application PayPal sur <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></fr>
+<fr><![CDATA[Vous trouverez le « Client ID » de votre application PayPal sur <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a><br/><br/>Ce plugin nécessite l’activation de <b>PayPal SDKs → JavaScript SDK v6</b> dans l’application PayPal, puis l’enregistrement avec <b>Save Changes</b>. Dans le PayPal Developer Dashboard, vérifiez l’application correspondant au Client ID saisi ici et le bon environnement (Live ou Sandbox).]]></fr>
         </locale>
         <locale name="settings.api.client_secret.title">
 <fr><![CDATA[Secret]]></fr>
@@ -66,7 +66,7 @@
 <fr><![CDATA[Client ID (Sandbox)]]></fr>
         </locale>
         <locale name="settings.api.sandbox_client_id.description" html="true">
-<fr><![CDATA[Vous trouverez le « Client ID » Sandbox de votre application PayPal sur <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></fr>
+<fr><![CDATA[Vous trouverez le « Client ID » Sandbox de votre application PayPal sur <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a><br/><br/>Ce plugin nécessite l’activation de <b>PayPal SDKs → JavaScript SDK v6</b> dans l’application PayPal, puis l’enregistrement avec <b>Save Changes</b>. Dans le PayPal Developer Dashboard, vérifiez l’application correspondant au Client ID saisi ici et le bon environnement (Live ou Sandbox).]]></fr>
         </locale>
         <locale name="settings.api.sandbox_client_secret.title">
 <fr><![CDATA[Secret (Sandbox)]]></fr>
@@ -487,7 +487,16 @@
             <fr><![CDATA[Test de connexion PayPal]]></fr>
         </locale>
         <locale name="connectionTest.description">
-            <fr><![CDATA[Vérifiez si PayPal est accessible avec vos paramètres enregistrés. Aucune commande n’est créée et aucun montant n’est débité.]]></fr>
+            <fr><![CDATA[La production et la Sandbox sont testées avec leurs identifiants enregistrés respectifs, indépendamment du mode actif de la boutique. Aucune commande ni aucun débit ne sont effectués.]]></fr>
+        </locale>
+        <locale name="connectionTest.active">
+            <fr><![CDATA[Actif dans la boutique]]></fr>
+        </locale>
+        <locale name="connectionTest.not_configured">
+            <fr><![CDATA[Non configuré]]></fr>
+        </locale>
+        <locale name="connectionTest.browser_timeout">
+            <fr><![CDATA[Le test du navigateur a dépassé le délai prévu. Vérifiez la connexion et réessayez.]]></fr>
         </locale>
         <locale name="connectionTest.currency">
             <fr><![CDATA[Devise]]></fr>

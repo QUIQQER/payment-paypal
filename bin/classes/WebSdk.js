@@ -206,9 +206,11 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
          * Return the shared PayPal v6 SDK instance.
          *
          * @param {Boolean|Number|String} sandbox
+         * @param {Object} options
+         * @param {Boolean} options.refresh Fetch saved configuration and initialize a new instance for diagnostics.
          * @return {Promise<Object>}
          */
-        getInstance: function (sandbox) {
+        getInstance: function (sandbox, {refresh = false} = {}) {
             const environment = getEnvironment(sandbox);
 
             if (sdkPromise && sdkEnvironment !== environment) {
@@ -217,13 +219,13 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
                 );
             }
 
-            if (sdkPromise) {
+            if (sdkPromise && !refresh) {
                 return sdkPromise;
             }
 
             sdkEnvironment = environment;
             let operation = 'sdkConfiguration';
-            sdkPromise = PayPalApi.getSdkConfig().then(function (config) {
+            const pending = PayPalApi.getSdkConfig().then(function (config) {
                 diagnosticsToken = config.diagnosticsToken;
                 correlationId = window.crypto?.randomUUID?.() || null;
                 const clientId = config.clientId;
@@ -257,12 +259,16 @@ define('package/quiqqer/payment-paypal/bin/classes/WebSdk', [
                     errorOperations.set(Error, operation);
                 }
 
-                sdkPromise = null;
-                sdkEnvironment = null;
+                // An older failed initialization must not clear a newer instance.
+                if (sdkPromise === pending) {
+                    sdkPromise = null;
+                    sdkEnvironment = null;
+                }
                 throw Error;
             });
 
-            return sdkPromise;
+            sdkPromise = pending;
+            return pending;
         }
     };
 });

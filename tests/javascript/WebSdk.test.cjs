@@ -246,3 +246,57 @@ for (const name of ['PaymentDisplay', 'ExpressBtn']) {
         assert.equal(reports[1][1], 'executeOrder');
     });
 }
+
+test('diagnostic refresh reads changed credentials after a failed eligibility check', async () => {
+    const {WebSdk, config, state, sdk} = setup();
+    const first = await WebSdk.getInstance(false);
+    sdk.findEligibleMethods = () => Promise.reject(new Error('NOT_AUTHORIZED'));
+    await assert.rejects(first.findEligibleMethods({currencyCode: 'EUR'}), /NOT_AUTHORIZED/);
+
+    config.clientId = 'replacement-client-id';
+    await WebSdk.getInstance(false, {refresh: true});
+    assert.equal(state.configCalls, 2);
+    assert.deepEqual(state.instances.map(options => options.clientId), ['public-client-id', 'replacement-client-id']);
+    assert.equal(state.scripts.length, 1);
+});
+
+test('diagnostic refresh reinitializes even when the client ID has not changed', async () => {
+    const {WebSdk, state} = setup();
+    await WebSdk.getInstance(false, {refresh: true});
+    await WebSdk.getInstance(false, {refresh: true});
+    assert.equal(state.configCalls, 2);
+    assert.equal(state.instances.length, 2);
+    await WebSdk.getInstance(false);
+    assert.equal(state.instances.length, 2);
+});
+
+test('refresh never falls back to old credentials when configuration retrieval fails', async () => {
+    const {WebSdk, state, api} = setup();
+    await WebSdk.getInstance(false);
+    api.getSdkConfig = () => Promise.reject(new Error('configuration unavailable'));
+    await assert.rejects(WebSdk.getInstance(false, {refresh: true}), /configuration unavailable/);
+    assert.equal(state.instances.length, 1);
+    api.getSdkConfig = () => Promise.resolve({sandbox: false, clientId: 'new-client-id'});
+    await WebSdk.getInstance(false, {refresh: true});
+    assert.equal(state.instances[1].clientId, 'new-client-id');
+});
+
+test('refresh retains the protection against mixing live and sandbox SDKs', async () => {
+    const {WebSdk, state} = setup();
+    await WebSdk.getInstance(false);
+    await assert.rejects(WebSdk.getInstance(true, {refresh: true}), /environments cannot be mixed/);
+    assert.equal(state.instances.length, 1);
+});
+
+test('an older initialization failure cannot invalidate a refreshed instance', async () => {
+    const {WebSdk, state, api, config} = setup();
+    let rejectOld;
+    api.getSdkConfig = () => new Promise((resolve, reject) => { rejectOld = reject; });
+    const old = WebSdk.getInstance(false);
+    api.getSdkConfig = () => Promise.resolve(config);
+    const refreshed = await WebSdk.getInstance(false, {refresh: true});
+    rejectOld(new Error('old request failed'));
+    await assert.rejects(old, /old request failed/);
+    assert.equal(await WebSdk.getInstance(false), refreshed);
+    assert.equal(state.instances.length, 1);
+});
