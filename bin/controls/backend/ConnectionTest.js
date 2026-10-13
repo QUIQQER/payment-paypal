@@ -3,10 +3,10 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/ConnectionTest', [
     'qui/controls/Control',
     'Ajax',
     'Locale',
-    'package/quiqqer/payment-paypal/bin/classes/WebSdk',
+    'package/quiqqer/payment-paypal/bin/classes/IsolatedConnectionTest',
     'css!qui/controls/messages/Message.css',
     'css!package/quiqqer/payment-paypal/bin/controls/backend/ConnectionTest.css'
-], function (QUIControl, QUIAjax, Locale, WebSdk) {
+], function (QUIControl, QUIAjax, Locale, BrowserTest) {
     'use strict';
 
     const text = key => Locale.get('quiqqer/payment-paypal', 'connectionTest.' + key);
@@ -18,7 +18,11 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/ConnectionTest', [
 
         initialize: function (options) {
             this.parent(options);
-            this.addEvents({onImport: this.$onImport, onDestroy: () => this.$Content?.remove()});
+            this.addEvents({onImport: this.$onImport, onDestroy: () => {
+                this.$Destroyed = true;
+                this.$Abort?.abort();
+                this.$Content?.remove();
+            }});
         },
 
         $onImport: function () {
@@ -98,62 +102,100 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/ConnectionTest', [
             this.$Results.textContent = text('running');
             this.$Results.setAttribute('aria-busy', 'true');
 
+            this.$Abort = new AbortController();
+            const signal = this.$Abort.signal;
+            this.$Results.replaceChildren();
+
             try {
-                const result = await new Promise((resolve, reject) => {
-                    QUIAjax.post('package_quiqqer_payment-paypal_ajax_testConnection', resolve, {
-                        'package': 'quiqqer/payment-paypal',
-                        currency: currency.value,
-                        country: country.value,
-                        onError: reject
-                    });
-                });
+                await Promise.all(['production', 'sandbox'].map(async environment => {
+                    const group = document.createElement('section');
+                    group.className = 'quiqqer-paypal-connection-test-environment';
+                    const heading = document.createElement('h3');
+                    heading.textContent = text(environment);
+                    group.append(heading);
+                    const pending = document.createElement('p');
+                    pending.textContent = text('running');
+                    group.append(pending);
+                    this.$Results.append(group);
 
-                this.$Results.replaceChildren();
-                const summary = document.createElement('p');
-                summary.className = 'quiqqer-paypal-connection-test-summary';
-                summary.textContent = text(result.environment) + ' · ' + result.currency + ' / ' + result.country;
-                this.$Results.append(summary);
+                    try {
+                        const result = await new Promise((resolve, reject) => {
+                            let timer;
+                            const finish = (callback, value) => {
+                                clearTimeout(timer);
+                                signal.removeEventListener('abort', abort);
+                                callback(value);
+                            };
+                            const abort = () => finish(reject, new Error('Test cancelled.'));
+                            signal.addEventListener('abort', abort, {once: true});
+                            timer = setTimeout(() => finish(reject, new Error('Test request timed out.')), 90000);
+                            try {
+                                QUIAjax.post('package_quiqqer_payment-paypal_ajax_testConnection',
+                                    result => finish(resolve, result), {
+                                        'package': 'quiqqer/payment-paypal',
+                                        currency: currency.value,
+                                        country: country.value,
+                                        environment: environment,
+                                        onError: error => finish(reject, error)
+                                    });
+                            } catch (error) {
+                                finish(reject, error);
+                            }
+                        });
+                        if (signal.aborted) {
+                            return;
+                        }
+                        pending.remove();
+                        if (result.environment !== environment) {
+                            throw new Error('Unexpected PayPal test environment.');
+                        }
+                        if (result.activeEnvironment === environment) {
+                            heading.textContent += ' · ' + text('active');
+                        }
+                        for (const step of result.steps) {
+                            this.$showStep(step, group);
+                        }
 
-                const testDetails = document.createElement('details');
-                const testTitle = document.createElement('summary');
-                testTitle.textContent = text('technical_details');
-                const testId = document.createElement('p');
-                testId.textContent = text('testId') + ': ' + result.testId;
-                testDetails.append(testTitle, testId);
+                        const details = document.createElement('details');
+                        const summary = document.createElement('summary');
+                        summary.textContent = text('technical_details');
+                        const id = document.createElement('p');
+                        id.textContent = text('testId') + ': ' + result.testId;
+                        details.append(summary, id);
+                        group.append(details);
 
-                for (const step of result.steps) {
-                    this.$showStep(step);
-                }
-
-                // Exercise the same public SDK path as checkout, independently of server-token permissions.
-                let operation = 'createInstance';
-
-                try {
-                    // Always test saved credentials, not the instance from an earlier test.
-                    const sdk = await WebSdk.getInstance(result.environment === 'sandbox', {refresh: true});
-                    operation = 'findEligibleMethods';
-                    const methods = await sdk.findEligibleMethods({currencyCode: result.currency});
-                    this.$showStep({operation: 'browser', ok: true, paypalEligible: methods.isEligible('paypal')});
-                } catch (error) {
-                    WebSdk.reportError(error, operation, result.environment === 'sandbox');
-                    this.$showStep({operation: 'browser', ok: false, reason: 'browser_error'});
-                }
-
-                this.$Results.append(testDetails);
-            } catch (_) {
-                this.$Results.textContent = text('request_error');
+                        if (result.browserConfig === null) {
+                            return;
+                        }
+                        if (result.browserConfig?.sandbox !== (environment === 'sandbox')) {
+                            throw new Error('Unexpected PayPal browser configuration.');
+                        }
+                        const browserStep = await BrowserTest.run(result.browserConfig, result.currency, signal);
+                        if (!signal.aborted) {
+                            this.$showStep(browserStep, group);
+                        }
+                    } catch (_) {
+                        if (!signal.aborted) {
+                            pending.remove();
+                            this.$showStep({operation: 'configuration', ok: false, reason: 'request_error'}, group);
+                        }
+                    }
+                }));
             } finally {
-                this.$Results.setAttribute('aria-busy', 'false');
-                this.$Button.disabled = false;
-                this.$ButtonIcon.className = 'fa fa-play';
-                this.$ButtonLabel.textContent = text('start');
+                if (!this.$Destroyed) {
+                    this.$Results.setAttribute('aria-busy', 'false');
+                    this.$Button.disabled = false;
+                    this.$ButtonIcon.className = 'fa fa-play';
+                    this.$ButtonLabel.textContent = text('start');
+                }
             }
         },
 
-        $showStep: function (step) {
+        $showStep: function (step, target = this.$Results) {
             const section = document.createElement('div');
             const unavailable = step.ok && step.paypalEligible === false;
-            const status = !step.ok ? 'error' : unavailable ? 'attention' : 'success';
+            const missing = step.reason === 'missing_credentials';
+            const status = missing ? 'information' : !step.ok ? 'error' : unavailable ? 'attention' : 'success';
             section.className = 'messages-message message-' + status + ' quiqqer-paypal-connection-test-step';
             const title = document.createElement('p');
             title.className = 'quiqqer-paypal-connection-test-step-title';
@@ -161,7 +203,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/ConnectionTest', [
             strong.textContent = text(step.operation);
             const badge = document.createElement('span');
             badge.className = 'quiqqer-paypal-connection-test-status';
-            badge.textContent = text(unavailable ? 'unavailable' : step.ok ? 'success' : 'failed');
+            badge.textContent = text(missing ? 'not_configured' : unavailable ? 'unavailable' : step.ok ? 'success' : 'failed');
             title.append(strong, badge);
             section.append(title);
 
@@ -198,7 +240,7 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/ConnectionTest', [
                 section.append(item);
             }
 
-            this.$Results.append(section);
+            target.append(section);
         }
     });
 });

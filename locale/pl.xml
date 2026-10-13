@@ -487,7 +487,16 @@
             <pl><![CDATA[Test połączenia z PayPal]]></pl>
         </locale>
         <locale name="connectionTest.description">
-            <pl><![CDATA[Sprawdź, czy PayPal jest dostępny przy użyciu zapisanych ustawień. Żadne zamówienie nie zostanie utworzone ani żadne pieniądze nie zostaną pobrane.]]></pl>
+            <pl><![CDATA[Środowiska produkcyjne i Sandbox są sprawdzane z użyciem zapisanych dla nich danych dostępowych, niezależnie od aktywnego trybu sklepu. Nie są tworzone zamówienia ani pobierane płatności.]]></pl>
+        </locale>
+        <locale name="connectionTest.active">
+            <pl><![CDATA[Aktywne w sklepie]]></pl>
+        </locale>
+        <locale name="connectionTest.not_configured">
+            <pl><![CDATA[Nie skonfigurowano]]></pl>
+        </locale>
+        <locale name="connectionTest.browser_timeout">
+            <pl><![CDATA[Przekroczono czas oczekiwania na test przeglądarki. Sprawdź połączenie i spróbuj ponownie.]]></pl>
         </locale>
         <locale name="connectionTest.currency">
             <pl><![CDATA[Waluta]]></pl>

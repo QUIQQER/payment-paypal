@@ -492,7 +492,16 @@
             <en><![CDATA[PayPal connection test]]></en>
         </locale>
         <locale name="connectionTest.description">
-            <en><![CDATA[Check whether PayPal is available with your saved settings. No order is created and no money is charged.]]></en>
+            <en><![CDATA[Production and sandbox are tested with their respective saved credentials, regardless of the active shop mode. No order is created and no payment is charged.]]></en>
+        </locale>
+        <locale name="connectionTest.active">
+            <en><![CDATA[Active in shop]]></en>
+        </locale>
+        <locale name="connectionTest.not_configured">
+            <en><![CDATA[Not configured]]></en>
+        </locale>
+        <locale name="connectionTest.browser_timeout">
+            <en><![CDATA[The browser test timed out. Please check the connection and try again.]]></en>
         </locale>
         <locale name="connectionTest.currency">
             <en><![CDATA[Currency]]></en>
