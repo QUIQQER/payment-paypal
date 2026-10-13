@@ -129,7 +129,8 @@ define('package/quiqqer/payment-paypal/bin/controls/backend/ConnectionTest', [
                 let operation = 'createInstance';
 
                 try {
-                    const sdk = await WebSdk.getInstance(result.environment === 'sandbox');
+                    // Always test saved credentials, not the instance from an earlier test.
+                    const sdk = await WebSdk.getInstance(result.environment === 'sandbox', {refresh: true});
                     operation = 'findEligibleMethods';
                     const methods = await sdk.findEligibleMethods({currencyCode: result.currency});
                     this.$showStep({operation: 'browser', ok: true, paypalEligible: methods.isEligible('paypal')});

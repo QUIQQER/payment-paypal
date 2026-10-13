@@ -56,7 +56,7 @@
 <de><![CDATA[Client ID]]></de>
         </locale>
         <locale name="settings.api.client_id.description" html="true">
-<de><![CDATA[Die "Client ID" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></de>
+<de><![CDATA[Die "Client ID" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a><br/><br/>Für dieses Plugin muss in der PayPal-App unter <b>PayPal SDKs → JavaScript SDK v6</b> die Option aktiviert und mit <b>Save Changes</b> gespeichert sein. Prüfen Sie die App der hier eingetragenen Client-ID in der passenden Umgebung (Live oder Sandbox) im PayPal Developer Dashboard.]]></de>
         </locale>
         <locale name="settings.api.client_secret.title">
 <de><![CDATA[Secret]]></de>
@@ -68,7 +68,7 @@
 <de><![CDATA[Client ID (Sandbox)]]></de>
         </locale>
         <locale name="settings.api.sandbox_client_id.description" html="true">
-<de><![CDATA[Die Sandbox "Client ID" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></de>
+<de><![CDATA[Die Sandbox "Client ID" Ihrer PayPal-Applikation finden Sie unter <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a><br/><br/>Für dieses Plugin muss in der PayPal-App unter <b>PayPal SDKs → JavaScript SDK v6</b> die Option aktiviert und mit <b>Save Changes</b> gespeichert sein. Prüfen Sie die App der hier eingetragenen Client-ID in der passenden Umgebung (Live oder Sandbox) im PayPal Developer Dashboard.]]></de>
         </locale>
         <locale name="settings.api.sandbox_client_secret.title">
 <de><![CDATA[Secret (Sandbox)]]></de>

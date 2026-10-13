@@ -54,7 +54,7 @@
 <it><![CDATA[Client ID]]></it>
         </locale>
         <locale name="settings.api.client_id.description" html="true">
-<it><![CDATA[Trovi il «Client ID» della tua applicazione PayPal su <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></it>
+<it><![CDATA[Trovi il «Client ID» della tua applicazione PayPal su <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a><br/><br/>Questo plugin richiede di attivare <b>PayPal SDKs → JavaScript SDK v6</b> nell’app PayPal e salvare con <b>Save Changes</b>. Nel PayPal Developer Dashboard, verificate l’app corrispondente al Client ID inserito qui e l’ambiente corretto (Live o Sandbox).]]></it>
         </locale>
         <locale name="settings.api.client_secret.title">
 <it><![CDATA[Secret]]></it>
@@ -66,7 +66,7 @@
 <it><![CDATA[Client ID (Sandbox)]]></it>
         </locale>
         <locale name="settings.api.sandbox_client_id.description" html="true">
-<it><![CDATA[Trovi il «Client ID» Sandbox della tua applicazione PayPal su <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a>]]></it>
+<it><![CDATA[Trovi il «Client ID» Sandbox della tua applicazione PayPal su <a href="https://developer.paypal.com/developer/applications/">https://developer.paypal.com/developer/applications/</a><br/><br/>Questo plugin richiede di attivare <b>PayPal SDKs → JavaScript SDK v6</b> nell’app PayPal e salvare con <b>Save Changes</b>. Nel PayPal Developer Dashboard, verificate l’app corrispondente al Client ID inserito qui e l’ambiente corretto (Live o Sandbox).]]></it>
         </locale>
         <locale name="settings.api.sandbox_client_secret.title">
 <it><![CDATA[Secret (Sandbox)]]></it>
