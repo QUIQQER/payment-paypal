@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace QUI\ERP\Shipping;
 
+use QUI\ERP\Accounting\PriceFactors\Factor;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Products\Interfaces\PriceFactorInterface;
 use QUI\ERP\Shipping\Types\ShippingEntry;
@@ -12,7 +13,7 @@ final class Shipping
 {
     private static ?self $Instance = null;
     private ?ShippingEntry $Shipping = null;
-    private ?PriceFactorInterface $PriceFactor = null;
+    private Factor|PriceFactorInterface|null $PriceFactor = null;
     private array $ShippingEntries = [];
 
     public static function getInstance(): self
@@ -34,12 +35,12 @@ final class Shipping
         return $this->Shipping;
     }
 
-    public function setShippingPriceFactor(?PriceFactorInterface $PriceFactor): void
+    public function setShippingPriceFactor(Factor|PriceFactorInterface|null $PriceFactor): void
     {
         $this->PriceFactor = $PriceFactor;
     }
 
-    public function getShippingPriceFactor(AbstractOrder $Order): ?PriceFactorInterface
+    public function getShippingPriceFactor(AbstractOrder $Order): Factor|PriceFactorInterface|null
     {
         return $this->PriceFactor;
     }

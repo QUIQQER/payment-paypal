@@ -12,6 +12,7 @@ use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Order\Handler as OrderHandler;
+use QUI\ERP\Payments\PayPal\Api\OrderAmountValidator;
 use QUI\ERP\Payments\PayPal\Api\ServerClient;
 use QUI\ERP\Payments\PayPal\Api\ServerClientInterface;
 use QUI\ERP\Payments\PayPal\PhpSdk\Core\PayPalHttpClient as PayPalClient;
@@ -902,12 +903,19 @@ class Payment extends QUI\ERP\Accounting\Payments\Api\AbstractPayment
                 $items[] = $item;
             }
 
-            $transactionData['items'] = $items;
+            $displayItemList = OrderAmountValidator::isConsistent($amount, $items);
 
-            if ($shippingAddress !== false) {
-                $transactionData['shipping']['address'] = $shippingAddress;
+            if ($displayItemList) {
+                $transactionData['items'] = $items;
+
+                if ($shippingAddress !== false) {
+                    $transactionData['shipping']['address'] = $shippingAddress;
+                }
             }
-        } else {
+        }
+
+        if (!$displayItemList) {
+            // Keep the ERP total authoritative; rounded unit prices can disagree with it.
             unset($amount['breakdown']);
             unset($amount['details']);
         }
