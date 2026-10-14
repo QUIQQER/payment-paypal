@@ -56,6 +56,22 @@ Existing Billing Agreements remain on the legacy PayPal API path. They can conti
 or cancelled, but the package does not create new legacy agreements and does not migrate them automatically. A customer
 must approve a new PayPal Subscription before an existing agreement can be replaced.
 
+## MCP administration
+
+Install the optional `quiqqer/ai-mcp` module and run QUIQQER setup to register the PayPal MCP provider.
+Grant `quiqqer.payments.paypal.mcp` to the AI account together with the relevant existing PayPal permissions.
+Permissions are checked again on every call, including after a tool has been registered.
+
+The `paypal_*` tools provide configuration readiness, connection diagnostics, PayPal API logs, legacy Billing Plans
+and Billing Agreements, and local Subscription lookup, activation, suspension, cancellation and protected cleanup.
+Configuration and connection tests require `quiqqer.settings`; reading logs requires a superuser. Credential values
+are never returned. Subscription management uses the active PayPal account. Billing Plan tools use the legacy API.
+
+List pages start at 1. Subscription and Agreement lists accept `search`, `page` and `perPage` (up to 100);
+Billing Plan lists allow up to 20 entries. Resource tools require PayPal IDs with their `I-` or `P-` prefix.
+Types, bounds and IDs are validated in PHP as well as in the MCP schemas. Checkout creation, customer approval
+and refunds remain in the existing payment workflow.
+
 ## Development
 
 Initialize and run the package-local development tools:

@@ -626,6 +626,17 @@
         <locale name="paypalLog.error">
             <en><![CDATA[The log could not be loaded. Superuser access is required, as in the central log viewer. If the file has been removed, reopen this category.]]></en>
         </locale>
+
+        <!-- MCP administration -->
+        <locale name="permission.quiqqer.payments.paypal.mcp">
+<en><![CDATA[May use PayPal administration via MCP]]></en>
+        </locale>
+        <locale name="exception.mcp.invalid_parameter">
+<en><![CDATA[Invalid MCP parameter: {$parameter}.]]></en>
+        </locale>
+        <locale name="exception.mcp.operation_failed">
+<en><![CDATA[The PayPal MCP operation could not be completed. Check PayPal diagnostics and the API log.]]></en>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">

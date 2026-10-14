@@ -10,6 +10,7 @@ if (!defined('QUIQQER_AJAX')) {
 
 require_once __DIR__ . '/../../../../bootstrap.php';
 require_once __DIR__ . '/package-autoload.php';
+require_once __DIR__ . '/mcp-bootstrap.php';
 
 // Subscription account scoping requires a client ID. Keep the test suite
 // independent from credentials configured in the executing QUIQQER system.
