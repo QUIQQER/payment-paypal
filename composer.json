@@ -29,6 +29,7 @@
     "quiqqer/paypal-rest-api-sdk-php": "^1.0"
   },
   "suggest": {
+    "quiqqer/ai-mcp": "Provides MCP access to PayPal diagnostics and recurring payment administration",
     "quiqqer/erp-plans": "Allows handling of orders that require automated recurring payments"
   },
   "autoload": {

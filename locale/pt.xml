@@ -621,6 +621,17 @@
         <locale name="paypalLog.error">
             <pt><![CDATA[Não foi possível carregar o registo. São necessárias permissões de superutilizador, tal como no visualizador central de registos. Se o ficheiro tiver sido removido, reabra esta categoria.]]></pt>
         </locale>
+
+        <!-- MCP administration -->
+        <locale name="permission.quiqqer.payments.paypal.mcp">
+<pt><![CDATA[Pode utilizar a administração do PayPal através de MCP]]></pt>
+        </locale>
+        <locale name="exception.mcp.invalid_parameter">
+<pt><![CDATA[Parâmetro MCP inválido: {$parameter}.]]></pt>
+        </locale>
+        <locale name="exception.mcp.operation_failed">
+<pt><![CDATA[Não foi possível concluir a operação MCP do PayPal. Verifique o diagnóstico do PayPal e o registo da API.]]></pt>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">

@@ -621,6 +621,17 @@
         <locale name="paypalLog.error">
             <pl><![CDATA[Nie udało się wczytać dziennika. Wymagane są uprawnienia superużytkownika, tak jak w centralnej przeglądarce dzienników. Jeśli plik został usunięty, otwórz ponownie tę kategorię.]]></pl>
         </locale>
+
+        <!-- MCP administration -->
+        <locale name="permission.quiqqer.payments.paypal.mcp">
+<pl><![CDATA[Może korzystać z administracji PayPal przez MCP]]></pl>
+        </locale>
+        <locale name="exception.mcp.invalid_parameter">
+<pl><![CDATA[Nieprawidłowy parametr MCP: {$parameter}.]]></pl>
+        </locale>
+        <locale name="exception.mcp.operation_failed">
+<pl><![CDATA[Nie udało się ukończyć operacji MCP PayPal. Sprawdź diagnostykę PayPal i dziennik API.]]></pl>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
