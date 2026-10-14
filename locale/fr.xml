@@ -621,6 +621,17 @@
         <locale name="paypalLog.error">
             <fr><![CDATA[Le journal n’a pas pu être chargé. Les droits de superutilisateur sont requis, comme dans le lecteur central de journaux. Si le fichier a été supprimé, rouvrez cette catégorie.]]></fr>
         </locale>
+
+        <!-- MCP administration -->
+        <locale name="permission.quiqqer.payments.paypal.mcp">
+<fr><![CDATA[Peut utiliser l’administration PayPal via MCP]]></fr>
+        </locale>
+        <locale name="exception.mcp.invalid_parameter">
+<fr><![CDATA[Paramètre MCP non valide : {$parameter}.]]></fr>
+        </locale>
+        <locale name="exception.mcp.operation_failed">
+<fr><![CDATA[L’opération MCP PayPal n’a pas pu être terminée. Consultez le diagnostic PayPal et le journal de l’API.]]></fr>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">

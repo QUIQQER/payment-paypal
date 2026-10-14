@@ -621,6 +621,17 @@
         <locale name="paypalLog.error">
             <it><![CDATA[Non è stato possibile caricare il registro. Sono richiesti i diritti di superutente, come nel visualizzatore centrale dei registri. Se il file è stato rimosso, riapri questa categoria.]]></it>
         </locale>
+
+        <!-- MCP administration -->
+        <locale name="permission.quiqqer.payments.paypal.mcp">
+<it><![CDATA[Può utilizzare l’amministrazione PayPal tramite MCP]]></it>
+        </locale>
+        <locale name="exception.mcp.invalid_parameter">
+<it><![CDATA[Parametro MCP non valido: {$parameter}.]]></it>
+        </locale>
+        <locale name="exception.mcp.operation_failed">
+<it><![CDATA[Non è stato possibile completare l’operazione MCP di PayPal. Controllare la diagnostica PayPal e il registro API.]]></it>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">

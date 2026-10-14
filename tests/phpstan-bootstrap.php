@@ -36,3 +36,4 @@ require_once __DIR__ . '/stubs/QUI/ERP/Accounting/Contracts/Handler.php';
 require_once __DIR__ . '/stubs/QUI/ERP/Plans/Handler.php';
 require_once __DIR__ . '/stubs/QUI/ERP/Plans/Utils.php';
 require_once __DIR__ . '/package-autoload.php';
+require_once __DIR__ . '/mcp-bootstrap.php';

@@ -627,6 +627,17 @@
         <locale name="paypalLog.error">
             <de><![CDATA[Das Protokoll konnte nicht geladen werden. Wie beim zentralen Protokollzugriff sind Superuser-Rechte erforderlich. Falls die Datei inzwischen entfernt wurde, öffnen Sie die Kategorie erneut.]]></de>
         </locale>
+
+        <!-- MCP administration -->
+        <locale name="permission.quiqqer.payments.paypal.mcp">
+<de><![CDATA[Darf die PayPal-Verwaltung per MCP nutzen]]></de>
+        </locale>
+        <locale name="exception.mcp.invalid_parameter">
+<de><![CDATA[Ungültiger MCP-Parameter: {$parameter}.]]></de>
+        </locale>
+        <locale name="exception.mcp.operation_failed">
+<de><![CDATA[Die PayPal-MCP-Aktion konnte nicht abgeschlossen werden. Prüfen Sie die PayPal-Diagnose und das API-Protokoll.]]></de>
+        </locale>
     </groups>
 
     <groups name="quiqqer/payment-paypal" datatype="php">
