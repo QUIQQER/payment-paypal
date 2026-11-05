@@ -4,6 +4,16 @@ $status = $_GET['status'] ?? 'error';
 $orderHash = $_GET['orderHash'] ?? '';
 $redirect = $_GET['redirect'] ?? '/';
 
+if (
+    !is_string($redirect)
+    || !str_starts_with($redirect, '/')
+    || str_starts_with($redirect, '//')
+    || str_contains($redirect, '\\')
+    || preg_match('/[\x00-\x20\x7f]/', $redirect) === 1
+) {
+    $redirect = '/';
+}
+
 if ($status !== 'success') {
     $status = 'error';
 }
