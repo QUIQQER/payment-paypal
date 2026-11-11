@@ -142,7 +142,7 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
     public function testInvoiceWithoutAgreementReferenceIsRejected(): void
     {
         $Invoice = $this->createMock(Invoice::class);
-        $Invoice->method('getPaymentDataEntry')->willReturn(null);
+        $Invoice->method('getPaymentData')->willReturn(null);
         $Invoice->expects(self::once())->method('addHistory');
 
         $this->expectException(PayPalException::class);
@@ -153,7 +153,7 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
     public function testInvoiceWithUnknownAgreementIsRejected(): void
     {
         $Invoice = $this->createMock(Invoice::class);
-        $Invoice->method('getPaymentDataEntry')->willReturn(
+        $Invoice->method('getPaymentData')->willReturn(
             self::PREFIX . 'unknown'
         );
         $Invoice->expects(self::once())->method('addHistory');
@@ -244,7 +244,11 @@ final class BillingAgreementInvoiceProcessingTest extends TestCase
         $Customer->method('getUUID')->willReturn(self::CUSTOMER_UUID);
 
         $Invoice = $this->createMock($invoiceClass);
-        $Invoice->method('getPaymentDataEntry')->willReturn(self::AGREEMENT_ID);
+        if ($Invoice instanceof Invoice) {
+            $Invoice->method('getPaymentDataEntry')->willReturn(self::AGREEMENT_ID);
+        }
+
+        $Invoice->method('getPaymentData')->willReturn(self::AGREEMENT_ID);
         $Invoice->method('getAttribute')->willReturnMap([
             ['toPay', $outstanding]
         ]);

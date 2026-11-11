@@ -187,7 +187,10 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
         $Customer->method('getUUID')->willReturn(self::CUSTOMER_UUID);
 
         $Invoice = $this->createMock($invoiceClass);
-        $Invoice->method('getPaymentDataEntry')->willReturn(self::SUBSCRIPTION_ID);
+        if ($Invoice instanceof Invoice) {
+            $Invoice->method('getPaymentDataEntry')->willReturn(self::SUBSCRIPTION_ID);
+        }
+
         $Invoice->method('getPaymentData')->willReturn(self::SUBSCRIPTION_ID);
         $Invoice->method('getAttribute')->willReturnMap([
             ['toPay', $outstanding]
