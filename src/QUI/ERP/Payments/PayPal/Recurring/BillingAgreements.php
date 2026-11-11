@@ -218,7 +218,7 @@ class BillingAgreements
      */
     public static function billBillingAgreementBalance(Invoice|InvoiceTemporary $Invoice): void
     {
-        $billingAgreementId = $Invoice->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
+        $billingAgreementId = $Invoice->getPaymentData(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
 
         if (empty($billingAgreementId)) {
             $Invoice->addHistory(
