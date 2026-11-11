@@ -9,6 +9,7 @@ use Doctrine\DBAL\ArrayParameterType;
 use PHPUnit\Framework\TestCase;
 use QUI;
 use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
 use QUI\ERP\Accounting\Payments\Transactions\Handler as TransactionHandler;
 use QUI\ERP\Accounting\Payments\Transactions\Transaction;
@@ -68,7 +69,17 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
         parent::tearDown();
     }
 
-    public function testCompletedPayPalTransactionPaysInvoice(): void
+    /** @return array<string, array{class-string}> */
+    public static function invoiceTypes(): array
+    {
+        return [
+            'posted invoice' => [Invoice::class],
+            'draft' => [InvoiceTemporary::class]
+        ];
+    }
+
+    /** @dataProvider invoiceTypes */
+    public function testCompletedPayPalTransactionPaysDocument(string $invoiceClass): void
     {
         $paypalTransactionId = self::PREFIX . 'completed';
         $this->insertPayPalTransaction(
@@ -76,7 +87,7 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
             Subscriptions::TRANSACTION_STATE_COMPLETED
         );
         $addedTransactions = [];
-        $Invoice = $this->invoice($addedTransactions);
+        $Invoice = $this->invoice($addedTransactions, $invoiceClass);
 
         Subscriptions::billSubscriptionInvoice($Invoice);
 
@@ -85,6 +96,8 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
         $this->transactionIds[] = $Transaction->getTxId();
 
         self::assertSame(19.95, $Transaction->getAmount());
+        self::assertSame(self::PREFIX . 'invoice', $Transaction->getHash());
+        self::assertSame(self::PREFIX . 'process', $Transaction->getGlobalProcessId());
         self::assertSame(TransactionHandler::STATUS_COMPLETE, $Transaction->getStatus());
         self::assertSame(self::CUSTOMER_UUID, $Transaction->getAttribute('uid'));
         self::assertSame(
@@ -121,11 +134,49 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
         );
     }
 
+    /** @return array<string, array{class-string, float}> */
+    public static function settledInvoices(): array
+    {
+        return [
+            'paid invoice' => [Invoice::class, 0.0],
+            'paid draft' => [InvoiceTemporary::class, 0.0],
+            'overpaid invoice' => [Invoice::class, -5.0],
+            'overpaid draft' => [InvoiceTemporary::class, -5.0]
+        ];
+    }
+
+    /** @dataProvider settledInvoices */
+    public function testSettledDocumentLeavesNextSubscriptionPaymentUnassigned(
+        string $invoiceClass,
+        float $outstanding
+    ): void {
+        $paypalTransactionId = self::PREFIX . 'next_payment';
+        $this->insertPayPalTransaction($paypalTransactionId, Subscriptions::TRANSACTION_STATE_COMPLETED);
+        $addedTransactions = [];
+        $Invoice = $this->invoice($addedTransactions, $invoiceClass, $outstanding);
+
+        Subscriptions::billSubscriptionInvoice($Invoice);
+
+        foreach ($addedTransactions as $Transaction) {
+            $this->transactionIds[] = $Transaction->getTxId();
+        }
+
+        self::assertSame([], $addedTransactions);
+        self::assertNull($this->connection()->fetchOne(
+            'SELECT quiqqer_transaction_id FROM ' . $this->paypalTransactionsTable()
+            . ' WHERE paypal_transaction_id = ?',
+            [$paypalTransactionId]
+        ));
+    }
+
     /**
      * @param list<Transaction> $addedTransactions
      */
-    private function invoice(array &$addedTransactions): Invoice
-    {
+    private function invoice(
+        array &$addedTransactions,
+        string $invoiceClass = Invoice::class,
+        float $outstanding = 10.0
+    ): Invoice|InvoiceTemporary {
         $Currency = $this->createMock(Currency::class);
         $Currency->method('getCode')->willReturn('EUR');
         $Currency->method('toArray')->willReturn([
@@ -135,11 +186,11 @@ final class SubscriptionsInvoiceProcessingTest extends TestCase
         $Customer = $this->createMock(ErpUser::class);
         $Customer->method('getUUID')->willReturn(self::CUSTOMER_UUID);
 
-        $Invoice = $this->createMock(Invoice::class);
+        $Invoice = $this->createMock($invoiceClass);
         $Invoice->method('getPaymentDataEntry')->willReturn(self::SUBSCRIPTION_ID);
         $Invoice->method('getPaymentData')->willReturn(self::SUBSCRIPTION_ID);
         $Invoice->method('getAttribute')->willReturnMap([
-            ['toPay', 10.0]
+            ['toPay', $outstanding]
         ]);
         $Invoice->method('getCurrency')->willReturn($Currency);
         $Invoice->method('getCustomer')->willReturn($Customer);

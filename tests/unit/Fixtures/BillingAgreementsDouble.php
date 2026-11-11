@@ -6,6 +6,7 @@ namespace QUITests\ERP\Payments\PayPal\Unit\Fixtures;
 
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
 use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Order\AbstractOrder;
 use QUI\ERP\Payments\PayPal\Payment;
@@ -64,8 +65,9 @@ final class BillingAgreementsDouble extends BillingAgreements
 
     protected static function getInvoiceById(
         InvoiceHandler $Invoices,
-        int|string $invoiceId
-    ): Invoice {
+        int|string $invoiceId,
+        bool $temporary = false
+    ): Invoice|InvoiceTemporary {
         return self::$invoicesById[$invoiceId];
     }
 
@@ -76,7 +78,7 @@ final class BillingAgreementsDouble extends BillingAgreements
     }
 
     protected static function billInvoiceAgreement(
-        Invoice $Invoice
+        Invoice|InvoiceTemporary $Invoice
     ): void {
         self::$processedInvoices[] = ['bill', $Invoice];
     }
