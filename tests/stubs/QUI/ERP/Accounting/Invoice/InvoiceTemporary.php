@@ -48,6 +48,11 @@ if (!class_exists(InvoiceTemporary::class, false)) {
             return null;
         }
 
+        public function getPaymentDataEntry(string $key): mixed
+        {
+            return null;
+        }
+
         public function getUUID(): string
         {
             return '';

@@ -10,6 +10,7 @@ use Exception;
 use QUI;
 use QUI\ERP\Accounting\Invoice\Handler as InvoiceHandler;
 use QUI\ERP\Accounting\Invoice\Invoice;
+use QUI\ERP\Accounting\Invoice\InvoiceTemporary;
 use QUI\ERP\Accounting\Payments\Gateway\Gateway;
 use QUI\ERP\Accounting\Payments\Payments;
 use QUI\ERP\Accounting\Payments\Transactions\Factory as TransactionFactory;
@@ -210,12 +211,12 @@ class BillingAgreements
     /**
      * Bills the balance for an agreement based on an Invoice
      *
-     * @param Invoice $Invoice
+     * @param Invoice|InvoiceTemporary $Invoice
      * @return void
      * @throws PayPalException
      * @throws QUI\Exception
      */
-    public static function billBillingAgreementBalance(Invoice $Invoice): void
+    public static function billBillingAgreementBalance(Invoice|InvoiceTemporary $Invoice): void
     {
         $billingAgreementId = $Invoice->getPaymentDataEntry(RecurringPayment::ATTR_PAYPAL_BILLING_AGREEMENT_ID);
 
@@ -271,10 +272,16 @@ class BillingAgreements
 //        }
 
         // Check if a Billing Agreement transaction matches the Invoice
-        $unprocessedTransactions = self::getUnprocessedTransactions($billingAgreementId);
         $Invoice->calculatePayments();
 
         $invoiceAmount = (float)$Invoice->getAttribute('toPay');
+
+        // Posting a paid draft must not consume another agreement payment.
+        if ($invoiceAmount <= 0) {
+            return;
+        }
+
+        $unprocessedTransactions = self::getUnprocessedTransactions($billingAgreementId);
         $invoiceCurrency = $Invoice->getCurrency()->getCode();
         $Payment = new RecurringPayment();
 
@@ -818,7 +825,10 @@ class BillingAgreements
                 $invoiceIds[$globalProcessId] = [];
             }
 
-            $invoiceIds[$globalProcessId][] = $row['id'];
+            $invoiceIds[$globalProcessId][] = [
+                'id' => $row['id'],
+                'temporary' => !empty($row['temporary'])
+            ];
         }
 
         if (empty($invoiceIds)) {
@@ -833,13 +843,18 @@ class BillingAgreements
                     continue;
                 }
 
-                foreach ($invoices as $invoiceId) {
+                foreach ($invoices as $invoiceReference) {
                     try {
                         $Invoice = static::getInvoiceById(
                             $Invoices,
-                            $invoiceId
+                            $invoiceReference['id'],
+                            $invoiceReference['temporary']
                         );
-                        static::processInvoiceDeniedTransactions($Invoice);
+
+                        if ($Invoice instanceof Invoice) {
+                            static::processInvoiceDeniedTransactions($Invoice);
+                        }
+
                         static::billInvoiceAgreement($Invoice);
                     } catch (Exception $Exception) {
                         QUI\System\Log::writeException($Exception);
@@ -884,11 +899,10 @@ class BillingAgreements
         InvoiceHandler $Invoices,
         array $paymentTypeIds
     ): array {
-        return $Invoices->search([
-            'select' => ['id', 'global_process_id'],
+        $params = [
+            'select' => ['id', 'global_process_id', 'date'],
             'where' => [
                 'paid_status' => 0,
-                'type' => QUI\ERP\Constants::TYPE_INVOICE,
                 'payment_method' => [
                     'type' => 'IN',
                     'value' => $paymentTypeIds
@@ -896,7 +910,28 @@ class BillingAgreements
             ],
             'order' => 'date ASC',
             'limit' => 99999 // yes, I hate this too
-        ]);
+        ];
+
+        $params['where']['type'] = QUI\ERP\Constants::TYPE_INVOICE;
+        $invoices = $Invoices->search($params);
+
+        foreach ($invoices as &$invoice) {
+            $invoice['temporary'] = false;
+        }
+        unset($invoice);
+
+        $params['where']['type'] = QUI\ERP\Constants::TYPE_INVOICE_TEMPORARY;
+        $temporaryInvoices = $Invoices->searchTemporaryInvoices($params);
+
+        foreach ($temporaryInvoices as &$temporaryInvoice) {
+            $temporaryInvoice['temporary'] = true;
+        }
+        unset($temporaryInvoice);
+
+        $result = array_merge($invoices, $temporaryInvoices);
+        usort($result, static fn(array $first, array $second): int => strcmp($first['date'], $second['date']));
+
+        return $result;
     }
 
     /**
@@ -933,15 +968,14 @@ class BillingAgreements
 
     protected static function getInvoiceById(
         InvoiceHandler $Invoices,
-        int|string $invoiceId
-    ): Invoice {
-        $Invoice = $Invoices->get($invoiceId);
-
-        if (!$Invoice instanceof Invoice) {
-            throw new \UnexpectedValueException('Expected a persistent invoice.');
+        int|string $invoiceId,
+        bool $temporary = false
+    ): Invoice|InvoiceTemporary {
+        if ($temporary) {
+            return $Invoices->getTemporaryInvoice($invoiceId);
         }
 
-        return $Invoice;
+        return $Invoices->getInvoice($invoiceId);
     }
 
     protected static function processInvoiceDeniedTransactions(
@@ -950,7 +984,7 @@ class BillingAgreements
         self::processDeniedTransactions($Invoice);
     }
 
-    protected static function billInvoiceAgreement(Invoice $Invoice): void
+    protected static function billInvoiceAgreement(Invoice|InvoiceTemporary $Invoice): void
     {
         self::billBillingAgreementBalance($Invoice);
     }

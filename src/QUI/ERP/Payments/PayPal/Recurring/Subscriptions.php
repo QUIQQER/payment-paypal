@@ -890,10 +890,16 @@ class Subscriptions
             );
         }
 
-        $unprocessedTransactions = self::getUnprocessedTransactions($subscriptionId);
         $Invoice->calculatePayments();
 
         $invoiceAmount = (float)$Invoice->getAttribute('toPay');
+
+        // Posting a paid draft must not consume another subscription payment.
+        if ($invoiceAmount <= 0) {
+            return;
+        }
+
+        $unprocessedTransactions = self::getUnprocessedTransactions($subscriptionId);
         $invoiceCurrency = $Invoice->getCurrency()->getCode();
         $Payment = new Payment();
 
@@ -1120,7 +1126,7 @@ class Subscriptions
         array $paymentTypeIds
     ): array {
         $params = [
-            'select' => ['id', 'global_process_id'],
+            'select' => ['id', 'global_process_id', 'date'],
             'where' => [
                 'paid_status' => 0,
                 'payment_method' => [
@@ -1148,7 +1154,10 @@ class Subscriptions
         }
         unset($temporaryInvoice);
 
-        return array_values(array_merge($invoices, $temporaryInvoices));
+        $result = array_merge($invoices, $temporaryInvoices);
+        usort($result, static fn(array $first, array $second): int => strcmp($first['date'], $second['date']));
+
+        return $result;
     }
 
     /**
